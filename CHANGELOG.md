@@ -1,0 +1,45 @@
+# Changelog — LUDUS Acompanha Backend
+
+Todas as mudanças relevantes do projeto são registradas aqui.  
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+---
+
+## [0.1.0] — 2026-04-15
+
+### Adicionado
+
+- `server.js` — ponto de entrada do servidor
+    - Carrega variáveis de ambiente via `dotenv`
+    - Conecta ao MongoDB e inicia o Express na porta configurada
+- `src/app.js` — configuração do Express
+    - Middleware `cors` para permitir requisições do Unity e do Dashboard
+    - Middleware `express.json()` para interpretar JSON no corpo das requisições
+    - Rota de health check `GET /` retornando status e versão da API
+- `src/config/database.js` — conexão com MongoDB Atlas via Mongoose
+    - Encerra o processo com `process.exit(1)` se a conexão falhar
+- `.env.example` — modelo de variáveis de ambiente para novos desenvolvedores
+- `.gitignore` — exclui `node_modules/` e `.env` do versionamento
+
+### Dependências instaladas
+
+- `express` — framework web
+- `mongoose` — ODM para MongoDB
+- `dotenv` — variáveis de ambiente
+- `cors` — Cross-Origin Resource Sharing
+- `nodemon` — reinício automático em desenvolvimento
+
+### Testado
+
+- Servidor iniciando corretamente na porta 3000
+- MongoDB Atlas conectado com sucesso
+- Health check `GET /` retornando `{ status: 'ok' }`
+
+---
+
+## Próximas versões planejadas
+
+- `[0.2.0]` — Models Mongoose: Session, Player, Institution
+- `[0.3.0]` — Rotas e Controllers: sessions, players, dashboard
+- `[0.4.0]` — Integração com o SDK Unity testada end-to-end
+- `[1.0.0]` — Backend completo conectado ao dashboard
