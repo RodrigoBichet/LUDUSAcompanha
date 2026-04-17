@@ -5,6 +5,25 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [0.2.0] — 2026-04-17
+
+### Adicionado
+
+- `src/models/Session.js` — model Mongoose da sessão de jogo
+    - Espelha exatamente a estrutura da `LudusSession` gerada pelo SDK Unity
+    - Sub-schemas: `MetricasSchema`, `CliqueSchema`, `PathPointSchema`, `GameEventSchema`
+    - `_id: false` nos sub-schemas — evita IDs desnecessários dentro dos arrays
+    - `sessionId` com `unique: true` — garante que não haverá sessões duplicadas
+    - `timestamps: true` — adiciona `createdAt` e `updatedAt` automaticamente
+- `src/models/Player.js` — model Mongoose do jogador
+    - Campos: `name`, `institutionId` (ref à Institution), `notes`
+    - `timestamps: true`
+- `src/models/Institution.js` — model Mongoose da instituição de ensino
+    - Campos: `name`, `city`
+    - `timestamps: true`
+
+---
+
 ## [0.1.0] — 2026-04-15
 
 ### Adicionado
@@ -23,11 +42,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Dependências instaladas
 
-- `express` — framework web
-- `mongoose` — ODM para MongoDB
-- `dotenv` — variáveis de ambiente
-- `cors` — Cross-Origin Resource Sharing
-- `nodemon` — reinício automático em desenvolvimento
+- `express`, `mongoose`, `dotenv`, `cors`, `nodemon`
 
 ### Testado
 
@@ -39,7 +54,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[0.2.0]` — Models Mongoose: Session, Player, Institution
 - `[0.3.0]` — Rotas e Controllers: sessions, players, dashboard
 - `[0.4.0]` — Integração com o SDK Unity testada end-to-end
 - `[1.0.0]` — Backend completo conectado ao dashboard

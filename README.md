@@ -27,7 +27,10 @@ LUDUSAcompanha/
 ├── src/
 │   ├── config/
 │   │   └── database.js         ← conexão com MongoDB Atlas             ✅
-│   ├── models/                 ← models Mongoose                       🔜
+│   ├── models/
+│   │   ├── Session.js          ← model da sessão de jogo               ✅
+│   │   ├── Player.js           ← model do jogador                      ✅
+│   │   └── Institution.js      ← model da instituição                  ✅
 │   ├── routes/                 ← rotas da API                          🔜
 │   ├── controllers/            ← lógica das rotas                      🔜
 │   └── app.js                  ← configuração do Express               ✅
@@ -105,9 +108,46 @@ Deve aparecer:
 
 ---
 
+## Models do banco de dados
+
+### Session
+
+Espelha exatamente a estrutura gerada pelo SDK Unity (`LudusSession`).
+
+| Campo                   | Tipo           | Descrição                               |
+| ----------------------- | -------------- | --------------------------------------- |
+| `sessionId`             | String (único) | UUID gerado pelo Unity                  |
+| `playerId`              | String         | Nome/ID do jogador                      |
+| `gameId`                | String         | Identificador do jogo                   |
+| `gameVersion`           | String         | Versão do jogo                          |
+| `platform`              | String         | `WebGL` ou `Android`                    |
+| `startedAt` / `endedAt` | String         | Timestamps ISO 8601                     |
+| `durationMs`            | Number         | Duração total em ms                     |
+| `metrics`               | Object         | Métricas agregadas da sessão            |
+| `clicks`                | Array          | Lista de cliques com posição e elemento |
+| `mousePath`             | Array          | Caminho do mouse/dedo para heatmap      |
+| `gameEvents`            | Array          | Eventos semânticos do jogo              |
+
+### Player
+
+| Campo           | Tipo     | Descrição                |
+| --------------- | -------- | ------------------------ |
+| `name`          | String   | Nome da criança          |
+| `institutionId` | ObjectId | Referência à instituição |
+| `notes`         | String   | Observações do professor |
+
+### Institution
+
+| Campo  | Tipo   | Descrição           |
+| ------ | ------ | ------------------- |
+| `name` | String | Nome da instituição |
+| `city` | String | Cidade              |
+
+---
+
 ## API REST
 
-> Em desenvolvimento — rotas serão documentadas conforme implementadas.
+> Rotas em desenvolvimento.
 
 | Método | Rota                                | Descrição               | Status |
 | ------ | ----------------------------------- | ----------------------- | ------ |
@@ -124,11 +164,11 @@ Deve aparecer:
 
 ### Etapa 2 — Backend
 
-| Componente                            | Status |
-| ------------------------------------- | ------ |
-| Servidor Express + conexão MongoDB    | ✅     |
-| Models (Session, Player, Institution) | 🔜     |
-| Rotas e Controllers                   | 🔜     |
+| Componente                            | Status                |
+| ------------------------------------- | --------------------- |
+| Servidor Express + conexão MongoDB    | ✅                    |
+| Models (Session, Player, Institution) | ✅                    |
+| Rotas e Controllers                   | 🔧 Em desenvolvimento |
 
 ---
 
