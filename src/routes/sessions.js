@@ -1,0 +1,22 @@
+// =============================================================================
+// sessions.js (routes)
+// LUDUS Acompanha — UFPel (2026)
+// Autor: Rodrigo Leitzke Bichet
+//
+// Rotas de sessões de jogo.
+// =============================================================================
+
+const express = require("express");
+const router = express.Router();
+const controller = require("../controllers/sessionsController");
+
+// POST /api/sessions       — recebe sessão do Unity
+router.post("/", controller.criarSessao);
+
+// GET  /api/sessions       — lista sessões (debug)
+router.get("/", controller.listarSessoes);
+
+// GET  /api/sessions/:id   — busca sessão completa
+router.get("/:sessionId", controller.buscarSessao);
+
+module.exports = router;
