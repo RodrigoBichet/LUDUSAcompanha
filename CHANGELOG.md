@@ -5,6 +5,32 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [0.3.0] — 2026-04-17
+
+### Adicionado
+
+- `src/controllers/sessionsController.js` — lógica das rotas de sessões
+    - `criarSessao` — valida campos obrigatórios, verifica duplicatas e salva no MongoDB
+    - `listarSessoes` — retorna até 50 sessões com campos essenciais, ordenadas por data
+    - `buscarSessao` — retorna sessão completa pelo `sessionId`
+    - Respostas padronizadas com campo `sucesso` e mensagens descritivas
+- `src/routes/sessions.js` — rotas de sessões
+    - `POST /api/sessions` — recebe sessão do Unity
+    - `GET /api/sessions` — lista sessões
+    - `GET /api/sessions/:sessionId` — busca sessão por ID
+- `src/app.js` atualizado — rota `/api/sessions` conectada
+
+### Corrigido
+
+- Connection string do MongoDB Atlas trocada para formato direto (`mongodb://`) em vez de `mongodb+srv://` — resolve problema de DNS em algumas redes
+
+### Testado
+
+- `GET /api/sessions` retornando `{ sucesso: true, total: 0, sessoes: [] }` corretamente
+- Servidor conectando ao Atlas com a nova connection string
+
+---
+
 ## [0.2.0] — 2026-04-17
 
 ### Adicionado
@@ -12,15 +38,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - `src/models/Session.js` — model Mongoose da sessão de jogo
     - Espelha exatamente a estrutura da `LudusSession` gerada pelo SDK Unity
     - Sub-schemas: `MetricasSchema`, `CliqueSchema`, `PathPointSchema`, `GameEventSchema`
-    - `_id: false` nos sub-schemas — evita IDs desnecessários dentro dos arrays
-    - `sessionId` com `unique: true` — garante que não haverá sessões duplicadas
-    - `timestamps: true` — adiciona `createdAt` e `updatedAt` automaticamente
-- `src/models/Player.js` — model Mongoose do jogador
-    - Campos: `name`, `institutionId` (ref à Institution), `notes`
-    - `timestamps: true`
-- `src/models/Institution.js` — model Mongoose da instituição de ensino
-    - Campos: `name`, `city`
-    - `timestamps: true`
+    - `_id: false` nos sub-schemas, `sessionId` com `unique: true`, `timestamps: true`
+- `src/models/Player.js` — model do jogador com referência à instituição
+- `src/models/Institution.js` — model da instituição de ensino
 
 ---
 
@@ -29,31 +49,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado
 
 - `server.js` — ponto de entrada do servidor
-    - Carrega variáveis de ambiente via `dotenv`
-    - Conecta ao MongoDB e inicia o Express na porta configurada
-- `src/app.js` — configuração do Express
-    - Middleware `cors` para permitir requisições do Unity e do Dashboard
-    - Middleware `express.json()` para interpretar JSON no corpo das requisições
-    - Rota de health check `GET /` retornando status e versão da API
+- `src/app.js` — Express com middlewares `cors` e `express.json()`
 - `src/config/database.js` — conexão com MongoDB Atlas via Mongoose
-    - Encerra o processo com `process.exit(1)` se a conexão falhar
-- `.env.example` — modelo de variáveis de ambiente para novos desenvolvedores
-- `.gitignore` — exclui `node_modules/` e `.env` do versionamento
-
-### Dependências instaladas
-
-- `express`, `mongoose`, `dotenv`, `cors`, `nodemon`
+- `.env.example`, `.gitignore`, `package.json` configurados
 
 ### Testado
 
-- Servidor iniciando corretamente na porta 3000
-- MongoDB Atlas conectado com sucesso
-- Health check `GET /` retornando `{ status: 'ok' }`
+- Servidor iniciando na porta 3000, MongoDB conectado, health check funcionando
 
 ---
 
 ## Próximas versões planejadas
 
-- `[0.3.0]` — Rotas e Controllers: sessions, players, dashboard
-- `[0.4.0]` — Integração com o SDK Unity testada end-to-end
+- `[0.4.0]` — Rotas e Controllers de Players e Dashboard
+- `[0.5.0]` — Teste end-to-end Unity → Backend → MongoDB Atlas
 - `[1.0.0]` — Backend completo conectado ao dashboard

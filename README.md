@@ -26,18 +26,20 @@ Unity (C# SDK) → JSON → Node.js + Express → MongoDB → API REST → Pytho
 LUDUSAcompanha/
 ├── src/
 │   ├── config/
-│   │   └── database.js         ← conexão com MongoDB Atlas             ✅
+│   │   └── database.js              ← conexão com MongoDB Atlas             ✅
 │   ├── models/
-│   │   ├── Session.js          ← model da sessão de jogo               ✅
-│   │   ├── Player.js           ← model do jogador                      ✅
-│   │   └── Institution.js      ← model da instituição                  ✅
-│   ├── routes/                 ← rotas da API                          🔜
-│   ├── controllers/            ← lógica das rotas                      🔜
-│   └── app.js                  ← configuração do Express               ✅
-├── .env.example                ← modelo de variáveis de ambiente
+│   │   ├── Session.js               ← model da sessão de jogo               ✅
+│   │   ├── Player.js                ← model do jogador                      ✅
+│   │   └── Institution.js           ← model da instituição                  ✅
+│   ├── routes/
+│   │   └── sessions.js              ← rotas de sessões                      ✅
+│   ├── controllers/
+│   │   └── sessionsController.js    ← lógica das sessões                    ✅
+│   └── app.js                       ← configuração do Express               ✅
+├── .env.example                     ← modelo de variáveis de ambiente
 ├── .gitignore
 ├── package.json
-└── server.js                   ← ponto de entrada do servidor          ✅
+└── server.js                        ← ponto de entrada do servidor          ✅
 ```
 
 ---
@@ -70,7 +72,9 @@ npm install
 cp .env.example .env
 ```
 
-Edite o `.env` com sua connection string do MongoDB Atlas e defina uma porta.
+Edite o `.env` com sua connection string do MongoDB Atlas.
+
+> ⚠️ Use o formato de connection string **direta** (não o formato `mongodb+srv`), pois pode haver problemas de resolução DNS em algumas redes.
 
 **4. Inicie o servidor em modo desenvolvimento:**
 
@@ -89,10 +93,17 @@ Deve aparecer:
 
 ## Variáveis de ambiente
 
-| Variável      | Descrição                          | Exemplo             |
-| ------------- | ---------------------------------- | ------------------- |
-| `PORT`        | Porta do servidor                  | `3000`              |
-| `MONGODB_URI` | Connection string do MongoDB Atlas | `mongodb+srv://...` |
+| Variável      | Descrição                                 |
+| ------------- | ----------------------------------------- |
+| `PORT`        | Porta do servidor (padrão: 3000)          |
+| `MONGODB_URI` | Connection string direta do MongoDB Atlas |
+
+Exemplo de `.env`:
+
+```
+PORT=3000
+MONGODB_URI=mongodb://usuario:senha@shard-00-00.xxxxx.mongodb.net:27017,shard-00-01.xxxxx.mongodb.net:27017,shard-00-02.xxxxx.mongodb.net:27017/?ssl=true&replicaSet=atlas-xxxxx&authSource=admin&appName=Cluster0
+```
 
 ---
 
@@ -147,12 +158,12 @@ Espelha exatamente a estrutura gerada pelo SDK Unity (`LudusSession`).
 
 ## API REST
 
-> Rotas em desenvolvimento.
-
 | Método | Rota                                | Descrição               | Status |
 | ------ | ----------------------------------- | ----------------------- | ------ |
 | GET    | `/`                                 | Health check            | ✅     |
-| POST   | `/api/sessions`                     | Recebe sessão do Unity  | 🔜     |
+| POST   | `/api/sessions`                     | Recebe sessão do Unity  | ✅     |
+| GET    | `/api/sessions`                     | Lista sessões           | ✅     |
+| GET    | `/api/sessions/:sessionId`          | Busca sessão por ID     | ✅     |
 | GET    | `/api/players`                      | Lista jogadores         | 🔜     |
 | GET    | `/api/players/:id/sessions`         | Histórico de um jogador | 🔜     |
 | GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas   | 🔜     |
@@ -168,7 +179,8 @@ Espelha exatamente a estrutura gerada pelo SDK Unity (`LudusSession`).
 | ------------------------------------- | --------------------- |
 | Servidor Express + conexão MongoDB    | ✅                    |
 | Models (Session, Player, Institution) | ✅                    |
-| Rotas e Controllers                   | 🔧 Em desenvolvimento |
+| Rotas e Controller de Sessions        | ✅                    |
+| Rotas de Players e Dashboard          | 🔧 Em desenvolvimento |
 
 ---
 
