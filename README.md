@@ -32,9 +32,13 @@ LUDUSAcompanha/
 │   │   ├── Player.js                ← model do jogador                      ✅
 │   │   └── Institution.js           ← model da instituição                  ✅
 │   ├── routes/
-│   │   └── sessions.js              ← rotas de sessões                      ✅
+│   │   ├── sessions.js              ← rotas de sessões                      ✅
+│   │   ├── players.js               ← rotas de jogadores                    ✅
+│   │   └── dashboard.js             ← rotas do dashboard                    ✅
 │   ├── controllers/
-│   │   └── sessionsController.js    ← lógica das sessões                    ✅
+│   │   ├── sessionsController.js    ← lógica das sessões                    ✅
+│   │   ├── playersController.js     ← lógica dos jogadores                  ✅
+│   │   └── dashboardController.js   ← lógica do dashboard                   ✅
 │   └── app.js                       ← configuração do Express               ✅
 ├── .env.example                     ← modelo de variáveis de ambiente
 ├── .gitignore
@@ -98,13 +102,6 @@ Deve aparecer:
 | `PORT`        | Porta do servidor (padrão: 3000)          |
 | `MONGODB_URI` | Connection string direta do MongoDB Atlas |
 
-Exemplo de `.env`:
-
-```
-PORT=3000
-MONGODB_URI=mongodb://usuario:senha@shard-00-00.xxxxx.mongodb.net:27017,shard-00-01.xxxxx.mongodb.net:27017,shard-00-02.xxxxx.mongodb.net:27017/?ssl=true&replicaSet=atlas-xxxxx&authSource=admin&appName=Cluster0
-```
-
 ---
 
 ## Dependências
@@ -119,68 +116,88 @@ MONGODB_URI=mongodb://usuario:senha@shard-00-00.xxxxx.mongodb.net:27017,shard-00
 
 ---
 
-## Models do banco de dados
+## API REST — Referência completa
 
-### Session
+### Sessions
 
-Espelha exatamente a estrutura gerada pelo SDK Unity (`LudusSession`).
+| Método | Rota                       | Descrição                    |
+| ------ | -------------------------- | ---------------------------- |
+| GET    | `/`                        | Health check                 |
+| POST   | `/api/sessions`            | Recebe sessão do Unity       |
+| GET    | `/api/sessions`            | Lista sessões (últimas 50)   |
+| GET    | `/api/sessions/:sessionId` | Busca sessão completa por ID |
 
-| Campo                   | Tipo           | Descrição                               |
-| ----------------------- | -------------- | --------------------------------------- |
-| `sessionId`             | String (único) | UUID gerado pelo Unity                  |
-| `playerId`              | String         | Nome/ID do jogador                      |
-| `gameId`                | String         | Identificador do jogo                   |
-| `gameVersion`           | String         | Versão do jogo                          |
-| `platform`              | String         | `WebGL` ou `Android`                    |
-| `startedAt` / `endedAt` | String         | Timestamps ISO 8601                     |
-| `durationMs`            | Number         | Duração total em ms                     |
-| `metrics`               | Object         | Métricas agregadas da sessão            |
-| `clicks`                | Array          | Lista de cliques com posição e elemento |
-| `mousePath`             | Array          | Caminho do mouse/dedo para heatmap      |
-| `gameEvents`            | Array          | Eventos semânticos do jogo              |
+### Players
 
-### Player
+| Método | Rota                              | Descrição                                       |
+| ------ | --------------------------------- | ----------------------------------------------- |
+| POST   | `/api/players`                    | Cria um jogador                                 |
+| GET    | `/api/players`                    | Lista jogadores cadastrados e nomes nas sessões |
+| GET    | `/api/players/:id`                | Busca jogador por ID                            |
+| GET    | `/api/players/:playerId/sessions` | Histórico de sessões de um jogador              |
 
-| Campo           | Tipo     | Descrição                |
-| --------------- | -------- | ------------------------ |
-| `name`          | String   | Nome da criança          |
-| `institutionId` | ObjectId | Referência à instituição |
-| `notes`         | String   | Observações do professor |
+### Dashboard
 
-### Institution
-
-| Campo  | Tipo   | Descrição           |
-| ------ | ------ | ------------------- |
-| `name` | String | Nome da instituição |
-| `city` | String | Cidade              |
+| Método | Rota                                | Descrição                        |
+| ------ | ----------------------------------- | -------------------------------- |
+| GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas do jogador |
+| GET    | `/api/dashboard/heatmap/:sessionId` | Dados de heatmap de uma sessão   |
 
 ---
 
-## API REST
+## Exemplos de resposta
 
-| Método | Rota                                | Descrição               | Status |
-| ------ | ----------------------------------- | ----------------------- | ------ |
-| GET    | `/`                                 | Health check            | ✅     |
-| POST   | `/api/sessions`                     | Recebe sessão do Unity  | ✅     |
-| GET    | `/api/sessions`                     | Lista sessões           | ✅     |
-| GET    | `/api/sessions/:sessionId`          | Busca sessão por ID     | ✅     |
-| GET    | `/api/players`                      | Lista jogadores         | 🔜     |
-| GET    | `/api/players/:id/sessions`         | Histórico de um jogador | 🔜     |
-| GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas   | 🔜     |
-| GET    | `/api/dashboard/heatmap/:sessionId` | Dados para heatmap      | 🔜     |
+### GET /api/dashboard/summary/:playerId
+
+```json
+{
+  "sucesso": true,
+  "playerId": "rodrigo",
+  "totalSessoes": 3,
+  "totalClicks": 45,
+  "totalCorrect": 12,
+  "totalWrong": 3,
+  "taxaAcerto": "80.0%",
+  "totalDuracaoMs": 42000,
+  "totalInatividade": 1,
+  "categorias": { "Fase01": 2, "Fase05": 1 },
+  "evolucaoTemporal": [ ... ]
+}
+```
+
+### GET /api/dashboard/heatmap/:sessionId
+
+```json
+{
+  "sucesso": true,
+  "sessionId": "xxxx-xxxx",
+  "playerId": "rodrigo",
+  "mousePath": [ { "x": 320, "y": 210, "t": 1200 }, ... ],
+  "clicks": [ { "element": "btn_categoria", "x": 320, "y": 210, "timestamp": 1200 }, ... ]
+}
+```
 
 ---
 
 ## Status do desenvolvimento
 
-### Etapa 2 — Backend
+### Etapa 2 — Backend ✅ Completo
 
-| Componente                            | Status                |
-| ------------------------------------- | --------------------- |
-| Servidor Express + conexão MongoDB    | ✅                    |
-| Models (Session, Player, Institution) | ✅                    |
-| Rotas e Controller de Sessions        | ✅                    |
-| Rotas de Players e Dashboard          | 🔧 Em desenvolvimento |
+| Componente                                 | Status |
+| ------------------------------------------ | ------ |
+| Servidor Express + conexão MongoDB         | ✅     |
+| Models (Session, Player, Institution)      | ✅     |
+| Rotas e Controller de Sessions             | ✅     |
+| Rotas e Controller de Players              | ✅     |
+| Rotas e Controller de Dashboard            | ✅     |
+| Fluxo end-to-end Unity → Backend → MongoDB | ✅     |
+
+### Próximas etapas
+
+| Etapa   | Descrição                        | Status |
+| ------- | -------------------------------- | ------ |
+| Etapa 3 | Dashboard React + Vite           | 🔜     |
+| Etapa 4 | Análise ML Python + scikit-learn | 🔜     |
 
 ---
 
