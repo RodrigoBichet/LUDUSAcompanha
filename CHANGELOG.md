@@ -1,64 +1,38 @@
-# Changelog — LUDUS Acompanha
+# Changelog — LUDUS Acompanha Backend
 
 Todas as mudanças relevantes do projeto são registradas aqui.  
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [0.5.0] — 2026-04-18 — Dashboard React inicial 🎉
+## [0.4.0] — 2026-04-18 — Backend Completo 🎉
 
 ### Adicionado
 
-- `frontend/src/index.css` — design system global
-    - Paleta de cores via CSS variables: fundo creme, sidebar escura, verde primário
-    - Tipografia: DM Serif Display (títulos) + Nunito (corpo)
-    - Classes utilitárias: `.card`, `.spinner`, `.badge`, `.texto-leve`
-- `frontend/src/App.jsx` — configuração de rotas com React Router
-    - Rota `/` → Home
-    - Rota `/jogador/:playerId` → PerfilJogador
-    - Rota `/sessao/:sessionId` → DetalhesSessao
-- `frontend/src/services/api.js` — camada de serviço
-    - `listarJogadores`, `historicoJogador`, `resumoJogador`, `heatmapSessao`, `buscarSessao`
-    - baseURL apontando para `http://localhost:3000/api`
-- `frontend/src/components/layout/Sidebar.jsx` + `Sidebar.css`
-    - Sidebar fixa com logo LUDUS, navegação e rodapé
-- `frontend/src/components/layout/Header.jsx` + `Header.css`
-    - Header sticky com título e subtítulo por página
-- `frontend/src/pages/Home.jsx` + `Home.css`
-    - Lista de jogadores com avatar, nome capitalizado e badge contador
-    - Estados de carregamento, erro e lista vazia
-- `frontend/src/pages/PerfilJogador.jsx` + `PerfilJogador.css`
-    - 6 cards de métricas: sessões, acertos, erros, taxa de acerto, tempo, inatividades
-    - Categorias jogadas com chips
-    - Gráfico de evolução temporal com Recharts
-    - Histórico de sessões clicável
-- `frontend/src/pages/DetalhesSessao.jsx` + `DetalhesSessao.css`
-    - Heatmap de interações renderizado em Canvas (caminho do mouse + cliques)
-    - Timeline completa de eventos com ícones e payloads
-    - Informações gerais da sessão
+- `src/controllers/playersController.js` — lógica dos jogadores
+    - `criarJogador` — cadastra novo jogador no banco
+    - `listarJogadores` — retorna jogadores cadastrados + nomes únicos nas sessões
+    - `buscarJogador` — busca jogador por ID
+    - `historicoJogador` — retorna todas as sessões de um jogador pelo nome
+- `src/controllers/dashboardController.js` — lógica do dashboard pedagógico
+    - `resumoJogador` — consolida métricas de todas as sessões: totalClicks, totalCorrect, totalWrong, taxaAcerto, totalDuracaoMs, categorias jogadas e evolução temporal
+    - `heatmapSessao` — retorna mousePath e clicks de uma sessão para geração de heatmap
+- `src/routes/players.js` — rotas de jogadores
+    - `POST /api/players`, `GET /api/players`, `GET /api/players/:id`, `GET /api/players/:playerId/sessions`
+- `src/routes/dashboard.js` — rotas do dashboard
+    - `GET /api/dashboard/summary/:playerId`, `GET /api/dashboard/heatmap/:sessionId`
+- `src/app.js` atualizado — todas as rotas conectadas
 
-### Observação
+### Marco
 
-Design provisório para fins de desenvolvimento e teste.
-Será refatorado com material da designer alinhado à identidade visual da plataforma LUDUS.
+- **Backend completo** — todas as rotas implementadas e testadas
+- **Fluxo end-to-end validado:** Unity → SDK → JSON → Node.js → MongoDB Atlas → API REST
 
 ### Testado
 
-- Home listando jogadores reais do banco
-- Perfil com métricas consolidadas e taxa de acerto real
-- Heatmap renderizando caminho do mouse e cliques de sessão real
-- Timeline mostrando todos os eventos semânticos com timestamps
-
----
-
-## [0.4.0] — 2026-04-18
-
-### Adicionado — Backend completo
-
-- `playersController`: criarJogador, listarJogadores, buscarJogador, historicoJogador
-- `dashboardController`: resumoJogador com métricas consolidadas, heatmapSessao
-- Rotas `/api/players` e `/api/dashboard` conectadas
-- Fluxo end-to-end validado: Unity → SDK → JSON → Node.js → MongoDB Atlas
+- `GET /api/players` retornando jogadores cadastrados e nomes nas sessões
+- `GET /api/dashboard/summary/rodrigo teste 04` retornando `taxaAcerto: 80.0%` com evolução temporal
+- `GET /api/dashboard/heatmap/:sessionId` retornando mousePath completo para heatmap
 
 ---
 
@@ -66,12 +40,16 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado
 
-- `sessionsController`: criarSessao, listarSessoes, buscarSessao
-- Rotas `/api/sessions` conectadas
+- `src/controllers/sessionsController.js` — criarSessao, listarSessoes, buscarSessao
+- `src/routes/sessions.js` — POST e GET /api/sessions, GET /api/sessions/:sessionId
 
 ### Corrigido
 
-- Connection string MongoDB trocada para formato direto (fix DNS)
+- Connection string trocada para formato direto — resolve problema de DNS em algumas redes
+
+### Testado
+
+- `GET /api/sessions` retornando lista corretamente
 
 ---
 
@@ -79,7 +57,9 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado
 
-- Models Mongoose: Session, Player, Institution
+- `src/models/Session.js` — espelha LudusSession com sub-schemas, `unique: true` e `timestamps`
+- `src/models/Player.js` — jogador com referência à instituição
+- `src/models/Institution.js` — instituição de ensino
 
 ---
 
@@ -87,15 +67,18 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado
 
-- Setup inicial: Express + MongoDB Atlas + nodemon
-- Health check, CORS, middlewares
+- `server.js`, `src/app.js`, `src/config/database.js`
+- Express com CORS, JSON middleware e health check
+- `.env.example`, `.gitignore`, `package.json`
+- Dependências: express, mongoose, dotenv, cors, nodemon
+
+### Testado
+
+- Servidor na porta 3000, MongoDB Atlas conectado, health check funcionando
 
 ---
 
 ## Próximas versões planejadas
 
-- `[0.6.0]` — Autenticação + hierarquia escola/turma/aluno
-- `[0.7.0]` — Refatorar tela Unity com seleção de aluno
-- `[0.8.0]` — Funcionalidades pedagógicas: alertas, observações, PDF
-- `[0.9.0]` — Dashboard Admin + responsividade
-- `[1.0.0]` — Sistema completo publicado e testado nas escolas
+- `[1.0.0]` — Backend integrado ao Dashboard React
+- `[1.1.0]` — Análise ML com Python + scikit-learn conectada à API
