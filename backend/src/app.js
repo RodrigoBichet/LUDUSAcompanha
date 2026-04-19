@@ -34,6 +34,10 @@ app.get("/", (req, res) => {
 // Rotas da API (serão adicionadas em breve)
 // -------------------------------------------------------------------------
 
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/schools", require("./routes/schools"));
+app.use("/api/groups", require("./routes/groups"));
+app.use("/api/students", require("./routes/students"));
 app.use("/api/sessions", require("./routes/sessions"));
 app.use("/api/players", require("./routes/players"));
 app.use("/api/dashboard", require("./routes/dashboard"));

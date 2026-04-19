@@ -1,2 +1,7 @@
-node_modules/
-.env
+# Sistemas operacionais
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
