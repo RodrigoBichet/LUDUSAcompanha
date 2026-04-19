@@ -26,41 +26,51 @@ Unity (C# SDK) → JSON → Node.js + Express → MongoDB → API REST → Dashb
 
 ```
 LUDUSAcompanha/
-├── backend/                    ← Servidor Node.js + Express + MongoDB    ✅
+├── backend/                         ← Servidor Node.js + Express + MongoDB
 │   ├── src/
 │   │   ├── config/
-│   │   │   └── database.js
+│   │   │   └── database.js          ← conexão MongoDB Atlas
+│   │   ├── middleware/
+│   │   │   └── auth.js              ← autenticação JWT
 │   │   ├── models/
 │   │   │   ├── Session.js
 │   │   │   ├── Player.js
-│   │   │   └── Institution.js
+│   │   │   ├── Institution.js
+│   │   │   ├── User.js              ← professor ou admin
+│   │   │   ├── School.js            ← escola
+│   │   │   ├── Group.js             ← turma
+│   │   │   └── Student.js           ← aluno
 │   │   ├── routes/
+│   │   │   ├── auth.js
+│   │   │   ├── schools.js
+│   │   │   ├── groups.js
+│   │   │   ├── students.js
 │   │   │   ├── sessions.js
 │   │   │   ├── players.js
 │   │   │   └── dashboard.js
 │   │   ├── controllers/
+│   │   │   ├── authController.js
+│   │   │   ├── schoolsController.js
+│   │   │   ├── groupsController.js
+│   │   │   ├── studentsController.js
 │   │   │   ├── sessionsController.js
 │   │   │   ├── playersController.js
 │   │   │   └── dashboardController.js
+│   │   ├── scripts/
+│   │   │   └── criarAdmin.js        ← cria o primeiro admin
 │   │   └── app.js
 │   ├── .env.example
 │   ├── .gitignore
 │   ├── package.json
 │   └── server.js
-└── frontend/                   ← Dashboard React + Vite                  🔧
-    ├── src/
-    │   ├── components/
-    │   │   └── layout/
-    │   │       ├── Sidebar.jsx
-    │   │       └── Header.jsx
-    │   ├── pages/
-    │   │   ├── Home.jsx
-    │   │   ├── PerfilJogador.jsx
-    │   │   └── DetalhesSessao.jsx
-    │   ├── services/
-    │   │   └── api.js
-    │   └── App.jsx
-    └── package.json
+├── frontend/                        ← Dashboard React + Vite
+│   ├── src/
+│   │   ├── components/layout/
+│   │   ├── pages/
+│   │   └── services/api.js
+│   └── package.json
+└── docs/
+    └── LUDUS_API.postman_collection.json  ← collection para testes
 ```
 
 ---
@@ -73,15 +83,8 @@ LUDUSAcompanha/
 cd backend
 npm install
 cp .env.example .env
-# Edite o .env com sua connection string do MongoDB Atlas
+# Edite o .env com suas credenciais
 npm run dev
-```
-
-Deve aparecer:
-
-```
-[LUDUS] MongoDB conectado com sucesso!
-[LUDUS] Servidor rodando na porta 3000
 ```
 
 ### Frontend
@@ -94,70 +97,127 @@ npm run dev
 
 Acesse em `http://localhost:5173`
 
-> ⚠️ O backend precisa estar rodando para o dashboard funcionar.
+### Criar primeiro administrador
+
+```bash
+cd backend
+# Edite src/scripts/criarAdmin.js com seu email e senha
+node src/scripts/criarAdmin.js
+```
+
+---
+
+## Variáveis de ambiente (backend)
+
+| Variável      | Descrição                                |
+| ------------- | ---------------------------------------- |
+| `PORT`        | Porta do servidor (padrão: 3000)         |
+| `MONGODB_URI` | Connection string do MongoDB Atlas       |
+| `JWT_SECRET`  | Chave secreta para geração de tokens JWT |
+
+---
+
+## Testando a API
+
+Importe a collection do Postman disponível em `docs/LUDUS_API.postman_collection.json` para testar todas as rotas localmente.
+
+Configure o ambiente no Postman com a variável `token` — ela é preenchida automaticamente após o login via script de Post-request.
 
 ---
 
 ## API REST — Referência completa
 
-### Health Check
+### Auth
 
-| Método | Rota | Descrição     |
-| ------ | ---- | ------------- |
-| GET    | `/`  | Status da API |
+| Método | Rota                 | Descrição                | Auth |
+| ------ | -------------------- | ------------------------ | ---- |
+| POST   | `/api/auth/register` | Cadastrar usuário        | —    |
+| POST   | `/api/auth/login`    | Login                    | —    |
+| GET    | `/api/auth/me`       | Perfil do usuário logado | ✅   |
+
+### Schools
+
+| Método | Rota               | Descrição      | Auth  |
+| ------ | ------------------ | -------------- | ----- |
+| POST   | `/api/schools`     | Criar escola   | Admin |
+| GET    | `/api/schools`     | Listar escolas | ✅    |
+| GET    | `/api/schools/:id` | Buscar escola  | ✅    |
+
+### Groups (Turmas)
+
+| Método | Rota              | Descrição     | Auth |
+| ------ | ----------------- | ------------- | ---- |
+| POST   | `/api/groups`     | Criar turma   | ✅   |
+| GET    | `/api/groups`     | Listar turmas | ✅   |
+| GET    | `/api/groups/:id` | Buscar turma  | ✅   |
+
+### Students (Alunos)
+
+| Método | Rota                | Descrição              | Auth |
+| ------ | ------------------- | ---------------------- | ---- |
+| POST   | `/api/students`     | Cadastrar aluno        | ✅   |
+| GET    | `/api/students`     | Listar alunos          | ✅   |
+| GET    | `/api/students/:id` | Buscar aluno + sessões | ✅   |
 
 ### Sessions
 
-| Método | Rota                       | Descrição              |
-| ------ | -------------------------- | ---------------------- |
-| POST   | `/api/sessions`            | Recebe sessão do Unity |
-| GET    | `/api/sessions`            | Lista sessões          |
-| GET    | `/api/sessions/:sessionId` | Busca sessão completa  |
+| Método | Rota                       | Descrição              | Auth |
+| ------ | -------------------------- | ---------------------- | ---- |
+| POST   | `/api/sessions`            | Recebe sessão do Unity | —    |
+| GET    | `/api/sessions`            | Lista sessões          | —    |
+| GET    | `/api/sessions/:sessionId` | Busca sessão completa  | —    |
 
 ### Players
 
-| Método | Rota                              | Descrição            |
-| ------ | --------------------------------- | -------------------- |
-| POST   | `/api/players`                    | Cria jogador         |
-| GET    | `/api/players`                    | Lista jogadores      |
-| GET    | `/api/players/:id`                | Busca jogador        |
-| GET    | `/api/players/:playerId/sessions` | Histórico de sessões |
+| Método | Rota                              | Descrição       | Auth |
+| ------ | --------------------------------- | --------------- | ---- |
+| GET    | `/api/players`                    | Lista jogadores | —    |
+| GET    | `/api/players/:playerId/sessions` | Histórico       | —    |
 
 ### Dashboard
 
-| Método | Rota                                | Descrição             |
-| ------ | ----------------------------------- | --------------------- |
-| GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas |
-| GET    | `/api/dashboard/heatmap/:sessionId` | Dados de heatmap      |
+| Método | Rota                                | Descrição             | Auth |
+| ------ | ----------------------------------- | --------------------- | ---- |
+| GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas | —    |
+| GET    | `/api/dashboard/heatmap/:sessionId` | Dados de heatmap      | —    |
 
 ---
 
-## Dashboard — Telas implementadas
+## Hierarquia do sistema
 
-| Tela   | Rota                 | Descrição                        |
-| ------ | -------------------- | -------------------------------- |
-| Home   | `/`                  | Lista de jogadores monitorados   |
-| Perfil | `/jogador/:playerId` | Métricas, categorias e histórico |
-| Sessão | `/sessao/:sessionId` | Heatmap e timeline de eventos    |
+```
+ADMINISTRADOR
+└── Escola
+    ├── Professor
+    │   ├── Turma A
+    │   │   ├── Aluno 1
+    │   │   └── Aluno 2
+    │   └── Turma B
+    └── Professor B
+        └── Turma C
+```
+
+- **Admin** — acesso total ao sistema
+- **Professor** — acessa apenas sua escola e turmas
 
 ---
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                                               | Status               |
-| ----- | ------------------------------------------------------- | -------------------- |
-| 1     | SDK Unity (C#)                                          | ✅ Concluída         |
-| 1.5   | Integração no Para Que Serve?                           | ✅ Concluída         |
-| 2     | Backend Node.js + MongoDB                               | ✅ Concluída         |
-| 3     | Dashboard React                                         | 🔧 Design provisório |
-| 4     | Autenticação + Hierarquia (escola/turma/aluno)          | 🔜                   |
-| 5     | Refatorar tela Unity (seleção de aluno)                 | 🔜                   |
-| 6     | Funcionalidades pedagógicas (alertas, PDF, observações) | 🔜                   |
-| 7     | Dashboard Admin                                         | 🔜                   |
-| 8     | Responsividade                                          | 🔜                   |
-| 9     | Publicar backend                                        | 🔜                   |
-| 10    | Coleta nas escolas parceiras                            | 🔜                   |
-| 11    | ML (K-Means + Árvore de Decisão)                        | 🔜                   |
+| Etapa | Descrição                               | Status               |
+| ----- | --------------------------------------- | -------------------- |
+| 1     | SDK Unity (C#)                          | ✅ Concluída         |
+| 1.5   | Integração no Para Que Serve?           | ✅ Concluída         |
+| 2     | Backend Node.js + MongoDB               | ✅ Concluída         |
+| 3     | Dashboard React                         | 🔧 Design provisório |
+| 4     | Autenticação JWT + Hierarquia           | ✅ Concluída         |
+| 5     | Refatorar tela Unity (seleção de aluno) | 🔜                   |
+| 6     | Funcionalidades pedagógicas             | 🔜                   |
+| 7     | Dashboard Admin                         | 🔜                   |
+| 8     | Responsividade                          | 🔜                   |
+| 9     | Publicar backend                        | 🔜                   |
+| 10    | Coleta nas escolas parceiras            | 🔜                   |
+| 11    | ML (K-Means + Árvore de Decisão)        | 🔜                   |
 
 ---
 

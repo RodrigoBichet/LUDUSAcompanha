@@ -5,49 +5,60 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [0.5.0] — 2026-04-18 — Dashboard React inicial 🎉
+## [0.6.0] — 2026-04-19 — Autenticação + Hierarquia 🎉
 
 ### Adicionado
 
-- `frontend/src/index.css` — design system global
-    - Paleta de cores via CSS variables: fundo creme, sidebar escura, verde primário
-    - Tipografia: DM Serif Display (títulos) + Nunito (corpo)
-    - Classes utilitárias: `.card`, `.spinner`, `.badge`, `.texto-leve`
-- `frontend/src/App.jsx` — configuração de rotas com React Router
-    - Rota `/` → Home
-    - Rota `/jogador/:playerId` → PerfilJogador
-    - Rota `/sessao/:sessionId` → DetalhesSessao
-- `frontend/src/services/api.js` — camada de serviço
-    - `listarJogadores`, `historicoJogador`, `resumoJogador`, `heatmapSessao`, `buscarSessao`
-    - baseURL apontando para `http://localhost:3000/api`
-- `frontend/src/components/layout/Sidebar.jsx` + `Sidebar.css`
-    - Sidebar fixa com logo LUDUS, navegação e rodapé
-- `frontend/src/components/layout/Header.jsx` + `Header.css`
-    - Header sticky com título e subtítulo por página
-- `frontend/src/pages/Home.jsx` + `Home.css`
-    - Lista de jogadores com avatar, nome capitalizado e badge contador
-    - Estados de carregamento, erro e lista vazia
-- `frontend/src/pages/PerfilJogador.jsx` + `PerfilJogador.css`
-    - 6 cards de métricas: sessões, acertos, erros, taxa de acerto, tempo, inatividades
-    - Categorias jogadas com chips
-    - Gráfico de evolução temporal com Recharts
-    - Histórico de sessões clicável
-- `frontend/src/pages/DetalhesSessao.jsx` + `DetalhesSessao.css`
-    - Heatmap de interações renderizado em Canvas (caminho do mouse + cliques)
-    - Timeline completa de eventos com ícones e payloads
-    - Informações gerais da sessão
+- `backend/src/models/User.js` — usuário do sistema
+    - Campos: name, email, password (bcrypt), role (admin/professor), schoolId
+    - `pre save` para criptografar senha automaticamente
+    - Método `compararSenha()` para validação no login
+- `backend/src/models/School.js` — escola
+- `backend/src/models/Group.js` — turma com referência à escola e professor
+- `backend/src/models/Student.js` — aluno com referência à turma e observações
+- `backend/src/middleware/auth.js` — middlewares de autenticação
+    - `autenticar` — valida token JWT em rotas protegidas
+    - `apenasAdmin` — restringe acesso a administradores
+- `backend/src/controllers/authController.js`
+    - `registrar` — cadastra novo usuário
+    - `login` — autentica e retorna token JWT (7 dias)
+    - `perfil` — retorna dados do usuário logado
+- `backend/src/controllers/schoolsController.js`
+    - `criarEscola` (admin), `listarEscolas`, `buscarEscola`
+- `backend/src/controllers/groupsController.js`
+    - `criarTurma`, `listarTurmas` (filtrado por escola do professor), `buscarTurma`
+- `backend/src/controllers/studentsController.js`
+    - `criarAluno`, `listarAlunos` (filtrado por turma), `buscarAluno` (com sessões)
+- Rotas: `/api/auth`, `/api/schools`, `/api/groups`, `/api/students`
+- `backend/src/scripts/criarAdmin.js` — script para criar primeiro administrador
+- `docs/LUDUS_API.postman_collection.json` — collection exportada para testes reproduzíveis
+    - Script de Post-request no login salva token automaticamente na variável de ambiente
 
-### Observação
+### Dependências adicionadas
 
-Design provisório para fins de desenvolvimento e teste.
-Será refatorado com material da designer alinhado à identidade visual da plataforma LUDUS.
+- `bcryptjs` — criptografia de senhas
+- `jsonwebtoken` — geração e validação de tokens JWT
 
-### Testado
+### Testado via Postman
 
-- Home listando jogadores reais do banco
-- Perfil com métricas consolidadas e taxa de acerto real
-- Heatmap renderizando caminho do mouse e cliques de sessão real
-- Timeline mostrando todos os eventos semânticos com timestamps
+- Login retornando token JWT válido
+- Rota `/me` validando token e retornando perfil
+- Criar escola: E. M. Silveira Martins (Bagé)
+- Criar turma: Turma A vinculada à escola
+- Criar aluno: João Silva vinculado à turma
+- Hierarquia completa: Escola → Turma → Aluno funcionando
+
+---
+
+## [0.5.0] — 2026-04-18
+
+### Adicionado — Dashboard React inicial
+
+- Layout: Sidebar e Header reutilizáveis
+- Home: lista de jogadores com avatar e badge
+- PerfilJogador: métricas, categorias, gráfico de evolução e histórico
+- DetalhesSessao: heatmap em Canvas e timeline de eventos
+- Design provisório — será refatorado com material da designer
 
 ---
 
@@ -55,10 +66,8 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado — Backend completo
 
-- `playersController`: criarJogador, listarJogadores, buscarJogador, historicoJogador
-- `dashboardController`: resumoJogador com métricas consolidadas, heatmapSessao
-- Rotas `/api/players` e `/api/dashboard` conectadas
-- Fluxo end-to-end validado: Unity → SDK → JSON → Node.js → MongoDB Atlas
+- Controllers e rotas de players e dashboard
+- Fluxo end-to-end validado: Unity → SDK → MongoDB Atlas
 
 ---
 
@@ -66,12 +75,8 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado
 
-- `sessionsController`: criarSessao, listarSessoes, buscarSessao
-- Rotas `/api/sessions` conectadas
-
-### Corrigido
-
-- Connection string MongoDB trocada para formato direto (fix DNS)
+- Controller e rotas de sessions
+- Fix: connection string MongoDB formato direto
 
 ---
 
@@ -79,7 +84,7 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ### Adicionado
 
-- Models Mongoose: Session, Player, Institution
+- Models: Session, Player, Institution
 
 ---
 
@@ -94,8 +99,7 @@ Será refatorado com material da designer alinhado à identidade visual da plata
 
 ## Próximas versões planejadas
 
-- `[0.6.0]` — Autenticação + hierarquia escola/turma/aluno
-- `[0.7.0]` — Refatorar tela Unity com seleção de aluno
+- `[0.7.0]` — Refatorar tela Unity com seleção de aluno cadastrado
 - `[0.8.0]` — Funcionalidades pedagógicas: alertas, observações, PDF
 - `[0.9.0]` — Dashboard Admin + responsividade
 - `[1.0.0]` — Sistema completo publicado e testado nas escolas
