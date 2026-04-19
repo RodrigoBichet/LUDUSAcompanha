@@ -1,0 +1,108 @@
+/* ============================================================
+   index.css — LUDUS Acompanha Dashboard
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap");
+
+:root {
+    /* Cores principais */
+    --cor-fundo: #f7f4ef;
+    --cor-sidebar: #1c2b3a;
+    --cor-primaria: #4ecba0;
+    --cor-primaria-esc: #3aad86;
+    --cor-texto: #2d3748;
+    --cor-texto-leve: #718096;
+    --cor-borda: #e2d9ce;
+    --cor-card: #ffffff;
+    --cor-erro: #fc8181;
+    --cor-aviso: #f6ad55;
+    --cor-sucesso: #4ecba0;
+
+    /* Tipografia */
+    --fonte-titulo: "DM Serif Display", serif;
+    --fonte-corpo: "Nunito", sans-serif;
+
+    /* Espaçamentos */
+    --sidebar-largura: 240px;
+    --header-altura: 64px;
+    --raio: 12px;
+    --sombra: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--fonte-corpo);
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    min-height: 100vh;
+}
+
+/* Layout principal */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.conteudo-principal {
+    margin-left: var(--sidebar-largura);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.pagina-conteudo {
+    padding: 2rem;
+    flex: 1;
+}
+
+/* Cards genéricos */
+.card {
+    background: var(--cor-card);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1.5rem;
+    border: 1px solid var(--cor-borda);
+}
+
+/* Títulos */
+h1 {
+    font-family: var(--fonte-titulo);
+    font-size: 2rem;
+}
+h2 {
+    font-family: var(--fonte-titulo);
+    font-size: 1.5rem;
+}
+h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+/* Utilitários */
+.texto-leve {
+    color: var(--cor-texto-leve);
+    font-size: 0.875rem;
+}
+.texto-verde {
+    color: var(--cor-primaria);
+}
+.flex {
+    display: flex;
+}
+.gap-1 {
+    gap: 0.5rem;
+}
+.gap-2 {
+    gap: 1rem;
+}
+.gap-3 {
+    gap: 1.5rem;
+}
+.alinhar-centro {
+    align-items: center;
+}

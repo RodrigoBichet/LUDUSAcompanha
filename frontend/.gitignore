@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Package lock — gerado automaticamente
+package-lock.json
+
+# Assets padrão do Vite — não utilizados no projeto
+src/assets/react.svg
+public/vite.svg
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.production

@@ -1,0 +1,120 @@
+/* Título de seção com badge */
+.secao-titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.badge {
+    background: var(--cor-primaria);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+}
+
+/* Grid de jogadores */
+.grid-jogadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+/* Card de jogador */
+.card-jogador {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+}
+
+.card-jogador:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Avatar com inicial do nome */
+.jogador-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.jogador-info {
+    flex: 1;
+}
+
+.jogador-info h3 {
+    text-transform: capitalize;
+    margin-bottom: 0.2rem;
+}
+
+.jogador-seta {
+    color: var(--cor-texto-leve);
+    font-size: 1.25rem;
+    transition: transform 0.15s;
+}
+
+.card-jogador:hover .jogador-seta {
+    transform: translateX(4px);
+    color: var(--cor-primaria);
+}
+
+/* Estados */
+.estado-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 3rem;
+}
+
+.estado-vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 3rem;
+    text-align: center;
+}
+
+.estado-vazio-icone {
+    font-size: 2.5rem;
+}
+
+.erro-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-left: 3px solid var(--cor-erro);
+    color: var(--cor-erro);
+}
+
+/* Spinner de carregamento */
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--cor-borda);
+    border-top-color: var(--cor-primaria);
+    border-radius: 50%;
+    animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -1,0 +1,90 @@
+.detalhes-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* Info geral */
+.info-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--cor-borda);
+    font-size: 0.9rem;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+/* Canvas do heatmap */
+.canvas-heatmap {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+}
+
+/* Timeline de eventos */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+.timeline-icone {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+}
+
+.timeline-conteudo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.timeline-tipo {
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.timeline-tempo {
+    font-size: 0.75rem;
+}
+
+.timeline-payload {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+}
+
+.payload-chip {
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+}
