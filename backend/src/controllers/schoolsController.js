@@ -89,4 +89,77 @@ const buscarEscola = async (req, res) => {
     }
 };
 
-module.exports = { criarEscola, listarEscolas, buscarEscola };
+// -------------------------------------------------------------------------
+// atualizarEscola — PUT /api/schools/:id
+// -------------------------------------------------------------------------
+
+const atualizarEscola = async (req, res) => {
+    try {
+        const { name, city } = req.body;
+
+        const escola = await School.findByIdAndUpdate(
+            req.params.id,
+            { name, city },
+            { new: true, runValidators: true },
+        );
+
+        if (!escola) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Escola não encontrada",
+            });
+        }
+
+        console.log(`[LUDUS] Escola atualizada: ${escola.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Escola atualizada com sucesso!",
+            escola,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao atualizar escola:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao atualizar escola",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// deletarEscola — DELETE /api/schools/:id
+// -------------------------------------------------------------------------
+
+const deletarEscola = async (req, res) => {
+    try {
+        const escola = await School.findByIdAndDelete(req.params.id);
+
+        if (!escola) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Escola não encontrada",
+            });
+        }
+
+        console.log(`[LUDUS] Escola deletada: ${escola.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Escola deletada com sucesso!",
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao deletar escola:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao deletar escola",
+        });
+    }
+};
+
+module.exports = {
+    criarEscola,
+    listarEscolas,
+    buscarEscola,
+    atualizarEscola,
+    deletarEscola,
+};

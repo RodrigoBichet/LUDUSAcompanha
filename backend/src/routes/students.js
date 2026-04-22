@@ -6,5 +6,7 @@ const { autenticar } = require("../middleware/auth");
 router.post("/", autenticar, controller.criarAluno);
 router.get("/", autenticar, controller.listarAlunos);
 router.get("/:id", autenticar, controller.buscarAluno);
+router.put("/:id", autenticar, controller.atualizarAluno);
+router.delete("/:id", autenticar, controller.deletarAluno);
 
 module.exports = router;

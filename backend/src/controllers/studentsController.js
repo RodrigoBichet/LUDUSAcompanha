@@ -108,4 +108,77 @@ const buscarAluno = async (req, res) => {
     }
 };
 
-module.exports = { criarAluno, listarAlunos, buscarAluno };
+// -------------------------------------------------------------------------
+// atualizarAluno — PUT /api/students/:id
+// -------------------------------------------------------------------------
+
+const atualizarAluno = async (req, res) => {
+    try {
+        const { name, birthDate, groupId, notes } = req.body;
+
+        const aluno = await Student.findByIdAndUpdate(
+            req.params.id,
+            { name, birthDate, groupId, notes },
+            { new: true, runValidators: true },
+        );
+
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
+
+        console.log(`[LUDUS] Aluno atualizado: ${aluno.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Aluno atualizado com sucesso!",
+            aluno,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao atualizar aluno:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao atualizar aluno",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// deletarAluno — DELETE /api/students/:id
+// -------------------------------------------------------------------------
+
+const deletarAluno = async (req, res) => {
+    try {
+        const aluno = await Student.findByIdAndDelete(req.params.id);
+
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
+
+        console.log(`[LUDUS] Aluno deletado: ${aluno.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Aluno deletado com sucesso!",
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao deletar aluno:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao deletar aluno",
+        });
+    }
+};
+
+module.exports = {
+    criarAluno,
+    listarAlunos,
+    buscarAluno,
+    atualizarAluno,
+    deletarAluno,
+};

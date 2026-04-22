@@ -34,6 +34,7 @@ app.get("/", (req, res) => {
 // Rotas da API (serão adicionadas em breve)
 // -------------------------------------------------------------------------
 
+app.use("/api/unity", require("./routes/unity"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/schools", require("./routes/schools"));
 app.use("/api/groups", require("./routes/groups"));

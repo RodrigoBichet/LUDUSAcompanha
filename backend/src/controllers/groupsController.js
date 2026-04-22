@@ -106,4 +106,77 @@ const buscarTurma = async (req, res) => {
     }
 };
 
-module.exports = { criarTurma, listarTurmas, buscarTurma };
+// -------------------------------------------------------------------------
+// atualizarTurma — PUT /api/groups/:id
+// -------------------------------------------------------------------------
+
+const atualizarTurma = async (req, res) => {
+    try {
+        const { name, professorId } = req.body;
+
+        const turma = await Group.findByIdAndUpdate(
+            req.params.id,
+            { name, professorId },
+            { new: true, runValidators: true },
+        );
+
+        if (!turma) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Turma não encontrada",
+            });
+        }
+
+        console.log(`[LUDUS] Turma atualizada: ${turma.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Turma atualizada com sucesso!",
+            turma,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao atualizar turma:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao atualizar turma",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// deletarTurma — DELETE /api/groups/:id
+// -------------------------------------------------------------------------
+
+const deletarTurma = async (req, res) => {
+    try {
+        const turma = await Group.findByIdAndDelete(req.params.id);
+
+        if (!turma) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Turma não encontrada",
+            });
+        }
+
+        console.log(`[LUDUS] Turma deletada: ${turma.name}`);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Turma deletada com sucesso!",
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao deletar turma:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao deletar turma",
+        });
+    }
+};
+
+module.exports = {
+    criarTurma,
+    listarTurmas,
+    buscarTurma,
+    atualizarTurma,
+    deletarTurma,
+};
