@@ -5,48 +5,43 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [0.6.0] — 2026-04-19 — Autenticação + Hierarquia 🎉
+## [0.7.0] — 2026-04-19 — CRUD completo + rotas Unity
 
 ### Adicionado
 
-- `backend/src/models/User.js` — usuário do sistema
-    - Campos: name, email, password (bcrypt), role (admin/professor), schoolId
-    - `pre save` para criptografar senha automaticamente
-    - Método `compararSenha()` para validação no login
-- `backend/src/models/School.js` — escola
-- `backend/src/models/Group.js` — turma com referência à escola e professor
-- `backend/src/models/Student.js` — aluno com referência à turma e observações
-- `backend/src/middleware/auth.js` — middlewares de autenticação
-    - `autenticar` — valida token JWT em rotas protegidas
-    - `apenasAdmin` — restringe acesso a administradores
-- `backend/src/controllers/authController.js`
-    - `registrar` — cadastra novo usuário
-    - `login` — autentica e retorna token JWT (7 dias)
-    - `perfil` — retorna dados do usuário logado
-- `backend/src/controllers/schoolsController.js`
-    - `criarEscola` (admin), `listarEscolas`, `buscarEscola`
-- `backend/src/controllers/groupsController.js`
-    - `criarTurma`, `listarTurmas` (filtrado por escola do professor), `buscarTurma`
-- `backend/src/controllers/studentsController.js`
-    - `criarAluno`, `listarAlunos` (filtrado por turma), `buscarAluno` (com sessões)
-- Rotas: `/api/auth`, `/api/schools`, `/api/groups`, `/api/students`
-- `backend/src/scripts/criarAdmin.js` — script para criar primeiro administrador
-- `docs/LUDUS_API.postman_collection.json` — collection exportada para testes reproduzíveis
-    - Script de Post-request no login salva token automaticamente na variável de ambiente
+- `backend/src/controllers/unityController.js` — rotas públicas para o Unity
+    - `listarEscolas` — GET /api/unity/schools
+    - `listarTurmas` — GET /api/unity/groups/:schoolId
+    - `listarAlunos` — GET /api/unity/students/:groupId
+    - Sem autenticação JWT — acessível diretamente pelo Unity
+- `backend/src/routes/unity.js` — rotas públicas montadas em `/api/unity`
 
-### Dependências adicionadas
+### Atualizado
 
-- `bcryptjs` — criptografia de senhas
-- `jsonwebtoken` — geração e validação de tokens JWT
+- `schoolsController` — adicionados `atualizarEscola` e `deletarEscola`
+- `groupsController` — adicionados `atualizarTurma` e `deletarTurma`
+- `studentsController` — adicionados `atualizarAluno` e `deletarAluno`
+- Rotas de schools, groups e students atualizadas com PUT e DELETE
 
-### Testado via Postman
+### Testado
 
-- Login retornando token JWT válido
-- Rota `/me` validando token e retornando perfil
-- Criar escola: E. M. Silveira Martins (Bagé)
-- Criar turma: Turma A vinculada à escola
-- Criar aluno: João Silva vinculado à turma
-- Hierarquia completa: Escola → Turma → Aluno funcionando
+- GET /api/unity/schools → retorna escolas cadastradas
+- GET /api/unity/groups/:schoolId → retorna turmas da escola
+- GET /api/unity/students/:groupId → retorna alunos da turma
+- Cascata completa: Escola → Turma → Aluno funcionando
+
+---
+
+## [0.6.0] — 2026-04-19
+
+### Adicionado — Autenticação + Hierarquia
+
+- Models: User, School, Group, Student
+- Middleware: autenticar, apenasAdmin
+- Auth: registro, login JWT, perfil
+- CRUD inicial: schools, groups, students
+- Script criarAdmin
+- Collection Postman exportada em docs/
 
 ---
 
@@ -54,11 +49,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — Dashboard React inicial
 
-- Layout: Sidebar e Header reutilizáveis
-- Home: lista de jogadores com avatar e badge
-- PerfilJogador: métricas, categorias, gráfico de evolução e histórico
-- DetalhesSessao: heatmap em Canvas e timeline de eventos
-- Design provisório — será refatorado com material da designer
+- Layout: Sidebar e Header
+- Home, PerfilJogador, DetalhesSessao
+- Heatmap em Canvas e timeline de eventos
+- Design provisório
 
 ---
 
@@ -67,7 +61,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado — Backend completo
 
 - Controllers e rotas de players e dashboard
-- Fluxo end-to-end validado: Unity → SDK → MongoDB Atlas
+- Fluxo end-to-end validado
 
 ---
 
@@ -93,13 +87,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado
 
 - Setup inicial: Express + MongoDB Atlas + nodemon
-- Health check, CORS, middlewares
 
 ---
 
 ## Próximas versões planejadas
 
-- `[0.7.0]` — Refatorar tela Unity com seleção de aluno cadastrado
-- `[0.8.0]` — Funcionalidades pedagógicas: alertas, observações, PDF
-- `[0.9.0]` — Dashboard Admin + responsividade
-- `[1.0.0]` — Sistema completo publicado e testado nas escolas
+- `[0.8.0]` — Refatorar tela Unity com seleção em cascata (escola → turma → aluno)
+- `[0.9.0]` — Funcionalidades pedagógicas: alertas, observações, PDF
+- `[1.0.0]` — Dashboard Admin + CRUD no frontend + responsividade
+- `[1.1.0]` — Sistema publicado e testado nas escolas
