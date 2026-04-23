@@ -1,0 +1,144 @@
+.login-fundo {
+    min-height: 100vh;
+    background: var(--cor-fundo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.login-card {
+    background: var(--cor-card);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    border: 1px solid var(--cor-borda);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Logo */
+.login-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-logo-icone {
+    font-size: 2rem;
+}
+
+.login-logo-titulo {
+    font-family: var(--fonte-titulo);
+    font-size: 1.5rem;
+    color: var(--cor-primaria);
+    line-height: 1;
+}
+
+.login-logo-subtitulo {
+    font-size: 0.65rem;
+    color: var(--cor-texto-leve);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+/* Títulos */
+.login-titulo {
+    font-family: var(--fonte-titulo);
+    font-size: 1.4rem;
+    color: var(--cor-texto);
+    margin: 0;
+}
+
+.login-subtitulo {
+    margin-top: -0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Formulário */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.campo-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.campo-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cor-texto);
+}
+
+.campo-input {
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--cor-borda);
+    border-radius: 8px;
+    font-family: var(--fonte-corpo);
+    font-size: 0.95rem;
+    color: var(--cor-texto);
+    background: var(--cor-fundo);
+    transition: border-color 0.15s;
+    outline: none;
+}
+
+.campo-input:focus {
+    border-color: var(--cor-primaria);
+}
+
+.campo-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Erro */
+.login-erro {
+    background: rgba(252, 129, 129, 0.1);
+    border: 1px solid var(--cor-erro);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--cor-erro);
+}
+
+/* Botão */
+.login-btn {
+    background: var(--cor-primaria);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        transform 0.1s;
+    margin-top: 0.5rem;
+}
+
+.login-btn:hover:not(:disabled) {
+    background: var(--cor-primaria-esc);
+    transform: translateY(-1px);
+}
+
+.login-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Rodapé */
+.login-rodape {
+    text-align: center;
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+}

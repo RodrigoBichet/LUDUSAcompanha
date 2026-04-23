@@ -84,3 +84,70 @@
     color: rgba(255, 255, 255, 0.3);
     font-size: 0.75rem;
 }
+
+/* Usuário logado */
+.sidebar-usuario {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.usuario-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    color: white;
+    font-size: 1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.usuario-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.usuario-nome {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.usuario-papel {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+}
+
+/* Botão sair */
+.btn-sair {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--fonte-corpo);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 0.5rem;
+    transition: all 0.15s;
+}
+
+.btn-sair:hover {
+    background: rgba(252, 129, 129, 0.15);
+    border-color: var(--cor-erro);
+    color: var(--cor-erro);
+}
