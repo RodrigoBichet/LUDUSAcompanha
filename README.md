@@ -28,10 +28,8 @@ Unity (C# SDK) → JSON → Node.js + Express → MongoDB → API REST → Dashb
 LUDUSAcompanha/
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── database.js
-│   │   ├── middleware/
-│   │   │   └── auth.js
+│   │   ├── config/database.js
+│   │   ├── middleware/auth.js
 │   │   ├── models/
 │   │   │   ├── Session.js
 │   │   │   ├── Player.js
@@ -41,7 +39,7 @@ LUDUSAcompanha/
 │   │   │   ├── Group.js
 │   │   │   └── Student.js
 │   │   ├── routes/
-│   │   │   ├── unity.js       ← rotas públicas para o Unity
+│   │   │   ├── unity.js
 │   │   │   ├── auth.js
 │   │   │   ├── schools.js
 │   │   │   ├── groups.js
@@ -58,8 +56,7 @@ LUDUSAcompanha/
 │   │   │   ├── sessionsController.js
 │   │   │   ├── playersController.js
 │   │   │   └── dashboardController.js
-│   │   ├── scripts/
-│   │   │   └── criarAdmin.js
+│   │   ├── scripts/criarAdmin.js
 │   │   └── app.js
 │   ├── .env.example
 │   ├── .gitignore
@@ -67,9 +64,21 @@ LUDUSAcompanha/
 │   └── server.js
 ├── frontend/
 │   ├── src/
-│   │   ├── components/layout/
+│   │   ├── contexts/
+│   │   │   └── AuthContext.jsx       ← gerencia autenticação global
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   │   ├── Sidebar.jsx       ← usuário logado + botão sair
+│   │   │   │   └── Header.jsx
+│   │   │   └── shared/
+│   │   │       └── RotaProtegida.jsx ← protege rotas autenticadas
 │   │   ├── pages/
-│   │   └── services/api.js
+│   │   │   ├── Login.jsx             ← tela de login
+│   │   │   ├── Home.jsx
+│   │   │   ├── PerfilJogador.jsx
+│   │   │   └── DetalhesSessao.jsx
+│   │   ├── services/api.js
+│   │   └── App.jsx
 │   └── package.json
 └── docs/
     └── LUDUS_API.postman_collection.json
@@ -97,7 +106,7 @@ npm install
 npm run dev
 ```
 
-Acesse em `http://localhost:5173`
+Acesse em `http://localhost:5173` — será redirecionado para a tela de login.
 
 ### Criar primeiro administrador
 
@@ -119,21 +128,33 @@ node src/scripts/criarAdmin.js
 
 ---
 
-## Testando a API
+## Autenticação
 
-Importe `docs/LUDUS_API.postman_collection.json` no Postman. Configure o ambiente com a variável `token` — preenchida automaticamente após o login.
+O dashboard usa **JWT (JSON Web Token)** para autenticação:
+
+- Token gerado no login com validade de 7 dias
+- Salvo no `localStorage` do navegador
+- Enviado automaticamente em todas as requisições via header `Authorization: Bearer <token>`
+- Rotas protegidas redirecionam para `/login` se não autenticado
+
+### Papéis de usuário
+
+| Papel       | Acesso                                            |
+| ----------- | ------------------------------------------------- |
+| `admin`     | Acesso total — todas as escolas e funcionalidades |
+| `professor` | Acesso restrito à sua escola e turmas             |
 
 ---
 
 ## API REST — Referência completa
 
-### Rotas públicas (Unity — sem autenticação)
+### Rotas públicas (Unity)
 
-| Método | Rota                           | Descrição              |
-| ------ | ------------------------------ | ---------------------- |
-| GET    | `/api/unity/schools`           | Lista escolas          |
-| GET    | `/api/unity/groups/:schoolId`  | Lista turmas da escola |
-| GET    | `/api/unity/students/:groupId` | Lista alunos da turma  |
+| Método | Rota                           | Descrição     |
+| ------ | ------------------------------ | ------------- |
+| GET    | `/api/unity/schools`           | Lista escolas |
+| GET    | `/api/unity/groups/:schoolId`  | Lista turmas  |
+| GET    | `/api/unity/students/:groupId` | Lista alunos  |
 
 ### Auth
 
@@ -143,93 +164,50 @@ Importe `docs/LUDUS_API.postman_collection.json` no Postman. Configure o ambient
 | POST   | `/api/auth/login`    | —    |
 | GET    | `/api/auth/me`       | ✅   |
 
-### Schools
+### Schools, Groups, Students
 
-| Método | Rota               | Auth  |
-| ------ | ------------------ | ----- |
-| POST   | `/api/schools`     | Admin |
-| GET    | `/api/schools`     | ✅    |
-| GET    | `/api/schools/:id` | ✅    |
-| PUT    | `/api/schools/:id` | Admin |
-| DELETE | `/api/schools/:id` | Admin |
+| Método              | Rotas           | Auth                                 |
+| ------------------- | --------------- | ------------------------------------ |
+| POST/GET/PUT/DELETE | `/api/schools`  | ✅ (Admin para criar/editar/deletar) |
+| POST/GET/PUT/DELETE | `/api/groups`   | ✅                                   |
+| POST/GET/PUT/DELETE | `/api/students` | ✅                                   |
 
-### Groups (Turmas)
+### Sessions / Players / Dashboard
 
-| Método | Rota              | Auth |
-| ------ | ----------------- | ---- |
-| POST   | `/api/groups`     | ✅   |
-| GET    | `/api/groups`     | ✅   |
-| GET    | `/api/groups/:id` | ✅   |
-| PUT    | `/api/groups/:id` | ✅   |
-| DELETE | `/api/groups/:id` | ✅   |
-
-### Students (Alunos)
-
-| Método | Rota                | Auth |
-| ------ | ------------------- | ---- |
-| POST   | `/api/students`     | ✅   |
-| GET    | `/api/students`     | ✅   |
-| GET    | `/api/students/:id` | ✅   |
-| PUT    | `/api/students/:id` | ✅   |
-| DELETE | `/api/students/:id` | ✅   |
-
-### Sessions
-
-| Método | Rota                       | Auth |
-| ------ | -------------------------- | ---- |
-| POST   | `/api/sessions`            | —    |
-| GET    | `/api/sessions`            | —    |
-| GET    | `/api/sessions/:sessionId` | —    |
-
-### Players
-
-| Método | Rota                              | Auth |
-| ------ | --------------------------------- | ---- |
-| GET    | `/api/players`                    | —    |
-| GET    | `/api/players/:playerId/sessions` | —    |
-
-### Dashboard
-
-| Método | Rota                                | Auth |
-| ------ | ----------------------------------- | ---- |
-| GET    | `/api/dashboard/summary/:playerId`  | —    |
-| GET    | `/api/dashboard/heatmap/:sessionId` | —    |
+| Método   | Rota                                | Auth |
+| -------- | ----------------------------------- | ---- |
+| POST/GET | `/api/sessions`                     | —    |
+| GET      | `/api/players`                      | —    |
+| GET      | `/api/dashboard/summary/:playerId`  | —    |
+| GET      | `/api/dashboard/heatmap/:sessionId` | —    |
 
 ---
 
-## Hierarquia do sistema
+## Testando a API
 
-```
-ADMINISTRADOR
-└── Escola
-    ├── Professor
-    │   ├── Turma A
-    │   │   ├── Aluno 1
-    │   │   └── Aluno 2
-    │   └── Turma B
-    └── Professor B
-        └── Turma C
-```
+Importe `docs/LUDUS_API.postman_collection.json` no Postman. O token é salvo automaticamente após o login.
 
 ---
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                               | Status               |
-| ----- | --------------------------------------- | -------------------- |
-| 1     | SDK Unity (C#)                          | ✅                   |
-| 1.5   | Integração no Para Que Serve?           | ✅                   |
-| 2     | Backend Node.js + MongoDB               | ✅                   |
-| 3     | Dashboard React                         | 🔧 Design provisório |
-| 4     | Autenticação JWT + Hierarquia           | ✅                   |
-| 5     | CRUD completo + rotas Unity             | ✅                   |
-| 6     | Refatorar tela Unity (seleção de aluno) | 🔧 Em andamento      |
-| 7     | Funcionalidades pedagógicas             | 🔜                   |
-| 8     | Dashboard Admin + CRUD no frontend      | 🔜                   |
-| 9     | Responsividade                          | 🔜                   |
-| 10    | Publicar backend                        | 🔜                   |
-| 11    | Coleta nas escolas parceiras            | 🔜                   |
-| 12    | ML (K-Means + Árvore de Decisão)        | 🔜                   |
+| Etapa | Descrição                           | Status                |
+| ----- | ----------------------------------- | --------------------- |
+| 1     | SDK Unity (C#)                      | ✅                    |
+| 1.5   | Integração no Para Que Serve?       | ✅                    |
+| 2     | Backend Node.js + MongoDB           | ✅                    |
+| 3     | Dashboard React                     | 🔧 Design provisório  |
+| 4     | Autenticação JWT + Hierarquia       | ✅                    |
+| 5     | CRUD completo + rotas Unity         | ✅                    |
+| 6     | Refatorar tela Unity                | ✅                    |
+| 7     | Login no dashboard                  | ✅                    |
+| 8     | CRUD no dashboard (turmas e alunos) | 🔧 Em desenvolvimento |
+| 9     | Funcionalidades pedagógicas         | 🔜                    |
+| 10    | Área Admin no dashboard             | 🔜                    |
+| 11    | Responsividade                      | 🔜                    |
+| 12    | Publicar backend                    | 🔜                    |
+| 13    | Coleta nas escolas parceiras        | 🔜                    |
+| 14    | ML (K-Means + Árvore de Decisão)    | 🔜                    |
 
 ---
 
