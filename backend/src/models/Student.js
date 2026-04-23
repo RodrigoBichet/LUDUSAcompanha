@@ -8,6 +8,19 @@
 
 const mongoose = require("mongoose");
 
+// Sub-schema para anotações do professor
+const AnotacaoSchema = new mongoose.Schema(
+    {
+        texto: { type: String, required: true },
+        autorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        autorNome: { type: String },
+    },
+    {
+        timestamps: true,
+        _id: true,
+    },
+);
+
 const StudentSchema = new mongoose.Schema(
     {
         name: {
@@ -22,10 +35,22 @@ const StudentSchema = new mongoose.Schema(
             ref: "Group",
             required: true,
         },
-        notes: {
+        // Informações clínicas
+        supportLevel: {
             type: String,
-            default: "",
+            enum: ["Nível 1", "Nível 2", "Nível 3", "Não informado"],
+            default: "Não informado",
         },
+        otherConditions: {
+            type: String,
+            default: "", // Ex: "TDAH, Dislexia"
+        },
+        // Responsável
+        guardianName: { type: String, default: "" },
+        guardianContact: { type: String, default: "" },
+
+        // Histórico de anotações do professor
+        anotacoes: { type: [AnotacaoSchema], default: [] },
     },
     {
         timestamps: true,

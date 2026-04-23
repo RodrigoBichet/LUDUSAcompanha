@@ -2,14 +2,12 @@
 // api.js
 // LUDUS Acompanha — UFPel (2026)
 // Autor: Rodrigo Leitzke Bichet
-// Orientador: Prof. Dr. Leomar Soares da Rosa Júnior
 //
 // Camada de serviço — centraliza todas as chamadas à API do backend.
 // =============================================================================
 
 import axios from "axios";
 
-// URL base do backend — em desenvolvimento aponta para localhost
 const api = axios.create({
     baseURL: "http://localhost:3000/api",
 });
@@ -17,31 +15,52 @@ const api = axios.create({
 // -------------------------------------------------------------------------
 // Players
 // -------------------------------------------------------------------------
-
-// Lista todos os jogadores (cadastrados + que já jogaram)
 export const listarJogadores = () => api.get("/players");
-
-// Busca histórico de sessões de um jogador pelo nome
 export const historicoJogador = (playerId) =>
     api.get(`/players/${encodeURIComponent(playerId)}/sessions`);
 
 // -------------------------------------------------------------------------
 // Dashboard
 // -------------------------------------------------------------------------
-
-// Busca métricas consolidadas de um jogador
 export const resumoJogador = (playerId) =>
     api.get(`/dashboard/summary/${encodeURIComponent(playerId)}`);
-
-// Busca dados de heatmap de uma sessão
 export const heatmapSessao = (sessionId) =>
     api.get(`/dashboard/heatmap/${sessionId}`);
 
 // -------------------------------------------------------------------------
 // Sessions
 // -------------------------------------------------------------------------
-
-// Busca sessão completa por ID
 export const buscarSessao = (sessionId) => api.get(`/sessions/${sessionId}`);
+
+// -------------------------------------------------------------------------
+// Schools
+// -------------------------------------------------------------------------
+export const listarEscolas = () => api.get("/schools");
+export const criarEscola = (dados) => api.post("/schools", dados);
+export const atualizarEscola = (id, dados) => api.put(`/schools/${id}`, dados);
+export const deletarEscola = (id) => api.delete(`/schools/${id}`);
+
+// -------------------------------------------------------------------------
+// Groups (Turmas)
+// -------------------------------------------------------------------------
+export const listarTurmas = () => api.get("/groups");
+export const criarTurma = (dados) => api.post("/groups", dados);
+export const buscarTurma = (id) => api.get(`/groups/${id}`);
+export const atualizarTurma = (id, dados) => api.put(`/groups/${id}`, dados);
+export const deletarTurma = (id) => api.delete(`/groups/${id}`);
+
+// -------------------------------------------------------------------------
+// Students (Alunos)
+// -------------------------------------------------------------------------
+export const listarAlunos = (groupId) =>
+    api.get(`/students?groupId=${groupId}`);
+export const criarAluno = (dados) => api.post("/students", dados);
+export const buscarAluno = (id) => api.get(`/students/${id}`);
+export const atualizarAluno = (id, dados) => api.put(`/students/${id}`, dados);
+export const deletarAluno = (id) => api.delete(`/students/${id}`);
+export const adicionarAnotacao = (id, texto) =>
+    api.post(`/students/${id}/anotacoes`, { texto });
+export const deletarAnotacao = (id, anotacaoId) =>
+    api.delete(`/students/${id}/anotacoes/${anotacaoId}`);
 
 export default api;

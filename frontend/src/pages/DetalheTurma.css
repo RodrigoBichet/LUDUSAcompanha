@@ -1,0 +1,75 @@
+.lista-alunos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-aluno {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+.aluno-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    cursor: pointer;
+}
+
+.aluno-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4ecba0, #3aa0ff);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.aluno-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.chip-nivel {
+    background: rgba(78, 203, 160, 0.15);
+    color: var(--cor-primaria);
+    border: 1px solid var(--cor-primaria);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.chip-condicao {
+    background: rgba(246, 173, 85, 0.15);
+    color: var(--cor-aviso);
+    border: 1px solid var(--cor-aviso);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    max-width: 720px;
+}
+
+.form-grid .btn-primario,
+.form-grid .form-erro {
+    grid-column: 1 / -1;
+}

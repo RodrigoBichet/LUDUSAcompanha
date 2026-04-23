@@ -6,6 +6,9 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import PerfilJogador from "./pages/PerfilJogador";
 import DetalhesSessao from "./pages/DetalhesSessao";
+import Turmas from "./pages/Turmas";
+import DetalheTurma from "./pages/DetalheTurma";
+import PerfilAluno from "./pages/PerfilAluno";
 import "./index.css";
 
 function Layout({ children }) {
@@ -52,6 +55,36 @@ function App() {
                             <RotaProtegida>
                                 <Layout>
                                     <DetalhesSessao />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/turmas"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <Turmas />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/turmas/:id"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <DetalheTurma />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/aluno/:id"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <PerfilAluno />
                                 </Layout>
                             </RotaProtegida>
                         }

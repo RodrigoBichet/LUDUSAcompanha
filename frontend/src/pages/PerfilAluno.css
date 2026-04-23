@@ -1,0 +1,191 @@
+.perfil-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* Cabeçalho do perfil */
+.perfil-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.perfil-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.perfil-ident {
+    flex: 1;
+}
+
+.perfil-ident h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.2rem;
+}
+
+.chip-desempenho {
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 0.3rem;
+    display: inline-block;
+}
+
+.btn-editar {
+    background: none;
+    border: 1.5px solid var(--cor-borda);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.btn-editar:hover {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.1);
+}
+
+/* Métricas mini */
+.grid-metricas-mini {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.metrica-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    background: var(--cor-fundo);
+    border-radius: 8px;
+    border: 1px solid var(--cor-borda);
+}
+
+.metrica-mini.destaque {
+    border-color: var(--cor-primaria);
+}
+
+.metrica-mini-valor {
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.metrica-mini-label {
+    font-size: 0.7rem;
+    color: var(--cor-texto-leve);
+    font-weight: 600;
+    margin-top: 0.3rem;
+}
+
+/* Última sessão */
+.ultima-sessao {
+    padding-top: 1rem;
+    border-top: 1px solid var(--cor-borda);
+}
+
+.ultima-sessao-data {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+.ultima-sessao-meta {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+/* Anotações */
+.form-anotacao {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.campo-textarea {
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--cor-borda);
+    border-radius: 8px;
+    font-family: var(--fonte-corpo);
+    font-size: 0.9rem;
+    color: var(--cor-texto);
+    background: var(--cor-fundo);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.campo-textarea:focus {
+    border-color: var(--cor-primaria);
+}
+
+.lista-anotacoes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-anotacao {
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+}
+
+.anotacao-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.anotacao-autor {
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex: 1;
+}
+
+.anotacao-data {
+    font-size: 0.75rem;
+}
+
+.btn-deletar-anot {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.2rem;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.btn-deletar-anot:hover {
+    opacity: 1;
+}
+
+.anotacao-texto {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--cor-texto);
+}

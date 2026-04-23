@@ -28,6 +28,16 @@ export default function Sidebar() {
                     <span className="nav-icone">📊</span>
                     <span>Visão Geral</span>
                 </NavLink>
+
+                <NavLink
+                    to="/turmas"
+                    className={({ isActive }) =>
+                        isActive ? "nav-item ativo" : "nav-item"
+                    }
+                >
+                    <span className="nav-icone">📚</span>
+                    <span>Minhas Turmas</span>
+                </NavLink>
             </nav>
 
             {/* Usuário logado */}
