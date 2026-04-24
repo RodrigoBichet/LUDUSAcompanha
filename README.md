@@ -65,18 +65,21 @@ LUDUSAcompanha/
 ├── frontend/
 │   ├── src/
 │   │   ├── contexts/
-│   │   │   └── AuthContext.jsx       ← gerencia autenticação global
+│   │   │   └── AuthContext.jsx
 │   │   ├── components/
 │   │   │   ├── layout/
-│   │   │   │   ├── Sidebar.jsx       ← usuário logado + botão sair
+│   │   │   │   ├── Sidebar.jsx
 │   │   │   │   └── Header.jsx
 │   │   │   └── shared/
-│   │   │       └── RotaProtegida.jsx ← protege rotas autenticadas
+│   │   │       └── RotaProtegida.jsx
 │   │   ├── pages/
-│   │   │   ├── Login.jsx             ← tela de login
+│   │   │   ├── Login.jsx
 │   │   │   ├── Home.jsx
 │   │   │   ├── PerfilJogador.jsx
-│   │   │   └── DetalhesSessao.jsx
+│   │   │   ├── DetalhesSessao.jsx
+│   │   │   ├── Turmas.jsx
+│   │   │   ├── DetalheTurma.jsx
+│   │   │   └── PerfilAluno.jsx
 │   │   ├── services/api.js
 │   │   └── App.jsx
 │   └── package.json
@@ -130,15 +133,6 @@ node src/scripts/criarAdmin.js
 
 ## Autenticação
 
-O dashboard usa **JWT (JSON Web Token)** para autenticação:
-
-- Token gerado no login com validade de 7 dias
-- Salvo no `localStorage` do navegador
-- Enviado automaticamente em todas as requisições via header `Authorization: Bearer <token>`
-- Rotas protegidas redirecionam para `/login` se não autenticado
-
-### Papéis de usuário
-
 | Papel       | Acesso                                            |
 | ----------- | ------------------------------------------------- |
 | `admin`     | Acesso total — todas as escolas e funcionalidades |
@@ -164,13 +158,15 @@ O dashboard usa **JWT (JSON Web Token)** para autenticação:
 | POST   | `/api/auth/login`    | —    |
 | GET    | `/api/auth/me`       | ✅   |
 
-### Schools, Groups, Students
+### Schools / Groups / Students
 
-| Método              | Rotas           | Auth                                 |
-| ------------------- | --------------- | ------------------------------------ |
-| POST/GET/PUT/DELETE | `/api/schools`  | ✅ (Admin para criar/editar/deletar) |
-| POST/GET/PUT/DELETE | `/api/groups`   | ✅                                   |
-| POST/GET/PUT/DELETE | `/api/students` | ✅                                   |
+| Método              | Rotas                                     | Auth                                 |
+| ------------------- | ----------------------------------------- | ------------------------------------ |
+| POST/GET/PUT/DELETE | `/api/schools`                            | ✅ (Admin para criar/editar/deletar) |
+| POST/GET/PUT/DELETE | `/api/groups`                             | ✅                                   |
+| POST/GET/PUT/DELETE | `/api/students`                           | ✅                                   |
+| POST                | `/api/students/:id/anotacoes`             | ✅                                   |
+| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅                                   |
 
 ### Sessions / Players / Dashboard
 
@@ -183,31 +179,54 @@ O dashboard usa **JWT (JSON Web Token)** para autenticação:
 
 ---
 
-## Testando a API
+## Dashboard — Telas implementadas
 
-Importe `docs/LUDUS_API.postman_collection.json` no Postman. O token é salvo automaticamente após o login.
+| Tela            | Rota                 | Descrição                        |
+| --------------- | -------------------- | -------------------------------- |
+| Login           | `/login`             | Autenticação com email e senha   |
+| Home            | `/`                  | Lista de jogadores monitorados   |
+| Perfil Jogador  | `/jogador/:playerId` | Métricas e histórico             |
+| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline               |
+| Turmas          | `/turmas`            | Gerenciamento de turmas          |
+| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos       |
+| Perfil Aluno    | `/aluno/:id`         | Dados, anotações e monitoramento |
+
+---
+
+## Hierarquia do sistema
+
+```
+ADMINISTRADOR
+└── Escola
+    ├── Professor
+    │   ├── Turma A
+    │   │   ├── Aluno 1 (nome, idade, TEA nível, anotações)
+    │   │   └── Aluno 2
+    │   └── Turma B
+    └── Professor B
+```
 
 ---
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                           | Status                |
-| ----- | ----------------------------------- | --------------------- |
-| 1     | SDK Unity (C#)                      | ✅                    |
-| 1.5   | Integração no Para Que Serve?       | ✅                    |
-| 2     | Backend Node.js + MongoDB           | ✅                    |
-| 3     | Dashboard React                     | 🔧 Design provisório  |
-| 4     | Autenticação JWT + Hierarquia       | ✅                    |
-| 5     | CRUD completo + rotas Unity         | ✅                    |
-| 6     | Refatorar tela Unity                | ✅                    |
-| 7     | Login no dashboard                  | ✅                    |
-| 8     | CRUD no dashboard (turmas e alunos) | 🔧 Em desenvolvimento |
-| 9     | Funcionalidades pedagógicas         | 🔜                    |
-| 10    | Área Admin no dashboard             | 🔜                    |
-| 11    | Responsividade                      | 🔜                    |
-| 12    | Publicar backend                    | 🔜                    |
-| 13    | Coleta nas escolas parceiras        | 🔜                    |
-| 14    | ML (K-Means + Árvore de Decisão)    | 🔜                    |
+| Etapa | Descrição                                  | Status               |
+| ----- | ------------------------------------------ | -------------------- |
+| 1     | SDK Unity (C#)                             | ✅                   |
+| 1.5   | Integração no Para Que Serve?              | ✅                   |
+| 2     | Backend Node.js + MongoDB                  | ✅                   |
+| 3     | Dashboard React                            | 🔧 Design provisório |
+| 4     | Autenticação JWT + Hierarquia              | ✅                   |
+| 5     | CRUD completo + rotas Unity                | ✅                   |
+| 6     | Refatorar tela Unity                       | ✅                   |
+| 7     | Login no dashboard                         | ✅                   |
+| 8     | CRUD turmas e alunos no dashboard          | ✅                   |
+| 9     | Funcionalidades pedagógicas (alertas, PDF) | 🔜                   |
+| 10    | Área Admin no dashboard                    | 🔜                   |
+| 11    | Responsividade                             | 🔜                   |
+| 12    | Publicar backend                           | 🔜                   |
+| 13    | Coleta nas escolas parceiras               | 🔜                   |
+| 14    | ML (K-Means + Árvore de Decisão)           | 🔜                   |
 
 ---
 
