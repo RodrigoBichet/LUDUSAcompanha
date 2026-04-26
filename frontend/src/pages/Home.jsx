@@ -3,52 +3,62 @@
 // LUDUS Acompanha — UFPel (2026)
 // Autor: Rodrigo Leitzke Bichet
 //
-// Página inicial — visão geral dos jogadores monitorados.
+// Página inicial — visão geral dos alunos monitorados.
 // =============================================================================
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
-import { listarJogadores } from "../services/api";
+import { listarTurmas, listarAlunos } from "../services/api";
 import "./Home.css";
 
 export default function Home() {
-    const [jogadores, setJogadores] = useState([]);
+    const [alunos, setAlunos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
     const navegar = useNavigate();
 
     useEffect(() => {
-        listarJogadores()
-            .then((res) => {
-                setJogadores(res.data.jogadoresNasSessoes || []);
-                setCarregando(false);
-            })
-            .catch(() => {
-                setErro(
-                    "Não foi possível carregar os jogadores. Verifique se o backend está rodando.",
-                );
-                setCarregando(false);
-            });
+        carregarAlunos();
     }, []);
+
+    const carregarAlunos = async () => {
+        try {
+            setCarregando(true);
+
+            // Busca todas as turmas do professor
+            const resTurmas = await listarTurmas();
+            const turmas = resTurmas.data.turmas || [];
+
+            // Busca alunos de cada turma
+            const promessas = turmas.map((t) => listarAlunos(t._id));
+            const resultados = await Promise.all(promessas);
+
+            // Junta todos os alunos em uma lista única
+            const todosAlunos = resultados.flatMap((r) => r.data.alunos || []);
+            setAlunos(todosAlunos);
+        } catch {
+            setErro("Não foi possível carregar os alunos.");
+        } finally {
+            setCarregando(false);
+        }
+    };
 
     return (
         <div>
             <Header
                 titulo="Visão Geral"
-                subtitulo="Acompanhe o desempenho dos jogadores monitorados"
+                subtitulo="Acompanhe o desempenho dos alunos monitorados"
             />
 
             <div className="pagina-conteudo">
-                {/* Estado de carregamento */}
                 {carregando && (
                     <div className="estado-centro">
                         <div className="spinner" />
-                        <p className="texto-leve">Carregando jogadores...</p>
+                        <p className="texto-leve">Carregando alunos...</p>
                     </div>
                 )}
 
-                {/* Estado de erro */}
                 {erro && (
                     <div className="card erro-card">
                         <span>⚠️</span>
@@ -56,42 +66,39 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* Lista de jogadores */}
                 {!carregando && !erro && (
                     <>
                         <div className="secao-titulo">
-                            <h2>Jogadores</h2>
-                            <span className="badge">{jogadores.length}</span>
+                            <h2>Alunos</h2>
+                            <span className="badge">{alunos.length}</span>
                         </div>
 
-                        {jogadores.length === 0 ? (
+                        {alunos.length === 0 ? (
                             <div className="card estado-vazio">
                                 <span className="estado-vazio-icone">🎮</span>
-                                <p>Nenhuma sessão registrada ainda.</p>
+                                <p>Nenhum aluno cadastrado ainda.</p>
                                 <p className="texto-leve">
-                                    Quando uma criança jogar, ela aparecerá
-                                    aqui.
+                                    Vá em Minhas Turmas para cadastrar alunos.
                                 </p>
                             </div>
                         ) : (
                             <div className="grid-jogadores">
-                                {jogadores.map((nome) => (
+                                {alunos.map((aluno) => (
                                     <div
-                                        key={nome}
+                                        key={aluno._id}
                                         className="card card-jogador"
                                         onClick={() =>
-                                            navegar(
-                                                `/jogador/${encodeURIComponent(nome)}`,
-                                            )
+                                            navegar(`/aluno/${aluno._id}`)
                                         }
                                     >
                                         <div className="jogador-avatar">
-                                            {nome.charAt(0).toUpperCase()}
+                                            {aluno.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="jogador-info">
-                                            <h3>{nome}</h3>
+                                            <h3>{aluno.name}</h3>
                                             <p className="texto-leve">
-                                                Clique para ver o perfil
+                                                {aluno.groupId?.name ||
+                                                    "Sem turma"}
                                             </p>
                                         </div>
                                         <span className="jogador-seta">→</span>

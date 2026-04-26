@@ -15,7 +15,16 @@ const Session = require("../models/Session");
 
 const criarAluno = async (req, res) => {
     try {
-        const { name, birthDate, groupId, notes } = req.body;
+        const {
+            name,
+            birthDate,
+            groupId,
+            notes,
+            supportLevel,
+            otherConditions,
+            guardianName,
+            guardianContact,
+        } = req.body;
 
         if (!name || !groupId) {
             return res.status(400).json({
@@ -24,7 +33,16 @@ const criarAluno = async (req, res) => {
             });
         }
 
-        const aluno = new Student({ name, birthDate, groupId, notes });
+        const aluno = new Student({
+            name,
+            birthDate,
+            groupId,
+            notes,
+            supportLevel,
+            otherConditions,
+            guardianName,
+            guardianContact,
+        });
         await aluno.save();
 
         console.log(`[LUDUS] Aluno criado: ${aluno.name}`);
@@ -125,6 +143,19 @@ const atualizarAluno = async (req, res) => {
             guardianContact,
         } = req.body;
 
+        // Busca o aluno atual para verificar se o nome mudou
+        const alunoAtual = await Student.findById(req.params.id);
+        if (!alunoAtual) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
+
+        const nomeAntigo = alunoAtual.name;
+        const nomeMudou = name && name !== nomeAntigo;
+
+        // Atualiza o aluno
         const aluno = await Student.findByIdAndUpdate(
             req.params.id,
             {
@@ -140,11 +171,15 @@ const atualizarAluno = async (req, res) => {
             { returnDocument: "after", runValidators: true },
         );
 
-        if (!aluno) {
-            return res.status(404).json({
-                sucesso: false,
-                mensagem: "Aluno não encontrado",
-            });
+        // Se o nome mudou, atualiza o playerId em todas as sessões vinculadas
+        if (nomeMudou) {
+            const resultado = await Session.updateMany(
+                { playerId: nomeAntigo },
+                { playerId: name },
+            );
+            console.log(
+                `[LUDUS] Sessões atualizadas: ${resultado.modifiedCount} sessão(ões) com playerId "${nomeAntigo}" → "${name}"`,
+            );
         }
 
         console.log(`[LUDUS] Aluno atualizado: ${aluno.name}`);

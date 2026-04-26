@@ -152,16 +152,8 @@ export default function DetalhesSessao() {
             <Header titulo="Detalhes da Sessão" subtitulo={sessionId} />
 
             <div className="pagina-conteudo">
-                <button
-                    className="btn-voltar"
-                    onClick={() =>
-                        sessao &&
-                        navegar(
-                            `/jogador/${encodeURIComponent(sessao.playerId)}`,
-                        )
-                    }
-                >
-                    ← Voltar ao perfil
+                <button className="btn-voltar" onClick={() => navegar(-1)}>
+                    ← Voltar
                 </button>
 
                 {carregando && (

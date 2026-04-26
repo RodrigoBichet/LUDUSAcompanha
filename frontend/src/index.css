@@ -106,3 +106,83 @@ h3 {
 .alinhar-centro {
     align-items: center;
 }
+
+/* Botão voltar global */
+.btn-voltar {
+    background: none;
+    border: none;
+    color: var(--cor-texto-leve);
+    font-family: var(--fonte-corpo);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    margin-bottom: 1.5rem;
+    transition: color 0.15s;
+    display: inline-block;
+}
+
+.btn-voltar:hover {
+    color: var(--cor-primaria);
+}
+
+/* Sessões global */
+.item-sessao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.item-sessao:hover {
+    background: var(--cor-borda);
+}
+
+.sessao-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.sessao-data {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.sessao-id {
+    font-size: 0.75rem;
+}
+
+.sessao-metricas {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.chip-acerto {
+    color: var(--cor-primaria);
+    font-weight: 700;
+}
+.chip-erro {
+    color: var(--cor-erro);
+    font-weight: 700;
+}
+
+.jogador-seta {
+    color: var(--cor-texto-leve);
+    font-size: 1.25rem;
+    transition: transform 0.15s;
+}
+
+.item-sessao:hover .jogador-seta {
+    transform: translateX(4px);
+    color: var(--cor-primaria);
+}

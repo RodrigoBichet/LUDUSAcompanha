@@ -115,4 +115,37 @@ const buscarSessao = async (req, res) => {
     }
 };
 
-module.exports = { criarSessao, listarSessoes, buscarSessao };
+// -------------------------------------------------------------------------
+// sessoesPorJogador — GET /api/sessions/player/:playerId
+// -------------------------------------------------------------------------
+const sessoesPorJogador = async (req, res) => {
+    try {
+        const sessoes = await Session.find({ playerId: req.params.playerId })
+            .select(
+                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents",
+            )
+            .sort({ startedAt: -1 });
+
+        return res.json({
+            sucesso: true,
+            total: sessoes.length,
+            sessoes,
+        });
+    } catch (erro) {
+        console.error(
+            "[LUDUS] Erro ao buscar sessões por jogador:",
+            erro.message,
+        );
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno",
+        });
+    }
+};
+
+module.exports = {
+    criarSessao,
+    listarSessoes,
+    buscarSessao,
+    sessoesPorJogador,
+};

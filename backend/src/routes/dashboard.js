@@ -9,5 +9,6 @@ const controller = require("../controllers/dashboardController");
 
 router.get("/summary/:playerId", controller.resumoJogador);
 router.get("/heatmap/:sessionId", controller.heatmapSessao);
+router.get("/alerts/:playerId", controller.alertasAluno);
 
 module.exports = router;

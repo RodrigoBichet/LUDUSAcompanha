@@ -11,11 +11,22 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    Legend,
+} from "recharts";
+import {
     buscarAluno,
     atualizarAluno,
     adicionarAnotacao,
     deletarAnotacao,
     resumoJogador,
+    buscarSessao,
     historicoJogador,
 } from "../services/api";
 import "./PerfilAluno.css";
@@ -64,10 +75,12 @@ export default function PerfilAluno() {
                     resumoJogador(aluno.name),
                     historicoJogador(aluno.name),
                 ]);
+                console.log("RESUMO:", resResumo.data);
+                console.log("SESSOES:", resSessoes.data);
                 setResumo(resResumo.data);
                 setSessoes(resSessoes.data.sessoes || []);
-            } catch {
-                // Aluno ainda não tem sessões — não é erro
+            } catch (err) {
+                console.log("ERRO MONITORAMENTO:", err);
                 setResumo(null);
                 setSessoes([]);
             }
@@ -152,6 +165,17 @@ export default function PerfilAluno() {
     };
 
     const desempenho = indicadorDesempenho();
+
+    const traduzirCategoria = (cat) => {
+        const mapa = {
+            Fase01: "Ações",
+            Fase02: "Alimentos",
+            Fase03: "Cotidiano",
+            Fase04: "Diversão",
+            Fase05: "Higiene",
+        };
+        return mapa[cat] || cat;
+    };
 
     return (
         <div>
@@ -389,6 +413,32 @@ export default function PerfilAluno() {
                                 )}
                             </div>
 
+                            {/* Categorias jogadas */}
+                            {resumo &&
+                                resumo.categorias &&
+                                Object.keys(resumo.categorias).length > 0 && (
+                                    <div className="card secao-card">
+                                        <h3>Categorias Jogadas</h3>
+                                        <div className="grid-categorias">
+                                            {Object.entries(
+                                                resumo.categorias,
+                                            ).map(([cat, qtd]) => (
+                                                <div
+                                                    key={cat}
+                                                    className="chip-categoria"
+                                                >
+                                                    <span>
+                                                        {traduzirCategoria(cat)}
+                                                    </span>
+                                                    <span className="chip-qtd">
+                                                        {qtd}x
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                             {/* Métricas de monitoramento */}
                             {resumo && (
                                 <div className="card secao-card">
@@ -465,6 +515,78 @@ export default function PerfilAluno() {
                                     )}
                                 </div>
                             )}
+
+                            {/* Gráfico de evolução */}
+                            {resumo &&
+                                resumo.evolucaoTemporal &&
+                                resumo.evolucaoTemporal.length > 1 && (
+                                    <div className="card secao-card">
+                                        <h3>Evolução ao Longo do Tempo</h3>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={220}
+                                        >
+                                            <LineChart
+                                                data={resumo.evolucaoTemporal}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#E2D9CE"
+                                                />
+                                                <XAxis
+                                                    dataKey="startedAt"
+                                                    tickFormatter={(v) =>
+                                                        new Date(
+                                                            v,
+                                                        ).toLocaleDateString(
+                                                            "pt-BR",
+                                                        )
+                                                    }
+                                                    tick={{ fontSize: 11 }}
+                                                />
+                                                <YAxis
+                                                    tick={{ fontSize: 11 }}
+                                                />
+                                                <Tooltip
+                                                    labelFormatter={(v) =>
+                                                        new Date(
+                                                            v,
+                                                        ).toLocaleString(
+                                                            "pt-BR",
+                                                        )
+                                                    }
+                                                    formatter={(val, name) => [
+                                                        val,
+                                                        name === "totalCorrect"
+                                                            ? "Acertos"
+                                                            : "Erros",
+                                                    ]}
+                                                />
+                                                <Legend
+                                                    formatter={(v) =>
+                                                        v === "totalCorrect"
+                                                            ? "Acertos"
+                                                            : "Erros"
+                                                    }
+                                                />
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="totalCorrect"
+                                                    stroke="#4ECBA0"
+                                                    strokeWidth={2}
+                                                    dot
+                                                />
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="totalWrong"
+                                                    stroke="#FC8181"
+                                                    strokeWidth={2}
+                                                    dot
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
 
                             {/* Sem sessões */}
                             {!resumo && (

@@ -189,3 +189,30 @@
     line-height: 1.5;
     color: var(--cor-texto);
 }
+
+/* Categorias */
+.grid-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip-categoria {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.chip-qtd {
+    background: var(--cor-primaria);
+    color: white;
+    border-radius: 999px;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.75rem;
+}
