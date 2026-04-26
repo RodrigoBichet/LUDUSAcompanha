@@ -28,6 +28,7 @@ import {
     resumoJogador,
     buscarSessao,
     historicoJogador,
+    alertasAluno,
 } from "../services/api";
 import "./PerfilAluno.css";
 
@@ -54,6 +55,9 @@ export default function PerfilAluno() {
         carregarDados();
     }, [id]);
 
+    //Alertas
+    const [alertas, setAlertas] = useState([]);
+
     const carregarDados = async () => {
         try {
             setCarregando(true);
@@ -71,18 +75,22 @@ export default function PerfilAluno() {
 
             // Busca dados de monitoramento pelo nome do aluno
             try {
-                const [resResumo, resSessoes] = await Promise.all([
+                const [resResumo, resSessoes, resAlertas] = await Promise.all([
                     resumoJogador(aluno.name),
                     historicoJogador(aluno.name),
+                    alertasAluno(aluno.name),
                 ]);
                 console.log("RESUMO:", resResumo.data);
                 console.log("SESSOES:", resSessoes.data);
+                console.log("ALERTAS:", resAlertas.data);
                 setResumo(resResumo.data);
                 setSessoes(resSessoes.data.sessoes || []);
+                setAlertas(resAlertas.data.alertas || []);
             } catch (err) {
                 console.log("ERRO MONITORAMENTO:", err);
                 setResumo(null);
                 setSessoes([]);
+                setAlertas([]);
             }
         } catch {
             setErro("Erro ao carregar perfil do aluno.");
@@ -438,6 +446,47 @@ export default function PerfilAluno() {
                                         </div>
                                     </div>
                                 )}
+
+                            {/* Alertas pedagógicos */}
+                            {alertas.length > 0 && (
+                                <div className="card secao-card">
+                                    <h3>⚠️ Alertas Pedagógicos</h3>
+                                    <div className="lista-alertas">
+                                        {alertas.map((alerta, i) => (
+                                            <div
+                                                key={i}
+                                                className={`card-alerta alerta-${alerta.severidade}`}
+                                            >
+                                                <div className="alerta-cabecalho">
+                                                    <span className="alerta-icone">
+                                                        {alerta.icone}
+                                                    </span>
+                                                    <span className="alerta-titulo">
+                                                        {alerta.titulo}
+                                                    </span>
+                                                </div>
+                                                <p className="alerta-descricao">
+                                                    {alerta.descricao}
+                                                </p>
+                                                <p className="alerta-sugestao">
+                                                    💡 {alerta.sugestao}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Sem alertas */}
+                            {alertas.length === 0 && resumo && (
+                                <div className="card secao-card alerta-ok">
+                                    <span>🟢</span>
+                                    <p>
+                                        Nenhum alerta no momento — aluno com bom
+                                        desempenho!
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Métricas de monitoramento */}
                             {resumo && (

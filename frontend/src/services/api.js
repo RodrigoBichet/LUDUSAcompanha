@@ -59,4 +59,10 @@ export const deletarAnotacao = (id, anotacaoId) =>
 export const historicoJogador = (playerId) =>
     api.get(`/sessions/player/${encodeURIComponent(playerId)}`);
 
+// -------------------------------------------------------------------------
+// Alertas
+// -------------------------------------------------------------------------
+export const alertasAluno = (playerId) =>
+    api.get(`/dashboard/alerts/${encodeURIComponent(playerId)}`);
+
 export default api;

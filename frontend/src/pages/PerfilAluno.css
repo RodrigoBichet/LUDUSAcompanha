@@ -216,3 +216,81 @@
     padding: 0.1rem 0.4rem;
     font-size: 0.75rem;
 }
+
+/* Alertas */
+.lista-alertas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-alerta {
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.alerta-alta {
+    background: rgba(252, 129, 129, 0.1);
+    border: 1px solid var(--cor-erro);
+}
+
+.alerta-media {
+    background: rgba(246, 173, 85, 0.1);
+    border: 1px solid var(--cor-aviso);
+}
+
+.alerta-informativo {
+    background: rgba(99, 179, 237, 0.1);
+    border: 1px solid #63b3ed;
+}
+
+.alerta-positivo {
+    background: rgba(78, 203, 160, 0.1);
+    border: 1px solid var(--cor-primaria);
+}
+
+.alerta-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alerta-icone {
+    font-size: 1.1rem;
+}
+
+.alerta-titulo {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.alerta-descricao {
+    font-size: 0.85rem;
+    color: var(--cor-texto);
+}
+
+.alerta-sugestao {
+    font-size: 0.82rem;
+    color: var(--cor-texto-leve);
+    font-style: italic;
+}
+
+.alerta-ok {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--cor-primaria);
+    font-weight: 600;
+}
+
+/* Espaçamento entre cards da coluna */
+.perfil-coluna .secao-card {
+    margin-bottom: 0.8rem;
+}
+
+.perfil-coluna .secao-card:last-child {
+    margin-bottom: 0;
+}
