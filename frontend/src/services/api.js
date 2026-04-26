@@ -13,13 +13,6 @@ const api = axios.create({
 });
 
 // -------------------------------------------------------------------------
-// Players
-// -------------------------------------------------------------------------
-export const listarJogadores = () => api.get("/players");
-export const historicoJogador = (playerId) =>
-    api.get(`/players/${encodeURIComponent(playerId)}/sessions`);
-
-// -------------------------------------------------------------------------
 // Dashboard
 // -------------------------------------------------------------------------
 export const resumoJogador = (playerId) =>
@@ -62,5 +55,8 @@ export const adicionarAnotacao = (id, texto) =>
     api.post(`/students/${id}/anotacoes`, { texto });
 export const deletarAnotacao = (id, anotacaoId) =>
     api.delete(`/students/${id}/anotacoes/${anotacaoId}`);
+
+export const historicoJogador = (playerId) =>
+    api.get(`/sessions/player/${encodeURIComponent(playerId)}`);
 
 export default api;

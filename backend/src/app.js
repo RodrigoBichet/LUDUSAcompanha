@@ -40,7 +40,6 @@ app.use("/api/schools", require("./routes/schools"));
 app.use("/api/groups", require("./routes/groups"));
 app.use("/api/students", require("./routes/students"));
 app.use("/api/sessions", require("./routes/sessions"));
-app.use("/api/players", require("./routes/players"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 
 module.exports = app;

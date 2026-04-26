@@ -4,7 +4,6 @@ import RotaProtegida from "./components/shared/RotaProtegida";
 import Sidebar from "./components/layout/Sidebar";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
-import PerfilJogador from "./pages/PerfilJogador";
 import DetalhesSessao from "./pages/DetalhesSessao";
 import Turmas from "./pages/Turmas";
 import DetalheTurma from "./pages/DetalheTurma";
@@ -35,16 +34,6 @@ function App() {
                             <RotaProtegida>
                                 <Layout>
                                     <Home />
-                                </Layout>
-                            </RotaProtegida>
-                        }
-                    />
-                    <Route
-                        path="/jogador/:playerId"
-                        element={
-                            <RotaProtegida>
-                                <Layout>
-                                    <PerfilJogador />
                                 </Layout>
                             </RotaProtegida>
                         }
