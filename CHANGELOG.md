@@ -5,50 +5,54 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [0.9.0] — 2026-04-21 — CRUD de turmas e alunos + perfil completo 🎉
+## [1.0.0] — 2026-04-25 — Alertas pedagógicos + refatoração 🎉
 
 ### Adicionado
 
-- `frontend/src/pages/Turmas.jsx` + `Turmas.css`
-    - Listagem de turmas do professor com escola vinculada
-    - Formulário inline para criar nova turma
-    - Exclusão com confirmação
-- `frontend/src/pages/DetalheTurma.jsx` + `DetalheTurma.css`
-    - Listagem de alunos com avatar, idade e chips de TEA/condições
-    - Formulário completo de cadastro de aluno
-    - Campos: nome, data de nascimento, grau de suporte, outras condições, responsável, contato
-- `frontend/src/pages/PerfilAluno.jsx` + `PerfilAluno.css`
-    - Dados cadastrais completos com modo de edição
-    - Indicador de desempenho automático (🟢 🟡 🔴) baseado na taxa de acerto
-    - Última sessão em destaque com métricas rápidas
-    - Histórico de anotações com autor, data e exclusão individual
-    - Formulário de nova anotação com textarea
-    - Histórico de sessões clicável
-- `frontend/src/services/api.js` — novas funções
-    - CRUD completo de schools, groups, students
-    - `adicionarAnotacao`, `deletarAnotacao`
-- `frontend/src/components/layout/Sidebar.jsx` — link Minhas Turmas
-- `frontend/src/App.jsx` — rotas `/turmas`, `/turmas/:id`, `/aluno/:id`
+- `backend/src/controllers/dashboardController.js` — alertas pedagógicos automáticos
+    - `GET /api/dashboard/alerts/:playerId` analisa últimas 10 sessões
+    - Alertas: taxa baixa/regular, inatividade alta/média, sem jogar, categoria problemática, evolução positiva
+- `backend/src/controllers/sessionsController.js`
+    - `GET /api/sessions/player/:playerId` — busca sessões por nome do jogador
+- `frontend/src/pages/PerfilAluno.jsx`
+    - Gráfico de evolução temporal com Recharts
+    - Categorias jogadas com tradução (Fase01→Ações, etc.)
+    - Função `traduzirCategoria` para mapeamento de nomes
+- `frontend/src/index.css` — estilos globais para `btn-voltar` e `item-sessao`
 
-### Atualizado
+### Removido
 
-- `backend/src/models/Student.js`
-    - Novos campos: `supportLevel`, `otherConditions`, `guardianName`, `guardianContact`
-    - Sub-schema `AnotacaoSchema` com texto, autorId, autorNome e timestamps
+- `backend/src/controllers/playersController.js` — collection players substituída por students
+- `backend/src/models/Player.js` — model legado removido
+- `backend/src/routes/players.js` — rotas legadas removidas
+- `frontend/src/pages/PerfilJogador.jsx` — substituído por PerfilAluno
+- `frontend/src/pages/PerfilJogador.css`
+
+### Corrigido
+
 - `backend/src/controllers/studentsController.js`
-    - `atualizarAluno` — agora salva todos os campos novos
-    - `adicionarAnotacao` — cria anotação com nome do autor
-    - `deletarAnotacao` — remove anotação por ID
-    - Fix: `returnDocument: 'after'` substituindo `new: true` (deprecation warning)
-- `backend/src/routes/students.js` — rotas de anotações adicionadas
+    - `atualizarAluno` agora sincroniza `playerId` em todas as sessões quando nome muda
+    - `criarAluno` salva todos os campos: `supportLevel`, `otherConditions`, `guardianName`, `guardianContact`
+    - `returnDocument: 'after'` substituindo `new: true` deprecado
+- `frontend/src/pages/Home.jsx` — busca alunos cadastrados em vez de players das sessões
+- `frontend/src/services/api.js` — `historicoJogador` aponta para nova rota `/sessions/player/:playerId`
 
 ### Testado
 
-- Criar turma e listar corretamente
-- Cadastrar aluno com todos os campos
-- Editar dados do aluno — todos os campos salvando
-- Adicionar e deletar anotações com autor e data
-- Indicador de desempenho calculado automaticamente
+- Alerta de inatividade disparando corretamente com média ≥ 3 por sessão
+- Renomear aluno sincroniza sessões automaticamente no banco
+- Categorias exibidas com nomes amigáveis no perfil do aluno
+- Gráfico de evolução aparecendo quando há 2+ sessões
+
+---
+
+## [0.9.0] — 2026-04-21
+
+### Adicionado — CRUD de turmas e alunos
+
+- Turmas, DetalheTurma, PerfilAluno com dados cadastrais e anotações
+- Student model com supportLevel, otherConditions, guardianName, guardianContact
+- Histórico de anotações com autor e data
 
 ---
 
@@ -58,7 +62,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 - AuthContext, RotaProtegida, Login.jsx
 - Sidebar com usuário logado e botão sair
-- Rotas protegidas por JWT
 
 ---
 
@@ -66,7 +69,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — CRUD completo + rotas Unity
 
-- PUT e DELETE em schools, groups, students
+- PUT e DELETE em schools, groups e students
 - Rotas públicas `/api/unity` para o Unity
 
 ---
@@ -84,7 +87,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — Dashboard React inicial
 
-- Layout, Home, PerfilJogador, DetalhesSessao
+- Layout, Home, DetalhesSessao
+- Heatmap em Canvas e timeline de eventos
 
 ---
 
@@ -92,7 +96,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — Backend completo
 
-- Controllers e rotas de players e dashboard
+- Controllers e rotas de sessions e dashboard
 
 ---
 
@@ -108,7 +112,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
-- Models: Session, Player, Institution
+- Models: Session, Institution
 
 ---
 
@@ -122,7 +126,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.0.0]` — Funcionalidades pedagógicas: alertas e geração de PDF
-- `[1.1.0]` — Área Admin: cadastro de professores e escolas
-- `[1.2.0]` — Responsividade + design final da designer
-- `[1.3.0]` — Sistema publicado e testado nas escolas
+- `[1.1.0]` — Exibir alertas no frontend (perfil do aluno e home)
+- `[1.2.0]` — Geração de PDF formal por aluno
+- `[1.3.0]` — Área Admin: cadastro de professores e escolas
+- `[1.4.0]` — Responsividade + design final da designer
+- `[1.5.0]` — Sistema publicado e testado nas escolas

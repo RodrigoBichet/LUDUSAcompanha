@@ -32,7 +32,6 @@ LUDUSAcompanha/
 │   │   ├── middleware/auth.js
 │   │   ├── models/
 │   │   │   ├── Session.js
-│   │   │   ├── Player.js
 │   │   │   ├── Institution.js
 │   │   │   ├── User.js
 │   │   │   ├── School.js
@@ -45,7 +44,6 @@ LUDUSAcompanha/
 │   │   │   ├── groups.js
 │   │   │   ├── students.js
 │   │   │   ├── sessions.js
-│   │   │   ├── players.js
 │   │   │   └── dashboard.js
 │   │   ├── controllers/
 │   │   │   ├── unityController.js
@@ -54,7 +52,6 @@ LUDUSAcompanha/
 │   │   │   ├── groupsController.js
 │   │   │   ├── studentsController.js
 │   │   │   ├── sessionsController.js
-│   │   │   ├── playersController.js
 │   │   │   └── dashboardController.js
 │   │   ├── scripts/criarAdmin.js
 │   │   └── app.js
@@ -64,8 +61,7 @@ LUDUSAcompanha/
 │   └── server.js
 ├── frontend/
 │   ├── src/
-│   │   ├── contexts/
-│   │   │   └── AuthContext.jsx
+│   │   ├── contexts/AuthContext.jsx
 │   │   ├── components/
 │   │   │   ├── layout/
 │   │   │   │   ├── Sidebar.jsx
@@ -75,7 +71,6 @@ LUDUSAcompanha/
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Home.jsx
-│   │   │   ├── PerfilJogador.jsx
 │   │   │   ├── DetalhesSessao.jsx
 │   │   │   ├── Turmas.jsx
 │   │   │   ├── DetalheTurma.jsx
@@ -160,73 +155,94 @@ node src/scripts/criarAdmin.js
 
 ### Schools / Groups / Students
 
-| Método              | Rotas                                     | Auth                                 |
-| ------------------- | ----------------------------------------- | ------------------------------------ |
-| POST/GET/PUT/DELETE | `/api/schools`                            | ✅ (Admin para criar/editar/deletar) |
-| POST/GET/PUT/DELETE | `/api/groups`                             | ✅                                   |
-| POST/GET/PUT/DELETE | `/api/students`                           | ✅                                   |
-| POST                | `/api/students/:id/anotacoes`             | ✅                                   |
-| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅                                   |
+| Método              | Rotas                                     | Auth     |
+| ------------------- | ----------------------------------------- | -------- |
+| POST/GET/PUT/DELETE | `/api/schools`                            | ✅ Admin |
+| POST/GET/PUT/DELETE | `/api/groups`                             | ✅       |
+| POST/GET/PUT/DELETE | `/api/students`                           | ✅       |
+| POST                | `/api/students/:id/anotacoes`             | ✅       |
+| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅       |
 
-### Sessions / Players / Dashboard
+### Sessions
 
-| Método   | Rota                                | Auth |
-| -------- | ----------------------------------- | ---- |
-| POST/GET | `/api/sessions`                     | —    |
-| GET      | `/api/players`                      | —    |
-| GET      | `/api/dashboard/summary/:playerId`  | —    |
-| GET      | `/api/dashboard/heatmap/:sessionId` | —    |
+| Método | Rota                             | Auth |
+| ------ | -------------------------------- | ---- |
+| POST   | `/api/sessions`                  | —    |
+| GET    | `/api/sessions`                  | —    |
+| GET    | `/api/sessions/:sessionId`       | —    |
+| GET    | `/api/sessions/player/:playerId` | —    |
+
+### Dashboard
+
+| Método | Rota                                | Auth |
+| ------ | ----------------------------------- | ---- |
+| GET    | `/api/dashboard/summary/:playerId`  | —    |
+| GET    | `/api/dashboard/heatmap/:sessionId` | —    |
+| GET    | `/api/dashboard/alerts/:playerId`   | —    |
 
 ---
 
 ## Dashboard — Telas implementadas
 
-| Tela            | Rota                 | Descrição                        |
-| --------------- | -------------------- | -------------------------------- |
-| Login           | `/login`             | Autenticação com email e senha   |
-| Home            | `/`                  | Lista de jogadores monitorados   |
-| Perfil Jogador  | `/jogador/:playerId` | Métricas e histórico             |
-| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline               |
-| Turmas          | `/turmas`            | Gerenciamento de turmas          |
-| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos       |
-| Perfil Aluno    | `/aluno/:id`         | Dados, anotações e monitoramento |
+| Tela            | Rota                 | Descrição                                 |
+| --------------- | -------------------- | ----------------------------------------- |
+| Login           | `/login`             | Autenticação JWT                          |
+| Home            | `/`                  | Lista de alunos cadastrados               |
+| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline                        |
+| Turmas          | `/turmas`            | Gerenciamento de turmas                   |
+| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos                |
+| Perfil Aluno    | `/aluno/:id`         | Dados, anotações, alertas e monitoramento |
 
 ---
 
-## Hierarquia do sistema
+## Alertas pedagógicos automáticos
 
-```
-ADMINISTRADOR
-└── Escola
-    ├── Professor
-    │   ├── Turma A
-    │   │   ├── Aluno 1 (nome, idade, TEA nível, anotações)
-    │   │   └── Aluno 2
-    │   └── Turma B
-    └── Professor B
-```
+| Alerta                   | Condição                             | Severidade  |
+| ------------------------ | ------------------------------------ | ----------- |
+| Taxa de acerto baixa     | Taxa < 50% nas últimas 3 sessões     | 🔴 Alta     |
+| Taxa de acerto regular   | Taxa entre 50% e 70%                 | 🟡 Média    |
+| Inatividade frequente    | Média ≥ 3 por sessão                 | 🔴 Alta     |
+| Inatividade detectada    | Média ≥ 1.5 por sessão               | 🟡 Média    |
+| Sem jogar há muito tempo | Última sessão há +14 dias            | 🔴 Alta     |
+| Sem jogar há uma semana  | Última sessão há +7 dias             | 🔵 Info     |
+| Dificuldade em categoria | Taxa de erro ≥ 50% com 3+ tentativas | 🟡 Média    |
+| Evolução positiva        | Melhora de 20%+ nas últimas sessões  | 🟢 Positivo |
+
+---
+
+## Categorias do jogo
+
+| Cena Unity | Nome exibido |
+| ---------- | ------------ |
+| Fase01     | Ações        |
+| Fase02     | Alimentos    |
+| Fase03     | Cotidiano    |
+| Fase04     | Diversão     |
+| Fase05     | Higiene      |
 
 ---
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                                  | Status               |
-| ----- | ------------------------------------------ | -------------------- |
-| 1     | SDK Unity (C#)                             | ✅                   |
-| 1.5   | Integração no Para Que Serve?              | ✅                   |
-| 2     | Backend Node.js + MongoDB                  | ✅                   |
-| 3     | Dashboard React                            | 🔧 Design provisório |
-| 4     | Autenticação JWT + Hierarquia              | ✅                   |
-| 5     | CRUD completo + rotas Unity                | ✅                   |
-| 6     | Refatorar tela Unity                       | ✅                   |
-| 7     | Login no dashboard                         | ✅                   |
-| 8     | CRUD turmas e alunos no dashboard          | ✅                   |
-| 9     | Funcionalidades pedagógicas (alertas, PDF) | 🔜                   |
-| 10    | Área Admin no dashboard                    | 🔜                   |
-| 11    | Responsividade                             | 🔜                   |
-| 12    | Publicar backend                           | 🔜                   |
-| 13    | Coleta nas escolas parceiras               | 🔜                   |
-| 14    | ML (K-Means + Árvore de Decisão)           | 🔜                   |
+| Etapa | Descrição                        | Status                   |
+| ----- | -------------------------------- | ------------------------ |
+| 1     | SDK Unity (C#)                   | ✅                       |
+| 1.5   | Integração no Para Que Serve?    | ✅                       |
+| 2     | Backend Node.js + MongoDB        | ✅                       |
+| 3     | Dashboard React                  | 🔧 Design provisório     |
+| 4     | Autenticação JWT + Hierarquia    | ✅                       |
+| 5     | CRUD completo + rotas Unity      | ✅                       |
+| 6     | Refatorar tela Unity             | ✅                       |
+| 7     | Login no dashboard               | ✅                       |
+| 8     | CRUD turmas e alunos             | ✅                       |
+| 9     | Alertas pedagógicos automáticos  | ✅ backend — 🔧 frontend |
+| 10    | Exibir alertas no frontend       | 🔜                       |
+| 11    | Geração de PDF formal            | 🔜                       |
+| 12    | Área Admin no dashboard          | 🔜                       |
+| 13    | Responsividade                   | 🔜                       |
+| 14    | Publicar backend                 | 🔜                       |
+| 15    | Coleta nas escolas parceiras     | 🔜                       |
+| 16    | ML (K-Means + Árvore de Decisão) | 🔜                       |
 
 ---
 
