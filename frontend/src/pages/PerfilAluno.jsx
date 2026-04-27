@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import {
     LineChart,
@@ -31,6 +32,8 @@ import {
     alertasAluno,
 } from "../services/api";
 import "./PerfilAluno.css";
+import { useRef } from "react";
+import RelatorioPDF from "../components/shared/RelatorioPDF";
 
 export default function PerfilAluno() {
     const { id } = useParams();
@@ -57,6 +60,12 @@ export default function PerfilAluno() {
 
     //Alertas
     const [alertas, setAlertas] = useState([]);
+
+    //PDF
+    const refRelatorio = useRef(null);
+
+    //Usuario
+    const { usuario } = useAuth();
 
     const carregarDados = async () => {
         try {
@@ -183,6 +192,23 @@ export default function PerfilAluno() {
             Fase05: "Higiene",
         };
         return mapa[cat] || cat;
+    };
+
+    const gerarPDF = async () => {
+        const elemento = document.getElementById("relatorio-pdf");
+        if (!elemento) return;
+
+        const html2pdf = (await import("html2pdf.js")).default;
+
+        const opcoes = {
+            margin: 10,
+            filename: `Relatorio_${aluno?.name}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`,
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        };
+
+        html2pdf().set(opcoes).from(elemento).save();
     };
 
     return (
@@ -797,6 +823,26 @@ export default function PerfilAluno() {
                         </div>
                     </div>
                 )}
+
+                {/* Botão de gerar PDF */}
+                {aluno && resumo && (
+                    <div style={{ textAlign: "center", marginTop: "1rem" }}>
+                        <button className="btn-pdf" onClick={gerarPDF}>
+                            📄 Gerar Relatório PDF
+                        </button>
+                    </div>
+                )}
+
+                {/* Template do PDF — invisível na tela */}
+                <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+                    <RelatorioPDF
+                        aluno={aluno}
+                        resumo={resumo}
+                        sessoes={sessoes}
+                        alertas={alertas}
+                        professor={usuario}
+                    />
+                </div>
             </div>
         </div>
     );

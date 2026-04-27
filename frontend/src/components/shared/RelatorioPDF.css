@@ -1,0 +1,258 @@
+/* =============================================================================
+   RelatorioPDF.css
+   Template formal para geração de PDF — LUDUS Acompanha
+   ============================================================================= */
+
+.relatorio-pdf {
+    font-family: "Georgia", serif;
+    font-size: 12px;
+    color: #1a1a1a;
+    background: white;
+    padding: 40px;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Cabeçalho */
+.pdf-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.pdf-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pdf-logo-icone {
+    font-size: 2rem;
+}
+
+.pdf-logo-titulo {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+
+.pdf-logo-subtitulo {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.pdf-cabecalho-info {
+    text-align: right;
+}
+
+.pdf-titulo-relatorio {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+
+.pdf-data-geracao {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Divisor */
+.pdf-divisor {
+    border: none;
+    border-top: 1.5px solid #1a1a1a;
+    margin: 1rem 0;
+}
+
+/* Seções */
+.pdf-secao {
+    margin-bottom: 1rem;
+}
+
+.pdf-secao-titulo {
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    color: #1a1a1a;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+}
+
+/* Dados do aluno */
+.pdf-grid-dados {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 2rem;
+}
+
+.pdf-dado {
+    display: flex;
+    flex-direction: column;
+}
+
+.pdf-dado-label {
+    font-size: 0.7rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pdf-dado-valor {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+
+/* Métricas */
+.pdf-metricas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    text-align: center;
+}
+
+.pdf-metrica {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.75rem;
+}
+
+.pdf-metrica.destaque {
+    border: 2px solid #1a1a1a;
+}
+
+.pdf-metrica-valor {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+
+.pdf-metrica-label {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Categorias */
+.pdf-categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pdf-categoria {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.85rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pdf-categoria-qtd {
+    font-weight: bold;
+}
+
+/* Alertas */
+.pdf-alertas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pdf-alerta {
+    border-left: 3px solid #1a1a1a;
+    padding-left: 0.75rem;
+}
+
+.pdf-alerta-titulo {
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.pdf-alerta-descricao {
+    font-size: 0.8rem;
+    color: #333;
+}
+
+.pdf-alerta-sugestao {
+    font-size: 0.78rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Tabela de sessões */
+.pdf-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    table-layout: fixed;
+}
+
+.pdf-tabela th {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 0.26rem 0.26rem;
+    text-align: left;
+    font-weight: bold;
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+    word-wrap: break-word;
+}
+
+.pdf-tabela td {
+    border: 1px solid #ddd;
+    padding: 0.3rem 0.4rem;
+    word-wrap: break-word;
+}
+
+.pdf-tabela tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* Anotações */
+.pdf-anotacoes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pdf-anotacao {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.pdf-anotacao-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.pdf-anotacao-texto {
+    font-size: 0.85rem;
+}
+
+/* Rodapé */
+.pdf-rodape {
+    margin-top: 1.5rem;
+}
+
+.pdf-rodape p {
+    font-size: 0.72rem;
+    color: #666;
+    text-align: center;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.pdf-texto-intro {
+    font-size: 0.82rem;
+    color: #444;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+}
