@@ -40,9 +40,41 @@ export default function Sidebar() {
                 </NavLink>
             </nav>
 
-            {/* Usuário logado */}
+            {/* Menu exclusivo para admin */}
+            {usuario?.role === "admin" && (
+                <>
+                    <div className="nav-separador">Admin</div>
+
+                    <NavLink
+                        to="/admin/escolas"
+                        className={({ isActive }) =>
+                            isActive ? "nav-item ativo" : "nav-item"
+                        }
+                    >
+                        <span className="nav-icone">🏫</span>
+                        <span>Escolas</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/admin/usuarios"
+                        className={({ isActive }) =>
+                            isActive ? "nav-item ativo" : "nav-item"
+                        }
+                    >
+                        <span className="nav-icone">👥</span>
+                        <span>Usuários</span>
+                    </NavLink>
+                </>
+            )}
+
+            {/* Usuário logado — clicável para ir ao perfil */}
             {usuario && (
-                <div className="sidebar-usuario">
+                <NavLink
+                    to="/perfil"
+                    className={({ isActive }) =>
+                        isActive ? "sidebar-usuario ativo" : "sidebar-usuario"
+                    }
+                >
                     <div className="usuario-avatar">
                         {usuario.name.charAt(0).toUpperCase()}
                     </div>
@@ -54,7 +86,7 @@ export default function Sidebar() {
                                 : "👨‍🏫 Professor"}
                         </div>
                     </div>
-                </div>
+                </NavLink>
             )}
 
             {/* Rodapé */}

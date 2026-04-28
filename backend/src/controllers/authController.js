@@ -149,4 +149,81 @@ const perfil = async (req, res) => {
     }
 };
 
-module.exports = { registrar, login, perfil };
+// -------------------------------------------------------------------------
+// atualizarPerfil — PUT /api/auth/perfil
+// Usuário logado edita o próprio nome, email e senha
+// -------------------------------------------------------------------------
+const atualizarPerfil = async (req, res) => {
+    try {
+        const { name, email, senhaAtual, novaSenha } = req.body;
+
+        const usuario = await User.findById(req.usuarioId);
+
+        if (!usuario) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Usuário não encontrado",
+            });
+        }
+
+        // Atualiza nome e email se fornecidos
+        if (name) usuario.name = name;
+        if (email) usuario.email = email;
+
+        // Atualiza senha apenas se ambos os campos forem fornecidos
+        if (senhaAtual || novaSenha) {
+            if (!senhaAtual || !novaSenha) {
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: "Informe a senha atual e a nova senha.",
+                });
+            }
+
+            const senhaCorreta = await usuario.compararSenha(senhaAtual);
+            if (!senhaCorreta) {
+                return res.status(401).json({
+                    sucesso: false,
+                    mensagem: "Senha atual incorreta.",
+                });
+            }
+
+            usuario.password = novaSenha;
+        }
+
+        await usuario.save();
+
+        console.log(`[LUDUS] Perfil atualizado: ${usuario.email}`);
+
+        // Monta mensagem dinâmica conforme o que foi alterado
+        const itensAlterados = [];
+        if (name) itensAlterados.push("nome");
+        if (email) itensAlterados.push("email");
+        if (novaSenha) itensAlterados.push("senha");
+
+        const listaFormatada = itensAlterados.join(", ");
+        const mensagem =
+            itensAlterados.length > 0
+                ? `${listaFormatada.charAt(0).toUpperCase() + listaFormatada.slice(1)} atualizado(s) com sucesso!`
+                : "Nenhuma alteração realizada.";
+
+        return res.json({
+            sucesso: true,
+            mensagem,
+            usuario: {
+                id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                schoolId: usuario.schoolId,
+            },
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao atualizar perfil:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao atualizar perfil",
+        });
+    }
+};
+
+module.exports = { registrar, login, perfil, atualizarPerfil };

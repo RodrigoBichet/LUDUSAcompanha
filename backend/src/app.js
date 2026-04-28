@@ -17,6 +17,7 @@ const app = express();
 
 app.use(cors()); // Permite requisições de qualquer origem (Unity, Dashboard)
 app.use(express.json()); // Interpreta JSON no corpo das requisições
+app.use("/api/users", require("./routes/users"));
 
 // -------------------------------------------------------------------------
 // Rota de health check — confirma que o servidor está rodando

@@ -151,3 +151,22 @@
     border-color: var(--cor-erro);
     color: var(--cor-erro);
 }
+
+/* Separador de seção admin */
+.nav-separador {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 1rem 1rem 0.3rem;
+}
+
+.sidebar-usuario.ativo {
+    background: rgba(78, 203, 160, 0.15);
+    outline: 1px solid rgba(78, 203, 160, 0.3);
+}
+
+.sidebar-usuario {
+    text-decoration: none;
+}

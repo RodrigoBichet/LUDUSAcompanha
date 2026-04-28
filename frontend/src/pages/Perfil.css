@@ -1,0 +1,53 @@
+/* =============================================================================
+   Perfil.css
+   LUDUS Acompanha — UFPel (2026)
+   ============================================================================= */
+
+.perfil-conteudo {
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Card de identificação */
+.perfil-identidade {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.perfil-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.perfil-nome {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cor-texto);
+    margin-bottom: 0.15rem;
+}
+
+.perfil-role {
+    font-size: 0.8rem;
+    color: var(--cor-texto-leve);
+    margin-top: 0.25rem;
+}
+
+/* Mensagem de sucesso */
+.form-sucesso {
+    font-size: 0.82rem;
+    color: var(--cor-sucesso);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}

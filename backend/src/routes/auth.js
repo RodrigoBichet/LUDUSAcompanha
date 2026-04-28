@@ -11,5 +11,6 @@ const { autenticar } = require("../middleware/auth");
 router.post("/register", controller.registrar);
 router.post("/login", controller.login);
 router.get("/me", autenticar, controller.perfil);
+router.put("/perfil", autenticar, controller.atualizarPerfil);
 
 module.exports = router;

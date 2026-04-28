@@ -1,0 +1,101 @@
+/* =============================================================================
+   GerenciarEscolas.css
+   LUDUS Acompanha — UFPel (2026)
+   ============================================================================= */
+
+/* Formulário */
+.form-escola {
+    margin-bottom: 1.5rem;
+}
+
+.form-titulo {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--cor-texto);
+}
+
+.form-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-erro {
+    font-size: 0.82rem;
+    color: var(--cor-erro);
+    margin-bottom: 0.75rem;
+}
+
+.form-acoes {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Lista de escolas */
+.lista-escolas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-escola {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.escola-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.escola-icone {
+    font-size: 1.5rem;
+}
+
+.escola-nome {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--cor-texto);
+}
+
+.escola-acoes {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.btn-acao {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: var(--fonte-corpo);
+    transition: all 0.15s;
+}
+
+.btn-acao.editar {
+    background: rgba(78, 203, 160, 0.1);
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+}
+
+.btn-acao.editar:hover {
+    background: rgba(78, 203, 160, 0.2);
+}
+
+.btn-acao.deletar {
+    background: rgba(252, 129, 129, 0.1);
+    border-color: var(--cor-erro);
+    color: var(--cor-erro);
+}
+
+.btn-acao.deletar:hover {
+    background: rgba(252, 129, 129, 0.2);
+}

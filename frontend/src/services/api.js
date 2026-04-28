@@ -65,4 +65,13 @@ export const historicoJogador = (playerId) =>
 export const alertasAluno = (playerId) =>
     api.get(`/dashboard/alerts/${encodeURIComponent(playerId)}`);
 
+// -------------------------------------------------------------------------
+// Users (Usuários — apenas admin)
+// -------------------------------------------------------------------------
+export const listarUsuarios = () => api.get("/users");
+export const deletarUsuario = (id) => api.delete(`/users/${id}`);
+
+export const atualizarUsuario = (id, dados) => api.put(`/users/${id}`, dados);
+export const atualizarPerfil = (dados) => api.put("/auth/perfil", dados);
+
 export default api;

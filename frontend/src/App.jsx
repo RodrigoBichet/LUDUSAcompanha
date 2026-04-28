@@ -8,6 +8,10 @@ import DetalhesSessao from "./pages/DetalhesSessao";
 import Turmas from "./pages/Turmas";
 import DetalheTurma from "./pages/DetalheTurma";
 import PerfilAluno from "./pages/PerfilAluno";
+import RotaAdmin from "./components/shared/RotaAdmin";
+import GerenciarEscolas from "./pages/GerenciarEscolas";
+import GerenciarUsuarios from "./pages/GerenciarUsuarios";
+import Perfil from "./pages/Perfil";
 import "./index.css";
 
 function Layout({ children }) {
@@ -74,6 +78,49 @@ function App() {
                             <RotaProtegida>
                                 <Layout>
                                     <PerfilAluno />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/admin"
+                        element={
+                            <RotaAdmin>
+                                <Layout>
+                                    <div style={{ padding: "2rem" }}>
+                                        <h1>Área Admin</h1>
+                                        <p>Funcionou!</p>
+                                    </div>
+                                </Layout>
+                            </RotaAdmin>
+                        }
+                    />
+                    <Route
+                        path="/admin/escolas"
+                        element={
+                            <RotaAdmin>
+                                <Layout>
+                                    <GerenciarEscolas />
+                                </Layout>
+                            </RotaAdmin>
+                        }
+                    />
+                    <Route
+                        path="/admin/usuarios"
+                        element={
+                            <RotaAdmin>
+                                <Layout>
+                                    <GerenciarUsuarios />
+                                </Layout>
+                            </RotaAdmin>
+                        }
+                    />
+                    <Route
+                        path="/perfil"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <Perfil />
                                 </Layout>
                             </RotaProtegida>
                         }
