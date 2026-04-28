@@ -9,8 +9,77 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
-import { listarTurmas, listarAlunos } from "../services/api";
+import { listarTurmas, listarAlunos, resumoJogador } from "../services/api";
 import "./Home.css";
+
+function CardAluno({ aluno, navegar }) {
+    const [indicador, setIndicador] = useState(null);
+
+    useEffect(() => {
+        resumoJogador(aluno.name)
+            .then((res) => {
+                const taxa = parseFloat(res.data.taxaAcerto);
+                if (taxa >= 70)
+                    setIndicador({
+                        icone: "🟢",
+                        label: "Bom desempenho",
+                        cor: "#4ECBA0",
+                    });
+                else if (taxa >= 50)
+                    setIndicador({
+                        icone: "🟡",
+                        label: "Desempenho regular",
+                        cor: "#F6AD55",
+                    });
+                else
+                    setIndicador({
+                        icone: "🔴",
+                        label: "Atenção necessária",
+                        cor: "#FC8181",
+                    });
+            })
+            .catch(() => setIndicador(null));
+    }, [aluno.name]);
+
+    return (
+        <div
+            className="card card-jogador"
+            onClick={() => navegar(`/aluno/${aluno._id}`)}
+        >
+            <div className="jogador-avatar">
+                {aluno.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="jogador-info">
+                <h3>{aluno.name}</h3>
+                <p className="texto-leve">
+                    {aluno.groupId?.name || "Sem turma"}
+                </p>
+                {indicador && (
+                    <p
+                        style={{
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            color: indicador.cor,
+                            marginTop: "0.2rem",
+                        }}
+                    >
+                        {indicador.icone} {indicador.label}
+                        <span
+                            style={{
+                                fontWeight: 400,
+                                color: "var(--cor-texto-leve)",
+                                marginLeft: "0.3rem",
+                            }}
+                        >
+                            (taxa de acerto)
+                        </span>
+                    </p>
+                )}
+            </div>
+            <span className="jogador-seta">→</span>
+        </div>
+    );
+}
 
 export default function Home() {
     const [alunos, setAlunos] = useState([]);
@@ -84,25 +153,11 @@ export default function Home() {
                         ) : (
                             <div className="grid-jogadores">
                                 {alunos.map((aluno) => (
-                                    <div
+                                    <CardAluno
                                         key={aluno._id}
-                                        className="card card-jogador"
-                                        onClick={() =>
-                                            navegar(`/aluno/${aluno._id}`)
-                                        }
-                                    >
-                                        <div className="jogador-avatar">
-                                            {aluno.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="jogador-info">
-                                            <h3>{aluno.name}</h3>
-                                            <p className="texto-leve">
-                                                {aluno.groupId?.name ||
-                                                    "Sem turma"}
-                                            </p>
-                                        </div>
-                                        <span className="jogador-seta">→</span>
-                                    </div>
+                                        aluno={aluno}
+                                        navegar={navegar}
+                                    />
                                 ))}
                             </div>
                         )}
