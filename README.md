@@ -44,7 +44,8 @@ LUDUSAcompanha/
 │   │   │   ├── groups.js
 │   │   │   ├── students.js
 │   │   │   ├── sessions.js
-│   │   │   └── dashboard.js
+│   │   │   ├── dashboard.js
+│   │   │   └── users.js
 │   │   ├── controllers/
 │   │   │   ├── unityController.js
 │   │   │   ├── authController.js
@@ -52,7 +53,8 @@ LUDUSAcompanha/
 │   │   │   ├── groupsController.js
 │   │   │   ├── studentsController.js
 │   │   │   ├── sessionsController.js
-│   │   │   └── dashboardController.js
+│   │   │   ├── dashboardController.js
+│   │   │   └── usersController.js
 │   │   ├── scripts/criarAdmin.js
 │   │   └── app.js
 │   ├── .env.example
@@ -68,6 +70,7 @@ LUDUSAcompanha/
 │   │   │   │   └── Header.jsx
 │   │   │   └── shared/
 │   │   │       ├── RotaProtegida.jsx
+│   │   │       ├── RotaAdmin.jsx
 │   │   │       ├── RelatorioPDF.jsx
 │   │   │       └── RelatorioPDF.css
 │   │   ├── pages/
@@ -76,7 +79,10 @@ LUDUSAcompanha/
 │   │   │   ├── DetalhesSessao.jsx
 │   │   │   ├── Turmas.jsx
 │   │   │   ├── DetalheTurma.jsx
-│   │   │   └── PerfilAluno.jsx
+│   │   │   ├── PerfilAluno.jsx
+│   │   │   ├── GerenciarEscolas.jsx
+│   │   │   ├── GerenciarUsuarios.jsx
+│   │   │   └── Perfil.jsx
 │   │   ├── services/api.js
 │   │   └── App.jsx
 │   └── package.json
@@ -154,6 +160,15 @@ node src/scripts/criarAdmin.js
 | POST   | `/api/auth/register` | —    |
 | POST   | `/api/auth/login`    | —    |
 | GET    | `/api/auth/me`       | ✅   |
+| PUT    | `/api/auth/perfil`   | ✅   |
+
+### Users
+
+| Método | Rota             | Auth     |
+| ------ | ---------------- | -------- |
+| GET    | `/api/users`     | ✅ Admin |
+| PUT    | `/api/users/:id` | ✅ Admin |
+| DELETE | `/api/users/:id` | ✅ Admin |
 
 ### Schools / Groups / Students
 
@@ -186,14 +201,17 @@ node src/scripts/criarAdmin.js
 
 ## Dashboard — Telas implementadas
 
-| Tela            | Rota                 | Descrição                                      |
-| --------------- | -------------------- | ---------------------------------------------- |
-| Login           | `/login`             | Autenticação JWT                               |
-| Home            | `/`                  | Lista de alunos com indicador de desempenho    |
-| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline                             |
-| Turmas          | `/turmas`            | Gerenciamento de turmas                        |
-| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos                     |
-| Perfil Aluno    | `/aluno/:id`         | Dados, anotações, alertas, monitoramento e PDF |
+| Tela               | Rota                 | Descrição                                      |
+| ------------------ | -------------------- | ---------------------------------------------- |
+| Login              | `/login`             | Autenticação JWT                               |
+| Home               | `/`                  | Lista de alunos com indicador de desempenho    |
+| Detalhes Sessão    | `/sessao/:sessionId` | Heatmap e timeline                             |
+| Turmas             | `/turmas`            | Gerenciamento de turmas                        |
+| Detalhe Turma      | `/turmas/:id`        | Lista e cadastro de alunos                     |
+| Perfil Aluno       | `/aluno/:id`         | Dados, anotações, alertas, monitoramento e PDF |
+| Gerenciar Escolas  | `/admin/escolas`     | CRUD de escolas (apenas admin)                 |
+| Gerenciar Usuários | `/admin/usuarios`    | CRUD de usuários (apenas admin)                |
+| Meu Perfil         | `/perfil`            | Edição de dados e senha do usuário logado      |
 
 ---
 
@@ -264,12 +282,13 @@ node src/scripts/criarAdmin.js
 | 9     | Alertas pedagógicos              | ✅                   |
 | 10    | Geração de PDF formal            | ✅                   |
 | 11    | Indicador de desempenho na Home  | ✅                   |
-| 12    | Área Admin no dashboard          | 🔜                   |
-| 13    | Responsividade                   | 🔜                   |
-| 14    | Design final da designer         | 🔜                   |
-| 15    | Publicar backend                 | 🔜                   |
-| 16    | Coleta nas escolas parceiras     | 🔜                   |
-| 17    | ML (K-Means + Árvore de Decisão) | 🔜                   |
+| 12    | Área Admin no dashboard          | ✅                   |
+| 13    | Tela de perfil do usuário        | ✅                   |
+| 14    | Responsividade                   | 🔜                   |
+| 15    | Design final da designer         | 🔜                   |
+| 16    | Publicar backend                 | 🔜                   |
+| 17    | Coleta nas escolas parceiras     | 🔜                   |
+| 18    | ML (K-Means + Árvore de Decisão) | 🔜                   |
 
 ---
 

@@ -5,6 +5,39 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-04-28 — Área Admin completa + tela de perfil do usuário
+
+### Adicionado
+
+- `frontend/src/components/shared/RotaAdmin.jsx` — proteção de rotas exclusivas para admin
+- `frontend/src/pages/GerenciarEscolas.jsx` — CRUD completo de escolas (listar, criar, editar, remover)
+- `frontend/src/pages/GerenciarUsuarios.jsx` — CRUD completo de usuários (listar, criar, editar, remover)
+    - Campo senha oculto no modo edição — troca de senha apenas pelo próprio usuário
+    - Vínculo de escola ao criar/editar professor
+- `frontend/src/pages/Perfil.jsx` — tela de perfil acessível por qualquer usuário logado
+    - Edição de nome e email
+    - Troca de senha com validação de senha atual e confirmação
+    - Atualização reflete na sidebar sem precisar relogar
+- `backend/src/controllers/usersController.js` — listar, atualizar e deletar usuários
+- `backend/src/routes/users.js` — rotas protegidas por autenticação + admin
+- `PUT /api/users/:id` — admin edita qualquer usuário
+- `PUT /api/auth/perfil` — usuário edita o próprio perfil com mensagem dinâmica
+- Menu admin na sidebar visível apenas para `role === 'admin'`
+- Card de usuário na sidebar vira link clicável para `/perfil`
+- Classes globais adicionadas ao `index.css`: `btn-primario`, `btn-secundario`, `campo-input`, `campo-grupo`, `campo-label`, `badge`, `secao-titulo`, `estado-vazio`, `spinner`, etc.
+
+### Alterado
+
+- `frontend/src/contexts/AuthContext.jsx` — `setUsuario` exposto no Provider
+- `frontend/src/components/layout/Sidebar.jsx` — menu admin condicional + card de usuário como NavLink
+- `frontend/src/services/api.js` — funções `listarUsuarios`, `deletarUsuario`, `atualizarUsuario`, `atualizarPerfil`
+- `frontend/src/App.jsx` — rotas `/admin/escolas`, `/admin/usuarios`, `/perfil`
+- `backend/src/controllers/authController.js` — adicionado `atualizarPerfil` com mensagem dinâmica
+- `backend/src/routes/auth.js` — adicionado `PUT /api/auth/perfil`
+- `backend/src/app.js` — registrado `/api/users`
+
+---
+
 ## [1.2.0] — 2026-04-27 — Indicador de desempenho na Home
 
 ### Adicionado
@@ -130,7 +163,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.3.0]` — Área Admin: cadastro de professores e escolas pelo dashboard
 - `[1.4.0]` — Responsividade + design final da designer
 - `[1.5.0]` — Sistema publicado e testado nas escolas parceiras
 - `[2.0.0]` — ML: K-Means + Árvore de Decisão
