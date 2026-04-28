@@ -5,44 +5,50 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [1.0.0] — 2026-04-25 — Alertas pedagógicos + refatoração 🎉
+## [1.2.0] — 2026-04-27 — Indicador de desempenho na Home
 
 ### Adicionado
 
-- `backend/src/controllers/dashboardController.js` — alertas pedagógicos automáticos
-    - `GET /api/dashboard/alerts/:playerId` analisa últimas 10 sessões
-    - Alertas: taxa baixa/regular, inatividade alta/média, sem jogar, categoria problemática, evolução positiva
-- `backend/src/controllers/sessionsController.js`
-    - `GET /api/sessions/player/:playerId` — busca sessões por nome do jogador
+- `frontend/src/pages/Home.jsx` — indicador visual de desempenho nos cards
+    - Componente `CardAluno` com busca individual de resumo via `resumoJogador`
+    - 🟢 Bom desempenho — taxa ≥ 70%
+    - 🟡 Desempenho regular — taxa entre 50% e 70%
+    - 🔴 Atenção necessária — taxa < 50%
+    - Critério exibido explicitamente: "(taxa de acerto)"
+
+---
+
+## [1.1.0] — 2026-04-26 — Geração de PDF formal
+
+### Adicionado
+
+- `frontend/src/components/shared/RelatorioPDF.jsx`
+    - Template formal com linguagem acessível para pais/responsáveis
+    - Seções: dados do aluno, resumo de desempenho, categorias, alertas, histórico de sessões e anotações
+    - Tabela de sessões com categoria, acertos, erros, taxa, duração, avaliação em estrelas e pausas
+    - Alertas traduzidos para linguagem não técnica com explicações detalhadas
+    - Nome do professor que gerou o relatório no cabeçalho
+    - Aviso formal de que o documento não constitui diagnóstico
 - `frontend/src/pages/PerfilAluno.jsx`
-    - Gráfico de evolução temporal com Recharts
-    - Categorias jogadas com tradução (Fase01→Ações, etc.)
-    - Função `traduzirCategoria` para mapeamento de nomes
-- `frontend/src/index.css` — estilos globais para `btn-voltar` e `item-sessao`
+    - Botão "📄 Gerar Relatório PDF"
+    - Geração via `html2pdf.js` com nome do arquivo incluindo nome do aluno e data
+    - Template invisível na tela, renderizado apenas no PDF
 
-### Removido
+---
 
-- `backend/src/controllers/playersController.js` — collection players substituída por students
-- `backend/src/models/Player.js` — model legado removido
-- `backend/src/routes/players.js` — rotas legadas removidas
-- `frontend/src/pages/PerfilJogador.jsx` — substituído por PerfilAluno
-- `frontend/src/pages/PerfilJogador.css`
+## [1.0.0] — 2026-04-25
 
-### Corrigido
+### Adicionado — Alertas pedagógicos + refatoração
 
-- `backend/src/controllers/studentsController.js`
-    - `atualizarAluno` agora sincroniza `playerId` em todas as sessões quando nome muda
-    - `criarAluno` salva todos os campos: `supportLevel`, `otherConditions`, `guardianName`, `guardianContact`
-    - `returnDocument: 'after'` substituindo `new: true` deprecado
-- `frontend/src/pages/Home.jsx` — busca alunos cadastrados em vez de players das sessões
-- `frontend/src/services/api.js` — `historicoJogador` aponta para nova rota `/sessions/player/:playerId`
-
-### Testado
-
-- Alerta de inatividade disparando corretamente com média ≥ 3 por sessão
-- Renomear aluno sincroniza sessões automaticamente no banco
-- Categorias exibidas com nomes amigáveis no perfil do aluno
-- Gráfico de evolução aparecendo quando há 2+ sessões
+- Alertas automáticos no backend: taxa baixa, inatividade, sem jogar, categoria problemática, evolução positiva
+- Alertas exibidos no perfil do aluno com cores por severidade
+- Fix: renomear aluno atualiza playerId em todas as sessões
+- Fix: criarAluno salva todos os campos corretamente
+- Home refatorada para buscar alunos cadastrados
+- Rota GET /api/sessions/player/:playerId
+- Categorias traduzidas no perfil do aluno
+- Gráfico de evolução adicionado ao PerfilAluno
+- Remoção da collection players legada
 
 ---
 
@@ -50,9 +56,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — CRUD de turmas e alunos
 
-- Turmas, DetalheTurma, PerfilAluno com dados cadastrais e anotações
-- Student model com supportLevel, otherConditions, guardianName, guardianContact
-- Histórico de anotações com autor e data
+- Turmas, DetalheTurma, PerfilAluno
+- Student model com campos clínicos e histórico de anotações
 
 ---
 
@@ -70,7 +75,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado — CRUD completo + rotas Unity
 
 - PUT e DELETE em schools, groups e students
-- Rotas públicas `/api/unity` para o Unity
+- Rotas públicas /api/unity para o Unity
 
 ---
 
@@ -87,8 +92,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado — Dashboard React inicial
 
-- Layout, Home, DetalhesSessao
-- Heatmap em Canvas e timeline de eventos
+- Layout, Home, DetalhesSessao, heatmap e timeline
 
 ---
 
@@ -126,8 +130,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.1.0]` — Exibir alertas no frontend (perfil do aluno e home)
-- `[1.2.0]` — Geração de PDF formal por aluno
-- `[1.3.0]` — Área Admin: cadastro de professores e escolas
+- `[1.3.0]` — Área Admin: cadastro de professores e escolas pelo dashboard
 - `[1.4.0]` — Responsividade + design final da designer
-- `[1.5.0]` — Sistema publicado e testado nas escolas
+- `[1.5.0]` — Sistema publicado e testado nas escolas parceiras
+- `[2.0.0]` — ML: K-Means + Árvore de Decisão

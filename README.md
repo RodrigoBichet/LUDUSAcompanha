@@ -67,7 +67,9 @@ LUDUSAcompanha/
 │   │   │   │   ├── Sidebar.jsx
 │   │   │   │   └── Header.jsx
 │   │   │   └── shared/
-│   │   │       └── RotaProtegida.jsx
+│   │   │       ├── RotaProtegida.jsx
+│   │   │       ├── RelatorioPDF.jsx
+│   │   │       └── RelatorioPDF.css
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Home.jsx
@@ -184,14 +186,28 @@ node src/scripts/criarAdmin.js
 
 ## Dashboard — Telas implementadas
 
-| Tela            | Rota                 | Descrição                                 |
-| --------------- | -------------------- | ----------------------------------------- |
-| Login           | `/login`             | Autenticação JWT                          |
-| Home            | `/`                  | Lista de alunos cadastrados               |
-| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline                        |
-| Turmas          | `/turmas`            | Gerenciamento de turmas                   |
-| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos                |
-| Perfil Aluno    | `/aluno/:id`         | Dados, anotações, alertas e monitoramento |
+| Tela            | Rota                 | Descrição                                      |
+| --------------- | -------------------- | ---------------------------------------------- |
+| Login           | `/login`             | Autenticação JWT                               |
+| Home            | `/`                  | Lista de alunos com indicador de desempenho    |
+| Detalhes Sessão | `/sessao/:sessionId` | Heatmap e timeline                             |
+| Turmas          | `/turmas`            | Gerenciamento de turmas                        |
+| Detalhe Turma   | `/turmas/:id`        | Lista e cadastro de alunos                     |
+| Perfil Aluno    | `/aluno/:id`         | Dados, anotações, alertas, monitoramento e PDF |
+
+---
+
+## Funcionalidades do Perfil do Aluno
+
+- Dados cadastrais completos com edição
+- Indicador automático de desempenho (🟢 🟡 🔴)
+- Resumo de monitoramento com métricas consolidadas
+- Gráfico de evolução temporal
+- Categorias jogadas com nomes amigáveis
+- Alertas pedagógicos automáticos com linguagem acessível
+- Histórico de sessões clicável
+- Histórico de anotações do professor com autor e data
+- Geração de PDF formal para apresentação aos pais
 
 ---
 
@@ -210,6 +226,16 @@ node src/scripts/criarAdmin.js
 
 ---
 
+## Indicador de desempenho na Home
+
+| Indicador             | Critério             |
+| --------------------- | -------------------- |
+| 🟢 Bom desempenho     | Taxa de acerto ≥ 70% |
+| 🟡 Desempenho regular | Taxa entre 50% e 70% |
+| 🔴 Atenção necessária | Taxa < 50%           |
+
+---
+
 ## Categorias do jogo
 
 | Cena Unity | Nome exibido |
@@ -224,25 +250,26 @@ node src/scripts/criarAdmin.js
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                        | Status                   |
-| ----- | -------------------------------- | ------------------------ |
-| 1     | SDK Unity (C#)                   | ✅                       |
-| 1.5   | Integração no Para Que Serve?    | ✅                       |
-| 2     | Backend Node.js + MongoDB        | ✅                       |
-| 3     | Dashboard React                  | 🔧 Design provisório     |
-| 4     | Autenticação JWT + Hierarquia    | ✅                       |
-| 5     | CRUD completo + rotas Unity      | ✅                       |
-| 6     | Refatorar tela Unity             | ✅                       |
-| 7     | Login no dashboard               | ✅                       |
-| 8     | CRUD turmas e alunos             | ✅                       |
-| 9     | Alertas pedagógicos automáticos  | ✅ backend — 🔧 frontend |
-| 10    | Exibir alertas no frontend       | 🔜                       |
-| 11    | Geração de PDF formal            | 🔜                       |
-| 12    | Área Admin no dashboard          | 🔜                       |
-| 13    | Responsividade                   | 🔜                       |
-| 14    | Publicar backend                 | 🔜                       |
-| 15    | Coleta nas escolas parceiras     | 🔜                       |
-| 16    | ML (K-Means + Árvore de Decisão) | 🔜                       |
+| Etapa | Descrição                        | Status               |
+| ----- | -------------------------------- | -------------------- |
+| 1     | SDK Unity (C#)                   | ✅                   |
+| 1.5   | Integração no Para Que Serve?    | ✅                   |
+| 2     | Backend Node.js + MongoDB        | ✅                   |
+| 3     | Dashboard React                  | 🔧 Design provisório |
+| 4     | Autenticação JWT + Hierarquia    | ✅                   |
+| 5     | CRUD completo + rotas Unity      | ✅                   |
+| 6     | Refatorar tela Unity             | ✅                   |
+| 7     | Login no dashboard               | ✅                   |
+| 8     | CRUD turmas e alunos             | ✅                   |
+| 9     | Alertas pedagógicos              | ✅                   |
+| 10    | Geração de PDF formal            | ✅                   |
+| 11    | Indicador de desempenho na Home  | ✅                   |
+| 12    | Área Admin no dashboard          | 🔜                   |
+| 13    | Responsividade                   | 🔜                   |
+| 14    | Design final da designer         | 🔜                   |
+| 15    | Publicar backend                 | 🔜                   |
+| 16    | Coleta nas escolas parceiras     | 🔜                   |
+| 17    | ML (K-Means + Árvore de Decisão) | 🔜                   |
 
 ---
 
