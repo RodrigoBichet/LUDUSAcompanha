@@ -13,6 +13,7 @@ import Header from "../components/layout/Header";
 import {
     listarTurmas,
     criarTurma,
+    atualizarTurma,
     deletarTurma,
     listarInstituicoes,
 } from "../services/api";
@@ -33,6 +34,7 @@ export default function Turmas() {
     const [instituicaoId, setInstituicaoId] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
+    const [editando, setEditando] = useState(null);
 
     useEffect(() => {
         carregarDados();
@@ -54,7 +56,23 @@ export default function Turmas() {
         }
     };
 
-    const handleCriarTurma = async (e) => {
+    const abrirEdicao = (turma) => {
+        setEditando(turma);
+        setNomeTurma(turma.name);
+        setInstituicaoId(turma.institutionId?._id || "");
+        setErroForm("");
+        setMostrarForm(true);
+    };
+
+    const fecharForm = () => {
+        setMostrarForm(false);
+        setEditando(null);
+        setNomeTurma("");
+        setInstituicaoId("");
+        setErroForm("");
+    };
+
+    const handleSalvarTurma = async (e) => {
         e.preventDefault();
         setErroForm("");
 
@@ -70,17 +88,24 @@ export default function Turmas() {
 
         try {
             setSalvando(true);
-            await criarTurma({
-                name: nomeTurma.trim(),
-                institutionId: instituicaoId,
-                professorId: usuario.id,
-            });
-            setNomeTurma("");
-            setInstituicaoId("");
-            setMostrarForm(false);
+
+            if (editando) {
+                await atualizarTurma(editando._id, {
+                    name: nomeTurma.trim(),
+                    institutionId: instituicaoId || null,
+                });
+            } else {
+                await criarTurma({
+                    name: nomeTurma.trim(),
+                    institutionId: instituicaoId,
+                    professorId: usuario.id,
+                });
+            }
+
+            fecharForm();
             carregarDados();
         } catch {
-            setErroForm("Erro ao criar turma. Tente novamente.");
+            setErroForm("Erro ao salvar turma. Tente novamente.");
         } finally {
             setSalvando(false);
         }
@@ -117,7 +142,9 @@ export default function Turmas() {
                     </div>
                     <button
                         className="btn-primario"
-                        onClick={() => setMostrarForm(!mostrarForm)}
+                        onClick={() =>
+                            mostrarForm ? fecharForm() : setMostrarForm(true)
+                        }
                     >
                         {mostrarForm ? "✕ Cancelar" : "+ Nova Turma"}
                     </button>
@@ -126,9 +153,9 @@ export default function Turmas() {
                 {/* Formulário de nova turma */}
                 {mostrarForm && (
                     <div className="card form-card">
-                        <h3>Nova Turma</h3>
+                        <h3>{editando ? "Editar Turma" : "Nova Turma"}</h3>
                         <form
-                            onSubmit={handleCriarTurma}
+                            onSubmit={handleSalvarTurma}
                             className="form-inline"
                         >
                             <div className="campo-grupo">
@@ -174,7 +201,11 @@ export default function Turmas() {
                                 className="btn-primario"
                                 disabled={salvando}
                             >
-                                {salvando ? "Salvando..." : "Salvar Turma"}
+                                {salvando
+                                    ? "Salvando..."
+                                    : editando
+                                      ? "Salvar alterações"
+                                      : "Salvar Turma"}
                             </button>
                         </form>
                     </div>
@@ -237,6 +268,12 @@ export default function Turmas() {
                                             }
                                         >
                                             Ver alunos →
+                                        </button>
+                                        <button
+                                            className="btn-acao editar"
+                                            onClick={() => abrirEdicao(turma)}
+                                        >
+                                            ✏️
                                         </button>
                                         <button
                                             className="btn-deletar"

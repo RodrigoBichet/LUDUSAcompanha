@@ -95,11 +95,11 @@ const buscarTurma = async (req, res) => {
 
 const atualizarTurma = async (req, res) => {
     try {
-        const { name, professorId } = req.body;
+        const { name, professorId, institutionId } = req.body;
 
         const turma = await Group.findByIdAndUpdate(
             req.params.id,
-            { name, professorId },
+            { name, professorId, institutionId },
             { new: true, runValidators: true },
         );
 
