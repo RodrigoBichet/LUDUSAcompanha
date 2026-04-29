@@ -10,8 +10,8 @@ const router = express.Router();
 const controller = require("../controllers/unityController");
 
 // Rotas públicas — Unity não usa token
-router.get("/schools", controller.listarEscolas);
-router.get("/groups/:schoolId", controller.listarTurmas);
+router.get("/schools", controller.listarInstituicoes);
+router.get("/groups/:institutionId", controller.listarTurmas);
 router.get("/students/:groupId", controller.listarAlunos);
 
 module.exports = router;

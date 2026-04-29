@@ -9,18 +9,13 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// Gera token JWT com o ID do usuário
 const gerarToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// -------------------------------------------------------------------------
-// registrar — POST /api/auth/register
-// -------------------------------------------------------------------------
-
 const registrar = async (req, res) => {
     try {
-        const { name, email, password, role, schoolId } = req.body;
+        const { name, email, password, role, institutionId } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({
@@ -29,7 +24,6 @@ const registrar = async (req, res) => {
             });
         }
 
-        // Verifica se email já existe
         const existente = await User.findOne({ email });
         if (existente) {
             return res.status(409).json({
@@ -38,7 +32,13 @@ const registrar = async (req, res) => {
             });
         }
 
-        const usuario = new User({ name, email, password, role, schoolId });
+        const usuario = new User({
+            name,
+            email,
+            password,
+            role,
+            institutionId,
+        });
         await usuario.save();
 
         console.log(
@@ -54,7 +54,7 @@ const registrar = async (req, res) => {
                 name: usuario.name,
                 email: usuario.email,
                 role: usuario.role,
-                schoolId: usuario.schoolId,
+                institutionId: usuario.institutionId,
             },
         });
     } catch (erro) {
@@ -65,10 +65,6 @@ const registrar = async (req, res) => {
         });
     }
 };
-
-// -------------------------------------------------------------------------
-// login — POST /api/auth/login
-// -------------------------------------------------------------------------
 
 const login = async (req, res) => {
     try {
@@ -81,7 +77,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Busca o usuário pelo email
         const usuario = await User.findOne({ email });
         if (!usuario) {
             return res.status(401).json({
@@ -90,7 +85,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Verifica a senha
         const senhaCorreta = await usuario.compararSenha(password);
         if (!senhaCorreta) {
             return res.status(401).json({
@@ -109,7 +103,7 @@ const login = async (req, res) => {
                 name: usuario.name,
                 email: usuario.email,
                 role: usuario.role,
-                schoolId: usuario.schoolId,
+                institutionId: usuario.institutionId,
             },
         });
     } catch (erro) {
@@ -121,16 +115,11 @@ const login = async (req, res) => {
     }
 };
 
-// -------------------------------------------------------------------------
-// perfil — GET /api/auth/me
-// Retorna dados do usuário logado (requer token)
-// -------------------------------------------------------------------------
-
 const perfil = async (req, res) => {
     try {
         const usuario = await User.findById(req.usuarioId)
             .select("-password")
-            .populate("schoolId", "name city");
+            .populate("institutionId", "name city");
 
         if (!usuario) {
             return res.status(404).json({
@@ -149,10 +138,6 @@ const perfil = async (req, res) => {
     }
 };
 
-// -------------------------------------------------------------------------
-// atualizarPerfil — PUT /api/auth/perfil
-// Usuário logado edita o próprio nome, email e senha
-// -------------------------------------------------------------------------
 const atualizarPerfil = async (req, res) => {
     try {
         const { name, email, senhaAtual, novaSenha } = req.body;
@@ -166,11 +151,9 @@ const atualizarPerfil = async (req, res) => {
             });
         }
 
-        // Atualiza nome e email se fornecidos
         if (name) usuario.name = name;
         if (email) usuario.email = email;
 
-        // Atualiza senha apenas se ambos os campos forem fornecidos
         if (senhaAtual || novaSenha) {
             if (!senhaAtual || !novaSenha) {
                 return res.status(400).json({
@@ -194,7 +177,6 @@ const atualizarPerfil = async (req, res) => {
 
         console.log(`[LUDUS] Perfil atualizado: ${usuario.email}`);
 
-        // Monta mensagem dinâmica conforme o que foi alterado
         const itensAlterados = [];
         if (name) itensAlterados.push("nome");
         if (email) itensAlterados.push("email");
@@ -214,7 +196,7 @@ const atualizarPerfil = async (req, res) => {
                 name: usuario.name,
                 email: usuario.email,
                 role: usuario.role,
-                schoolId: usuario.schoolId,
+                institutionId: usuario.institutionId,
             },
         });
     } catch (erro) {

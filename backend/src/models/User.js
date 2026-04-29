@@ -30,9 +30,9 @@ const UserSchema = new mongoose.Schema(
             enum: ["admin", "professor"],
             default: "professor",
         },
-        schoolId: {
+        institutionId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "School",
+            ref: "Institution",
         },
     },
     {

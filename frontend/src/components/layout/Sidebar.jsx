@@ -46,13 +46,13 @@ export default function Sidebar() {
                     <div className="nav-separador">Admin</div>
 
                     <NavLink
-                        to="/admin/escolas"
+                        to="/admin/instituicoes"
                         className={({ isActive }) =>
                             isActive ? "nav-item ativo" : "nav-item"
                         }
                     >
                         <span className="nav-icone">🏫</span>
-                        <span>Escolas</span>
+                        <span>Instituições</span>
                     </NavLink>
 
                     <NavLink

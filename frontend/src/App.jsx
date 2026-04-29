@@ -9,7 +9,7 @@ import Turmas from "./pages/Turmas";
 import DetalheTurma from "./pages/DetalheTurma";
 import PerfilAluno from "./pages/PerfilAluno";
 import RotaAdmin from "./components/shared/RotaAdmin";
-import GerenciarEscolas from "./pages/GerenciarEscolas";
+import GerenciarInstituicoes from "./pages/GerenciarInstituicoes";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import Perfil from "./pages/Perfil";
 import "./index.css";
@@ -96,11 +96,11 @@ function App() {
                         }
                     />
                     <Route
-                        path="/admin/escolas"
+                        path="/admin/instituicoes"
                         element={
                             <RotaAdmin>
                                 <Layout>
-                                    <GerenciarEscolas />
+                                    <GerenciarInstituicoes />
                                 </Layout>
                             </RotaAdmin>
                         }

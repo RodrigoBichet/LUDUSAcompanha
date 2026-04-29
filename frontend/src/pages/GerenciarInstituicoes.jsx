@@ -1,56 +1,56 @@
 // =============================================================================
-// GerenciarEscolas.jsx
+// GerenciarInstituicoes.jsx
 // LUDUS Acompanha — UFPel (2026)
 // Autor: Rodrigo Leitzke Bichet
 //
-// Página admin — listagem, cadastro, edição e remoção de escolas.
+// Página admin — listagem, cadastro, edição e remoção de instituições.
 // Acessível apenas por usuários com role 'admin'.
 // =============================================================================
 
 import { useEffect, useState } from "react";
 import Header from "../components/layout/Header";
 import {
-    listarEscolas,
-    criarEscola,
-    atualizarEscola,
-    deletarEscola,
+    listarInstituicoes,
+    criarInstituicao,
+    atualizarInstituicao,
+    deletarInstituicao,
 } from "../services/api";
-import "./GerenciarEscolas.css";
+import "./GerenciarInstituicoes.css";
 
-export default function GerenciarEscolas() {
-    const [escolas, setEscolas] = useState([]);
+export default function GerenciarInstituicoes() {
+    const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
 
     // Controle do formulário
     const [formAberto, setFormAberto] = useState(false);
-    const [editando, setEditando] = useState(null); // escola sendo editada ou null
+    const [editando, setEditando] = useState(null);
     const [nome, setNome] = useState("");
     const [cidade, setCidade] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
 
     useEffect(() => {
-        carregarEscolas();
+        carregarInstituicoes();
     }, []);
 
     // -------------------------------------------------------------------------
-    // Carrega lista de escolas do backend
+    // Carrega lista de instituições do backend
     // -------------------------------------------------------------------------
-    const carregarEscolas = async () => {
+    const carregarInstituicoes = async () => {
         try {
             setCarregando(true);
-            const res = await listarEscolas();
-            setEscolas(res.data.escolas || []);
+            const res = await listarInstituicoes();
+            setInstituicoes(res.data.instituicoes || []);
         } catch {
-            setErro("Não foi possível carregar as escolas.");
+            setErro("Não foi possível carregar as instituições.");
         } finally {
             setCarregando(false);
         }
     };
 
     // -------------------------------------------------------------------------
-    // Abre formulário para nova escola
+    // Abre formulário para nova instituição
     // -------------------------------------------------------------------------
     const abrirFormNovo = () => {
         setEditando(null);
@@ -63,10 +63,10 @@ export default function GerenciarEscolas() {
     // -------------------------------------------------------------------------
     // Abre formulário preenchido para edição
     // -------------------------------------------------------------------------
-    const abrirFormEdicao = (escola) => {
-        setEditando(escola);
-        setNome(escola.name);
-        setCidade(escola.city || "");
+    const abrirFormEdicao = (instituicao) => {
+        setEditando(instituicao);
+        setNome(instituicao.name);
+        setCidade(instituicao.city || "");
         setErroForm(null);
         setFormAberto(true);
     };
@@ -83,11 +83,11 @@ export default function GerenciarEscolas() {
     };
 
     // -------------------------------------------------------------------------
-    // Salva escola — cria nova ou atualiza existente
+    // Salva instituição — cria nova ou atualiza existente
     // -------------------------------------------------------------------------
-    const salvarEscola = async () => {
+    const salvarInstituicao = async () => {
         if (!nome.trim()) {
-            setErroForm("O nome da escola é obrigatório.");
+            setErroForm("O nome da instituição é obrigatório.");
             return;
         }
 
@@ -96,66 +96,71 @@ export default function GerenciarEscolas() {
             setErroForm(null);
 
             if (editando) {
-                await atualizarEscola(editando._id, {
+                await atualizarInstituicao(editando._id, {
                     name: nome.trim(),
                     city: cidade.trim(),
                 });
             } else {
-                await criarEscola({ name: nome.trim(), city: cidade.trim() });
+                await criarInstituicao({
+                    name: nome.trim(),
+                    city: cidade.trim(),
+                });
             }
 
             cancelarForm();
-            await carregarEscolas();
+            await carregarInstituicoes();
         } catch {
-            setErroForm("Erro ao salvar escola. Tente novamente.");
+            setErroForm("Erro ao salvar instituição. Tente novamente.");
         } finally {
             setSalvando(false);
         }
     };
 
     // -------------------------------------------------------------------------
-    // Deleta escola com confirmação
+    // Deleta instituição com confirmação
     // -------------------------------------------------------------------------
-    const removerEscola = async (escola) => {
+    const removerInstituicao = async (instituicao) => {
         if (
             !window.confirm(
-                `Deseja remover a escola "${escola.name}"? Esta ação não pode ser desfeita.`,
+                `Deseja remover a instituição "${instituicao.name}"? Esta ação não pode ser desfeita.`,
             )
         )
             return;
 
         try {
-            await deletarEscola(escola._id);
-            await carregarEscolas();
+            await deletarInstituicao(instituicao._id);
+            await carregarInstituicoes();
         } catch {
-            alert("Erro ao remover escola. Tente novamente.");
+            alert("Erro ao remover instituição. Tente novamente.");
         }
     };
 
     return (
         <div>
             <Header
-                titulo="Gerenciar Escolas"
-                subtitulo="Cadastre e gerencie as escolas parceiras"
+                titulo="Gerenciar Instituições"
+                subtitulo="Cadastre e gerencie as instituições parceiras"
             />
 
             <div className="pagina-conteudo">
                 {/* Formulário de criação/edição */}
                 {formAberto && (
-                    <div className="card form-escola">
+                    <div className="card form-instituicao">
                         <h3 className="form-titulo">
-                            {editando ? "Editar Escola" : "Nova Escola"}
+                            {editando
+                                ? "Editar Instituição"
+                                : "Nova Instituição"}
                         </h3>
 
                         <div className="form-campos">
                             <div className="campo-grupo">
                                 <label className="campo-label">
-                                    Nome da escola *
+                                    Nome da instituição *
                                 </label>
                                 <input
                                     className="campo-input"
                                     type="text"
-                                    placeholder="Ex: E. M. Silveira Martins"
+                                    placeholder="Ex: APAE Pelotas"
                                     value={nome}
                                     onChange={(e) => setNome(e.target.value)}
                                 />
@@ -166,7 +171,7 @@ export default function GerenciarEscolas() {
                                 <input
                                     className="campo-input"
                                     type="text"
-                                    placeholder="Ex: Bagé"
+                                    placeholder="Ex: Pelotas"
                                     value={cidade}
                                     onChange={(e) => setCidade(e.target.value)}
                                 />
@@ -178,14 +183,14 @@ export default function GerenciarEscolas() {
                         <div className="form-acoes">
                             <button
                                 className="btn-primario"
-                                onClick={salvarEscola}
+                                onClick={salvarInstituicao}
                                 disabled={salvando}
                             >
                                 {salvando
                                     ? "Salvando..."
                                     : editando
                                       ? "Salvar alterações"
-                                      : "Cadastrar escola"}
+                                      : "Cadastrar instituição"}
                             </button>
                             <button
                                 className="btn-secundario"
@@ -207,15 +212,15 @@ export default function GerenciarEscolas() {
                             gap: "0.75rem",
                         }}
                     >
-                        <h2>Escolas cadastradas</h2>
-                        <span className="badge">{escolas.length}</span>
+                        <h2>Instituições cadastradas</h2>
+                        <span className="badge">{instituicoes.length}</span>
                     </div>
                     {!formAberto && (
                         <button
                             className="btn-primario"
                             onClick={abrirFormNovo}
                         >
-                            + Nova escola
+                            + Nova instituição
                         </button>
                     )}
                 </div>
@@ -224,7 +229,7 @@ export default function GerenciarEscolas() {
                 {carregando && (
                     <div className="estado-centro">
                         <div className="spinner" />
-                        <p className="texto-leve">Carregando escolas...</p>
+                        <p className="texto-leve">Carregando instituições...</p>
                     </div>
                 )}
 
@@ -236,43 +241,43 @@ export default function GerenciarEscolas() {
                     </div>
                 )}
 
-                {/* Lista de escolas */}
+                {/* Lista de instituições */}
                 {!carregando && !erro && (
                     <>
-                        {escolas.length === 0 ? (
+                        {instituicoes.length === 0 ? (
                             <div className="card estado-vazio">
                                 <span className="estado-vazio-icone">🏫</span>
-                                <p>Nenhuma escola cadastrada ainda.</p>
+                                <p>Nenhuma instituição cadastrada ainda.</p>
                                 <p className="texto-leve">
-                                    Clique em "Nova escola" para começar.
+                                    Clique em "Nova instituição" para começar.
                                 </p>
                             </div>
                         ) : (
-                            <div className="lista-escolas">
-                                {escolas.map((escola) => (
+                            <div className="lista-instituicoes">
+                                {instituicoes.map((instituicao) => (
                                     <div
-                                        key={escola._id}
-                                        className="card card-escola"
+                                        key={instituicao._id}
+                                        className="card card-instituicao"
                                     >
-                                        <div className="escola-info">
-                                            <span className="escola-icone">
+                                        <div className="instituicao-info">
+                                            <span className="instituicao-icone">
                                                 🏫
                                             </span>
                                             <div>
-                                                <p className="escola-nome">
-                                                    {escola.name}
+                                                <p className="instituicao-nome">
+                                                    {instituicao.name}
                                                 </p>
                                                 <p className="texto-leve">
-                                                    {escola.city ||
+                                                    {instituicao.city ||
                                                         "Cidade não informada"}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="escola-acoes">
+                                        <div className="instituicao-acoes">
                                             <button
                                                 className="btn-acao editar"
                                                 onClick={() =>
-                                                    abrirFormEdicao(escola)
+                                                    abrirFormEdicao(instituicao)
                                                 }
                                             >
                                                 ✏️ Editar
@@ -280,7 +285,9 @@ export default function GerenciarEscolas() {
                                             <button
                                                 className="btn-acao deletar"
                                                 onClick={() =>
-                                                    removerEscola(escola)
+                                                    removerInstituicao(
+                                                        instituicao,
+                                                    )
                                                 }
                                             >
                                                 🗑️ Remover

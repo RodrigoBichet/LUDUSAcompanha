@@ -4,41 +4,46 @@
 // Autor: Rodrigo Leitzke Bichet
 //
 // Controller de rotas públicas para o Unity.
-// Sem autenticação JWT — o Unity busca escolas, turmas e alunos
+// Sem autenticação JWT — o Unity busca instituições, turmas e alunos
 // para exibir na tela de identificação antes do jogo começar.
 // =============================================================================
 
-const School = require("../models/School");
+const Institution = require("../models/Institution");
 const Group = require("../models/Group");
 const Student = require("../models/Student");
 
 // -------------------------------------------------------------------------
-// listarEscolas — GET /api/unity/schools
+// listarInstituicoes — GET /api/unity/schools
 // -------------------------------------------------------------------------
 
-const listarEscolas = async (req, res) => {
+const listarInstituicoes = async (req, res) => {
     try {
-        const escolas = await School.find()
+        const instituicoes = await Institution.find()
             .select("_id name city")
             .sort({ name: 1 });
 
-        return res.json({ sucesso: true, escolas });
+        return res.json({ sucesso: true, escolas: instituicoes });
     } catch (erro) {
-        console.error("[LUDUS] Unity - Erro ao listar escolas:", erro.message);
+        console.error(
+            "[LUDUS] Unity - Erro ao listar instituições:",
+            erro.message,
+        );
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro ao buscar escolas",
+            mensagem: "Erro ao buscar instituições",
         });
     }
 };
 
 // -------------------------------------------------------------------------
-// listarTurmas — GET /api/unity/groups/:schoolId
+// listarTurmas — GET /api/unity/groups/:institutionId
 // -------------------------------------------------------------------------
 
 const listarTurmas = async (req, res) => {
     try {
-        const turmas = await Group.find({ schoolId: req.params.schoolId })
+        const turmas = await Group.find({
+            institutionId: req.params.institutionId,
+        })
             .select("_id name")
             .sort({ name: 1 });
 
@@ -72,4 +77,4 @@ const listarAlunos = async (req, res) => {
     }
 };
 
-module.exports = { listarEscolas, listarTurmas, listarAlunos };
+module.exports = { listarInstituicoes, listarTurmas, listarAlunos };

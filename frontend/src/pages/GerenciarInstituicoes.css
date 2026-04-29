@@ -1,10 +1,9 @@
 /* =============================================================================
-   GerenciarEscolas.css
+   GerenciarInstituicoes.css
    LUDUS Acompanha — UFPel (2026)
    ============================================================================= */
 
-/* Formulário */
-.form-escola {
+.form-instituicao {
     margin-bottom: 1.5rem;
 }
 
@@ -33,37 +32,36 @@
     gap: 0.75rem;
 }
 
-/* Lista de escolas */
-.lista-escolas {
+.lista-instituicoes {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.card-escola {
+.card-instituicao {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
 }
 
-.escola-info {
+.instituicao-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.escola-icone {
+.instituicao-icone {
     font-size: 1.5rem;
 }
 
-.escola-nome {
+.instituicao-nome {
     font-weight: 700;
     font-size: 0.95rem;
     color: var(--cor-texto);
 }
 
-.escola-acoes {
+.instituicao-acoes {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;

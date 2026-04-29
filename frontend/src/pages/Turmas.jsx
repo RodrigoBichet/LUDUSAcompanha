@@ -14,7 +14,7 @@ import {
     listarTurmas,
     criarTurma,
     deletarTurma,
-    listarEscolas,
+    listarInstituicoes,
 } from "../services/api";
 import "./Turmas.css";
 
@@ -23,14 +23,14 @@ export default function Turmas() {
     const navegar = useNavigate();
 
     const [turmas, setTurmas] = useState([]);
-    const [escolas, setEscolas] = useState([]);
+    const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
     const [mostrarForm, setMostrarForm] = useState(false);
 
     // Campos do formulário
     const [nomeTurma, setNomeTurma] = useState("");
-    const [escolaId, setEscolaId] = useState("");
+    const [instituicaoId, setInstituicaoId] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
 
@@ -41,12 +41,12 @@ export default function Turmas() {
     const carregarDados = async () => {
         try {
             setCarregando(true);
-            const [resTurmas, resEscolas] = await Promise.all([
+            const [resTurmas, resInstituicoes] = await Promise.all([
                 listarTurmas(),
-                listarEscolas(),
+                listarInstituicoes(),
             ]);
             setTurmas(resTurmas.data.turmas || []);
-            setEscolas(resEscolas.data.escolas || []);
+            setInstituicoes(resInstituicoes.data.instituicoes || []);
         } catch {
             setErro("Erro ao carregar turmas.");
         } finally {
@@ -63,8 +63,8 @@ export default function Turmas() {
             return;
         }
 
-        if (!escolaId) {
-            setErroForm("Selecione uma escola.");
+        if (!instituicaoId) {
+            setErroForm("Selecione uma instituição.");
             return;
         }
 
@@ -72,11 +72,11 @@ export default function Turmas() {
             setSalvando(true);
             await criarTurma({
                 name: nomeTurma.trim(),
-                schoolId: escolaId,
+                institutionId: instituicaoId,
                 professorId: usuario.id,
             });
             setNomeTurma("");
-            setEscolaId("");
+            setInstituicaoId("");
             setMostrarForm(false);
             carregarDados();
         } catch {
@@ -147,19 +147,21 @@ export default function Turmas() {
                                 />
                             </div>
                             <div className="campo-grupo">
-                                <label className="campo-label">Escola</label>
+                                <label className="campo-label">
+                                    Instituição
+                                </label>
                                 <select
                                     className="campo-input"
-                                    value={escolaId}
+                                    value={instituicaoId}
                                     onChange={(e) =>
-                                        setEscolaId(e.target.value)
+                                        setInstituicaoId(e.target.value)
                                     }
                                     disabled={salvando}
                                 >
                                     <option value="">Selecione...</option>
-                                    {escolas.map((e) => (
-                                        <option key={e._id} value={e._id}>
-                                            {e.name}
+                                    {instituicoes.map((inst) => (
+                                        <option key={inst._id} value={inst._id}>
+                                            {inst.name}
                                         </option>
                                     ))}
                                 </select>
@@ -222,8 +224,8 @@ export default function Turmas() {
                                         <div>
                                             <h3>{turma.name}</h3>
                                             <p className="texto-leve">
-                                                {turma.schoolId?.name ||
-                                                    "Escola não informada"}
+                                                {turma.institutionId?.name ||
+                                                    "Instituição não informada"}
                                             </p>
                                         </div>
                                     </div>

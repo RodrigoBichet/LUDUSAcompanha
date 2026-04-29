@@ -14,9 +14,9 @@ const GroupSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        schoolId: {
+        institutionId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "School",
+            ref: "Institution",
             required: true,
         },
         professorId: {

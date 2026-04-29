@@ -12,7 +12,7 @@ import Header from "../components/layout/Header";
 import {
     listarUsuarios,
     deletarUsuario,
-    listarEscolas,
+    listarInstituicoes,
     atualizarUsuario,
 } from "../services/api";
 import api from "../services/api";
@@ -20,7 +20,7 @@ import "./GerenciarUsuarios.css";
 
 export default function GerenciarUsuarios() {
     const [usuarios, setUsuarios] = useState([]);
-    const [escolas, setEscolas] = useState([]);
+    const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
 
@@ -30,7 +30,7 @@ export default function GerenciarUsuarios() {
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
     const [role, setRole] = useState("professor");
-    const [escolaId, setEscolaId] = useState("");
+    const [instituicaoId, setInstituicaoId] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
@@ -40,17 +40,17 @@ export default function GerenciarUsuarios() {
     }, []);
 
     // -------------------------------------------------------------------------
-    // Carrega usuários e escolas em paralelo
+    // Carrega usuários e instituições em paralelo
     // -------------------------------------------------------------------------
     const carregarDados = async () => {
         try {
             setCarregando(true);
-            const [resUsuarios, resEscolas] = await Promise.all([
+            const [resUsuarios, resInstituicoes] = await Promise.all([
                 listarUsuarios(),
-                listarEscolas(),
+                listarInstituicoes(),
             ]);
             setUsuarios(resUsuarios.data.usuarios || []);
-            setEscolas(resEscolas.data.escolas || []);
+            setInstituicoes(resInstituicoes.data.instituicoes || []);
         } catch {
             setErro("Não foi possível carregar os dados.");
         } finally {
@@ -67,7 +67,7 @@ export default function GerenciarUsuarios() {
         setEmail(usuario?.email || "");
         setSenha("");
         setRole(usuario?.role || "professor");
-        setEscolaId(usuario?.schoolId?._id || "");
+        setInstituicaoId(usuario?.institutionId?._id || "");
         setErroForm(null);
         setFormAberto(true);
     };
@@ -104,7 +104,7 @@ export default function GerenciarUsuarios() {
                     name: nome.trim(),
                     email: email.trim(),
                     role,
-                    schoolId: escolaId || null,
+                    institutionId: instituicaoId || null,
                 });
             } else {
                 await api.post("/auth/register", {
@@ -112,7 +112,7 @@ export default function GerenciarUsuarios() {
                     email: email.trim(),
                     password: senha,
                     role,
-                    schoolId: escolaId || undefined,
+                    institutionId: instituicaoId || undefined,
                 });
             }
 
@@ -233,20 +233,22 @@ export default function GerenciarUsuarios() {
                             </div>
 
                             <div className="campo-grupo">
-                                <label className="campo-label">Escola</label>
+                                <label className="campo-label">
+                                    Instituição
+                                </label>
                                 <select
                                     className="campo-input"
-                                    value={escolaId}
+                                    value={instituicaoId}
                                     onChange={(e) =>
-                                        setEscolaId(e.target.value)
+                                        setInstituicaoId(e.target.value)
                                     }
                                 >
                                     <option value="">
-                                        Sem escola vinculada
+                                        Sem instituição vinculada
                                     </option>
-                                    {escolas.map((e) => (
-                                        <option key={e._id} value={e._id}>
-                                            {e.name}
+                                    {instituicoes.map((inst) => (
+                                        <option key={inst._id} value={inst._id}>
+                                            {inst.name}
                                         </option>
                                     ))}
                                 </select>
@@ -343,9 +345,13 @@ export default function GerenciarUsuarios() {
                                                     <span className="tag-role">
                                                         {labelRole(u.role)}
                                                     </span>
-                                                    {u.schoolId && (
+                                                    {u.institutionId && (
                                                         <span className="tag-escola">
-                                                            🏫 {u.schoolId.name}
+                                                            🏫{" "}
+                                                            {
+                                                                u.institutionId
+                                                                    .name
+                                                            }
                                                         </span>
                                                     )}
                                                 </p>

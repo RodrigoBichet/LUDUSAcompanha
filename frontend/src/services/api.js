@@ -26,12 +26,13 @@ export const heatmapSessao = (sessionId) =>
 export const buscarSessao = (sessionId) => api.get(`/sessions/${sessionId}`);
 
 // -------------------------------------------------------------------------
-// Schools
+// Institutions (Instituições)
 // -------------------------------------------------------------------------
-export const listarEscolas = () => api.get("/schools");
-export const criarEscola = (dados) => api.post("/schools", dados);
-export const atualizarEscola = (id, dados) => api.put(`/schools/${id}`, dados);
-export const deletarEscola = (id) => api.delete(`/schools/${id}`);
+export const listarInstituicoes = () => api.get("/institutions");
+export const criarInstituicao = (dados) => api.post("/institutions", dados);
+export const atualizarInstituicao = (id, dados) =>
+    api.put(`/institutions/${id}`, dados);
+export const deletarInstituicao = (id) => api.delete(`/institutions/${id}`);
 
 // -------------------------------------------------------------------------
 // Groups (Turmas)

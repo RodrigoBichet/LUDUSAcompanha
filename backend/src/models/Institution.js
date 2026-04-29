@@ -3,7 +3,7 @@
 // LUDUS Acompanha — UFPel (2026)
 // Autor: Rodrigo Leitzke Bichet
 //
-// Model Mongoose da instituição de ensino.
+// Model Mongoose da instituição parceira (escola, APAE, universidade, etc.).
 // =============================================================================
 
 const mongoose = require("mongoose");

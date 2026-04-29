@@ -4,29 +4,25 @@
 // Autor: Rodrigo Leitzke Bichet
 //
 // Controller das turmas.
-// Professor vê só as turmas da sua escola.
+// Professor vê só as turmas da sua instituição.
 // Admin vê todas.
 // =============================================================================
 
 const Group = require("../models/Group");
 const User = require("../models/User");
 
-// -------------------------------------------------------------------------
-// criarTurma — POST /api/groups
-// -------------------------------------------------------------------------
-
 const criarTurma = async (req, res) => {
     try {
-        const { name, schoolId, professorId } = req.body;
+        const { name, institutionId, professorId } = req.body;
 
-        if (!name || !schoolId) {
+        if (!name || !institutionId) {
             return res.status(400).json({
                 sucesso: false,
-                mensagem: "Campos obrigatórios: name, schoolId",
+                mensagem: "Campos obrigatórios: name, institutionId",
             });
         }
 
-        const turma = new Group({ name, schoolId, professorId });
+        const turma = new Group({ name, institutionId, professorId });
         await turma.save();
 
         console.log(`[LUDUS] Turma criada: ${turma.name}`);
@@ -45,23 +41,18 @@ const criarTurma = async (req, res) => {
     }
 };
 
-// -------------------------------------------------------------------------
-// listarTurmas — GET /api/groups
-// Admin vê todas, professor vê só as da sua escola
-// -------------------------------------------------------------------------
-
 const listarTurmas = async (req, res) => {
     try {
         const usuario = await User.findById(req.usuarioId);
         let filtro = {};
 
-        // Professor vê só turmas da sua escola
+        // Professor vê só turmas da sua instituição
         if (usuario.role === "professor") {
-            filtro = { schoolId: usuario.schoolId };
+            filtro = { institutionId: usuario.institutionId };
         }
 
         const turmas = await Group.find(filtro)
-            .populate("schoolId", "name city")
+            .populate("institutionId", "name city")
             .populate("professorId", "name email")
             .sort({ name: 1 });
 
@@ -79,14 +70,10 @@ const listarTurmas = async (req, res) => {
     }
 };
 
-// -------------------------------------------------------------------------
-// buscarTurma — GET /api/groups/:id
-// -------------------------------------------------------------------------
-
 const buscarTurma = async (req, res) => {
     try {
         const turma = await Group.findById(req.params.id)
-            .populate("schoolId", "name city")
+            .populate("institutionId", "name city")
             .populate("professorId", "name email");
 
         if (!turma) {
@@ -105,10 +92,6 @@ const buscarTurma = async (req, res) => {
         });
     }
 };
-
-// -------------------------------------------------------------------------
-// atualizarTurma — PUT /api/groups/:id
-// -------------------------------------------------------------------------
 
 const atualizarTurma = async (req, res) => {
     try {
@@ -142,10 +125,6 @@ const atualizarTurma = async (req, res) => {
         });
     }
 };
-
-// -------------------------------------------------------------------------
-// deletarTurma — DELETE /api/groups/:id
-// -------------------------------------------------------------------------
 
 const deletarTurma = async (req, res) => {
     try {

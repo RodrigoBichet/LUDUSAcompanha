@@ -37,7 +37,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/unity", require("./routes/unity"));
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/schools", require("./routes/schools"));
+app.use("/api/institutions", require("./routes/institutions"));
 app.use("/api/groups", require("./routes/groups"));
 app.use("/api/students", require("./routes/students"));
 app.use("/api/sessions", require("./routes/sessions"));
