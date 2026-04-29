@@ -34,13 +34,12 @@ LUDUSAcompanha/
 │   │   │   ├── Session.js
 │   │   │   ├── Institution.js
 │   │   │   ├── User.js
-│   │   │   ├── School.js
 │   │   │   ├── Group.js
 │   │   │   └── Student.js
 │   │   ├── routes/
 │   │   │   ├── unity.js
 │   │   │   ├── auth.js
-│   │   │   ├── schools.js
+│   │   │   ├── institutions.js
 │   │   │   ├── groups.js
 │   │   │   ├── students.js
 │   │   │   ├── sessions.js
@@ -49,7 +48,7 @@ LUDUSAcompanha/
 │   │   ├── controllers/
 │   │   │   ├── unityController.js
 │   │   │   ├── authController.js
-│   │   │   ├── schoolsController.js
+│   │   │   ├── institutionsController.js
 │   │   │   ├── groupsController.js
 │   │   │   ├── studentsController.js
 │   │   │   ├── sessionsController.js
@@ -80,7 +79,7 @@ LUDUSAcompanha/
 │   │   │   ├── Turmas.jsx
 │   │   │   ├── DetalheTurma.jsx
 │   │   │   ├── PerfilAluno.jsx
-│   │   │   ├── GerenciarEscolas.jsx
+│   │   │   ├── GerenciarInstituicoes.jsx
 │   │   │   ├── GerenciarUsuarios.jsx
 │   │   │   └── Perfil.jsx
 │   │   ├── services/api.js
@@ -136,10 +135,10 @@ node src/scripts/criarAdmin.js
 
 ## Autenticação
 
-| Papel       | Acesso                                            |
-| ----------- | ------------------------------------------------- |
-| `admin`     | Acesso total — todas as escolas e funcionalidades |
-| `professor` | Acesso restrito à sua escola e turmas             |
+| Papel       | Acesso                                                 |
+| ----------- | ------------------------------------------------------ |
+| `admin`     | Acesso total — todas as instituições e funcionalidades |
+| `professor` | Acesso restrito à sua instituição e turmas             |
 
 ---
 
@@ -147,11 +146,11 @@ node src/scripts/criarAdmin.js
 
 ### Rotas públicas (Unity)
 
-| Método | Rota                           | Descrição     |
-| ------ | ------------------------------ | ------------- |
-| GET    | `/api/unity/schools`           | Lista escolas |
-| GET    | `/api/unity/groups/:schoolId`  | Lista turmas  |
-| GET    | `/api/unity/students/:groupId` | Lista alunos  |
+| Método | Rota                               | Descrição          |
+| ------ | ---------------------------------- | ------------------ |
+| GET    | `/api/unity/schools`               | Lista instituições |
+| GET    | `/api/unity/groups/:institutionId` | Lista turmas       |
+| GET    | `/api/unity/students/:groupId`     | Lista alunos       |
 
 ### Auth
 
@@ -170,15 +169,21 @@ node src/scripts/criarAdmin.js
 | PUT    | `/api/users/:id` | ✅ Admin |
 | DELETE | `/api/users/:id` | ✅ Admin |
 
-### Schools / Groups / Students
+### Institutions
 
-| Método              | Rotas                                     | Auth     |
-| ------------------- | ----------------------------------------- | -------- |
-| POST/GET/PUT/DELETE | `/api/schools`                            | ✅ Admin |
-| POST/GET/PUT/DELETE | `/api/groups`                             | ✅       |
-| POST/GET/PUT/DELETE | `/api/students`                           | ✅       |
-| POST                | `/api/students/:id/anotacoes`             | ✅       |
-| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅       |
+| Método              | Rota                    | Auth     |
+| ------------------- | ----------------------- | -------- |
+| POST/GET/PUT/DELETE | `/api/institutions`     | ✅ Admin |
+| GET                 | `/api/institutions/:id` | ✅       |
+
+### Groups / Students
+
+| Método              | Rotas                                     | Auth |
+| ------------------- | ----------------------------------------- | ---- |
+| POST/GET/PUT/DELETE | `/api/groups`                             | ✅   |
+| POST/GET/PUT/DELETE | `/api/students`                           | ✅   |
+| POST                | `/api/students/:id/anotacoes`             | ✅   |
+| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅   |
 
 ### Sessions
 
@@ -201,17 +206,17 @@ node src/scripts/criarAdmin.js
 
 ## Dashboard — Telas implementadas
 
-| Tela               | Rota                 | Descrição                                      |
-| ------------------ | -------------------- | ---------------------------------------------- |
-| Login              | `/login`             | Autenticação JWT                               |
-| Home               | `/`                  | Lista de alunos com indicador de desempenho    |
-| Detalhes Sessão    | `/sessao/:sessionId` | Heatmap e timeline                             |
-| Turmas             | `/turmas`            | Gerenciamento de turmas                        |
-| Detalhe Turma      | `/turmas/:id`        | Lista e cadastro de alunos                     |
-| Perfil Aluno       | `/aluno/:id`         | Dados, anotações, alertas, monitoramento e PDF |
-| Gerenciar Escolas  | `/admin/escolas`     | CRUD de escolas (apenas admin)                 |
-| Gerenciar Usuários | `/admin/usuarios`    | CRUD de usuários (apenas admin)                |
-| Meu Perfil         | `/perfil`            | Edição de dados e senha do usuário logado      |
+| Tela                   | Rota                  | Descrição                                      |
+| ---------------------- | --------------------- | ---------------------------------------------- |
+| Login                  | `/login`              | Autenticação JWT                               |
+| Home                   | `/`                   | Lista de alunos com indicador de desempenho    |
+| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap e timeline                             |
+| Turmas                 | `/turmas`             | Gerenciamento de turmas                        |
+| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos                     |
+| Perfil Aluno           | `/aluno/:id`          | Dados, anotações, alertas, monitoramento e PDF |
+| Gerenciar Instituições | `/admin/instituicoes` | CRUD de instituições (apenas admin)            |
+| Gerenciar Usuários     | `/admin/usuarios`     | CRUD de usuários (apenas admin)                |
+| Meu Perfil             | `/perfil`             | Edição de dados e senha do usuário logado      |
 
 ---
 
@@ -284,18 +289,21 @@ node src/scripts/criarAdmin.js
 | 11    | Indicador de desempenho na Home  | ✅                   |
 | 12    | Área Admin no dashboard          | ✅                   |
 | 13    | Tela de perfil do usuário        | ✅                   |
-| 14    | Responsividade                   | 🔜                   |
-| 15    | Design final da designer         | 🔜                   |
-| 16    | Publicar backend                 | 🔜                   |
-| 17    | Coleta nas escolas parceiras     | 🔜                   |
-| 18    | ML (K-Means + Árvore de Decisão) | 🔜                   |
+| 14    | Refactor Escolas → Instituições  | ✅                   |
+| 15    | Edição de turmas no dashboard    | 🔜                   |
+| 16    | Responsividade                   | 🔜                   |
+| 17    | Design final da designer         | 🔜                   |
+| 18    | Publicar backend                 | 🔜                   |
+| 19    | Coleta nas escolas parceiras     | 🔜                   |
+| 20    | ML (K-Means + Árvore de Decisão) | 🔜                   |
 
 ---
 
-## Escolas parceiras
+## Instituições parceiras
 
 - E. M. Silveira Martins — Bagé/RS
 - UNIPAMPA — Caçapava do Sul/RS
+- APAE — Pelotas/RS
 
 ---
 

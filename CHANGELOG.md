@@ -5,6 +5,29 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-04-29 — Refactor: Escolas renomeadas para Instituições
+
+### Alterado
+
+- `backend/src/models/School.js` → `Institution.js` — model renomeado
+- `backend/src/controllers/schoolsController.js` → `institutionsController.js`
+- `backend/src/routes/schools.js` → `institutions.js`
+- `/api/schools` → `/api/institutions` em `app.js`
+- `User.js` e `Group.js` — `schoolId` → `institutionId`, ref `"School"` → `"Institution"`
+- `groupsController.js` — filtro e populate atualizados para `institutionId`
+- `authController.js` — `schoolId` → `institutionId` em registro, login, perfil e atualizarPerfil
+- `usersController.js` — `schoolId` → `institutionId` em listar e atualizar
+- `unityController.js` — `School` → `Institution`, `schoolId` → `institutionId`
+- `unity.js` (routes) — parâmetro `:schoolId` → `:institutionId`
+- `frontend/src/services/api.js` — funções `listarEscolas`, `criarEscola`, etc. → `listarInstituicoes`, `criarInstituicao`, etc.; URL `/schools` → `/institutions`
+- `frontend/src/pages/GerenciarEscolas.jsx` → `GerenciarInstituicoes.jsx` — todos os labels e variáveis atualizados
+- `frontend/src/pages/GerenciarUsuarios.jsx` — `listarEscolas` → `listarInstituicoes`, `schoolId` → `institutionId`
+- `frontend/src/pages/Turmas.jsx` — `listarEscolas` → `listarInstituicoes`, `schoolId` → `institutionId`
+- `frontend/src/components/layout/Sidebar.jsx` — "Escolas" → "Instituições", rota `/admin/escolas` → `/admin/instituicoes`
+- `frontend/src/App.jsx` — import e rota atualizados
+
+---
+
 ## [1.3.0] — 2026-04-28 — Área Admin completa + tela de perfil do usuário
 
 ### Adicionado
@@ -13,7 +36,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - `frontend/src/pages/GerenciarEscolas.jsx` — CRUD completo de escolas (listar, criar, editar, remover)
 - `frontend/src/pages/GerenciarUsuarios.jsx` — CRUD completo de usuários (listar, criar, editar, remover)
     - Campo senha oculto no modo edição — troca de senha apenas pelo próprio usuário
-    - Vínculo de escola ao criar/editar professor
+    - Vínculo de instituição ao criar/editar professor
 - `frontend/src/pages/Perfil.jsx` — tela de perfil acessível por qualquer usuário logado
     - Edição de nome e email
     - Troca de senha com validação de senha atual e confirmação
@@ -163,6 +186,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.4.0]` — Responsividade + design final da designer
-- `[1.5.0]` — Sistema publicado e testado nas escolas parceiras
+- `[1.5.0]` — Edição de turmas no dashboard
+- `[1.6.0]` — Responsividade + design final da designer
+- `[1.7.0]` — Sistema publicado e testado nas instituições parceiras
 - `[2.0.0]` — ML: K-Means + Árvore de Decisão
