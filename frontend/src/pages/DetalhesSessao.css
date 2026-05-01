@@ -88,3 +88,86 @@
     padding: 0.15rem 0.5rem;
     font-size: 0.75rem;
 }
+
+/* Agrupamento por fase */
+.fase-bloco {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.fase-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: var(--cor-fundo);
+    border-bottom: 1px solid var(--cor-borda);
+    flex-wrap: wrap;
+}
+
+.fase-numero {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cor-texto-leve);
+    background: var(--cor-borda);
+    border-radius: 99px;
+    padding: 0.1rem 0.6rem;
+}
+
+.fase-alvo {
+    font-size: 0.85rem;
+    color: var(--cor-texto);
+    flex: 1;
+}
+
+/* Opções da fase */
+.fase-opcoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: rgba(78, 203, 160, 0.04);
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.opcao-chip {
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.opcao-correta {
+    background: rgba(78, 203, 160, 0.12);
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+    font-weight: 700;
+}
+
+/* Itens da timeline com cor por tipo */
+.timeline-item {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+.item-acerto {
+    background: rgba(78, 203, 160, 0.06);
+}
+
+.item-erro {
+    background: rgba(252, 129, 129, 0.06);
+}
+
+.item-fim {
+    background: var(--cor-fundo);
+}
