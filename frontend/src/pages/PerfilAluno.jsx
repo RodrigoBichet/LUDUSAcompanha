@@ -194,6 +194,21 @@ export default function PerfilAluno() {
         return mapa[cat] || cat;
     };
 
+    // Extrai o nome da categoria a partir dos gameEvents da sessão
+    const extrairCategoria = (sessao) => {
+        if (!sessao.gameEvents || sessao.gameEvents.length === 0) return null;
+        const evento = sessao.gameEvents.find(
+            (e) => e.eventType === "CategorySelected",
+        );
+        if (!evento) return null;
+        try {
+            const payload = JSON.parse(evento.payload);
+            return payload.category || null;
+        } catch {
+            return null;
+        }
+    };
+
     const gerarPDF = async () => {
         const elemento = document.getElementById("relatorio-pdf");
         if (!elemento) return;
@@ -771,52 +786,58 @@ export default function PerfilAluno() {
                                 <div className="card secao-card">
                                     <h3>Histórico de Sessões</h3>
                                     <div className="lista-sessoes">
-                                        {sessoes.map((sessao) => (
-                                            <div
-                                                key={sessao.sessionId}
-                                                className="item-sessao"
-                                                onClick={() =>
-                                                    navegar(
-                                                        `/sessao/${sessao.sessionId}`,
-                                                    )
-                                                }
-                                            >
-                                                <div className="sessao-info">
-                                                    <span className="sessao-data">
-                                                        {formatarData(
-                                                            sessao.startedAt,
-                                                        )}
-                                                    </span>
-                                                    <span className="texto-leve sessao-id">
-                                                        {sessao.sessionId.substring(
-                                                            0,
-                                                            8,
-                                                        )}
-                                                        ...
+                                        {sessoes.map((sessao) => {
+                                            const categoria =
+                                                extrairCategoria(sessao);
+                                            return (
+                                                <div
+                                                    key={sessao.sessionId}
+                                                    className="item-sessao"
+                                                    onClick={() =>
+                                                        navegar(
+                                                            `/sessao/${sessao.sessionId}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <div className="sessao-info">
+                                                        {/* Categoria em destaque ou fallback */}
+                                                        <span className="sessao-categoria">
+                                                            🎮{" "}
+                                                            {categoria ||
+                                                                "Sessão de jogo"}
+                                                        </span>
+                                                        {/* Data menor, secundária */}
+                                                        <span className="texto-leve sessao-data-menor">
+                                                            {formatarData(
+                                                                sessao.startedAt,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div className="sessao-metricas">
+                                                        <span className="chip-acerto">
+                                                            ✅{" "}
+                                                            {sessao.metrics
+                                                                ?.totalCorrect ||
+                                                                0}
+                                                        </span>
+                                                        <span className="chip-erro">
+                                                            ❌{" "}
+                                                            {sessao.metrics
+                                                                ?.totalWrong ||
+                                                                0}
+                                                        </span>
+                                                        <span className="texto-leve">
+                                                            {formatarDuracao(
+                                                                sessao.durationMs,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <span className="jogador-seta">
+                                                        →
                                                     </span>
                                                 </div>
-                                                <div className="sessao-metricas">
-                                                    <span className="chip-acerto">
-                                                        ✅{" "}
-                                                        {sessao.metrics
-                                                            ?.totalCorrect || 0}
-                                                    </span>
-                                                    <span className="chip-erro">
-                                                        ❌{" "}
-                                                        {sessao.metrics
-                                                            ?.totalWrong || 0}
-                                                    </span>
-                                                    <span className="texto-leve">
-                                                        {formatarDuracao(
-                                                            sessao.durationMs,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <span className="jogador-seta">
-                                                    →
-                                                </span>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

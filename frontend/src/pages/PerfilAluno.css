@@ -314,3 +314,17 @@
     background: #333;
     transform: translateY(-1px);
 }
+
+/* Categoria em destaque no card de sessão */
+.sessao-categoria {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--cor-texto);
+}
+
+/* Data menor e secundária */
+.sessao-data-menor {
+    font-size: 0.78rem;
+    color: var(--cor-texto-leve);
+    margin-top: 0.15rem;
+}

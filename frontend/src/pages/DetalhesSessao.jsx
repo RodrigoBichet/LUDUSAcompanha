@@ -208,7 +208,25 @@ export default function DetalhesSessao() {
 
     return (
         <div>
-            <Header titulo="Detalhes da Sessão" subtitulo={sessionId} />
+            {/* Extrai a categoria da sessão para usar no Header */}
+            {(() => {
+                let categoriaSessao = "Detalhes da Sessão";
+                if (sessao?.gameEvents) {
+                    const ev = sessao.gameEvents.find(
+                        (e) => e.eventType === "CategorySelected",
+                    );
+                    if (ev) {
+                        try {
+                            const p = JSON.parse(ev.payload);
+                            if (p.category)
+                                categoriaSessao = `Categoria: ${p.category}`;
+                        } catch {}
+                    }
+                }
+                return (
+                    <Header titulo={categoriaSessao} subtitulo={sessionId} />
+                );
+            })()}
 
             <div className="pagina-conteudo">
                 <button className="btn-voltar" onClick={() => navegar(-1)}>
@@ -392,6 +410,7 @@ export default function DetalhesSessao() {
                                                                                             {nomeCampo(
                                                                                                 k,
                                                                                             )}
+
                                                                                             :{" "}
                                                                                             <strong>
                                                                                                 {String(
@@ -537,6 +556,7 @@ export default function DetalhesSessao() {
                                                                                         {nomeCampo(
                                                                                             k,
                                                                                         )}
+
                                                                                         :{" "}
                                                                                         <strong>
                                                                                             {String(
