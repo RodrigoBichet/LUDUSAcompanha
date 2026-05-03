@@ -5,6 +5,27 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.5.0] — 2026-05-02 — Fix bug de sessão + histórico com categoria
+
+### Corrigido
+
+- `LudusMonitor.cs` — adiciona campo `_currentPlayerId` para persistir jogador entre sessões
+- `LudusMonitor.cs` — adiciona método `DefinirJogador()` — registra jogador sem iniciar sessão
+- `LudusMonitor.cs` — simplifica `ReiniciarSessao()` — remove `EndSession()` automático que gerava sessão extra vazia
+- `LudusGameEvents.cs` — adiciona `DefinirJogador()` — API pública para tela de identificação
+- `LudusGameEvents.cs` — adiciona `NovaSessaoCategoria()` — reinicia sessão e registra categoria
+- `Menu.cs` — substitui chamada de `CategorySelected()` por `NovaSessaoCategoria()` ao selecionar categoria
+- Tela de identificação — substitui `StartSession()` por `DefinirJogador()`, separando identificação do início de sessão
+
+### Adicionado
+
+- `PerfilAluno.jsx` — função `extrairCategoria()` — lê `gameEvents` para obter o nome da categoria de cada sessão
+- `PerfilAluno.jsx` — card do histórico de sessões exibe categoria em destaque e data em tamanho secundário
+- `PerfilAluno.css` — classes `.sessao-categoria` e `.sessao-data-menor`
+- `DetalhesSessao.jsx` — Header dinâmico exibe nome da categoria da sessão no título da página
+
+---
+
 ## [1.4.0] — 2026-04-29 — Refactor: Escolas renomeadas para Instituições
 
 ### Alterado
@@ -186,7 +207,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.5.0]` — Edição de turmas no dashboard
-- `[1.6.0]` — Responsividade + design final da designer
-- `[1.7.0]` — Sistema publicado e testado nas instituições parceiras
+- `[1.6.0]` — Edição de turmas no dashboard
+- `[1.7.0]` — Responsividade + design final da designer
+- `[1.8.0]` — Sistema publicado e testado nas instituições parceiras
 - `[2.0.0]` — ML: K-Means + Árvore de Decisão

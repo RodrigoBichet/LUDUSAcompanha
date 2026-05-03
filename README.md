@@ -210,7 +210,7 @@ node src/scripts/criarAdmin.js
 | ---------------------- | --------------------- | ---------------------------------------------- |
 | Login                  | `/login`              | Autenticação JWT                               |
 | Home                   | `/`                   | Lista de alunos com indicador de desempenho    |
-| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap e timeline                             |
+| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap e timeline agrupada por fase           |
 | Turmas                 | `/turmas`             | Gerenciamento de turmas                        |
 | Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos                     |
 | Perfil Aluno           | `/aluno/:id`          | Dados, anotações, alertas, monitoramento e PDF |
@@ -228,7 +228,7 @@ node src/scripts/criarAdmin.js
 - Gráfico de evolução temporal
 - Categorias jogadas com nomes amigáveis
 - Alertas pedagógicos automáticos com linguagem acessível
-- Histórico de sessões clicável
+- Histórico de sessões clicável com nome da categoria em destaque
 - Histórico de anotações do professor com autor e data
 - Geração de PDF formal para apresentação aos pais
 
@@ -273,29 +273,31 @@ node src/scripts/criarAdmin.js
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                        | Status               |
-| ----- | -------------------------------- | -------------------- |
-| 1     | SDK Unity (C#)                   | ✅                   |
-| 1.5   | Integração no Para Que Serve?    | ✅                   |
-| 2     | Backend Node.js + MongoDB        | ✅                   |
-| 3     | Dashboard React                  | 🔧 Design provisório |
-| 4     | Autenticação JWT + Hierarquia    | ✅                   |
-| 5     | CRUD completo + rotas Unity      | ✅                   |
-| 6     | Refatorar tela Unity             | ✅                   |
-| 7     | Login no dashboard               | ✅                   |
-| 8     | CRUD turmas e alunos             | ✅                   |
-| 9     | Alertas pedagógicos              | ✅                   |
-| 10    | Geração de PDF formal            | ✅                   |
-| 11    | Indicador de desempenho na Home  | ✅                   |
-| 12    | Área Admin no dashboard          | ✅                   |
-| 13    | Tela de perfil do usuário        | ✅                   |
-| 14    | Refactor Escolas → Instituições  | ✅                   |
-| 15    | Edição de turmas no dashboard    | 🔜                   |
-| 16    | Responsividade                   | 🔜                   |
-| 17    | Design final da designer         | 🔜                   |
-| 18    | Publicar backend                 | 🔜                   |
-| 19    | Coleta nas escolas parceiras     | 🔜                   |
-| 20    | ML (K-Means + Árvore de Decisão) | 🔜                   |
+| Etapa | Descrição                             | Status               |
+| ----- | ------------------------------------- | -------------------- |
+| 1     | SDK Unity (C#)                        | ✅                   |
+| 1.5   | Integração no Para Que Serve?         | ✅                   |
+| 2     | Backend Node.js + MongoDB             | ✅                   |
+| 3     | Dashboard React                       | 🔧 Design provisório |
+| 4     | Autenticação JWT + Hierarquia         | ✅                   |
+| 5     | CRUD completo + rotas Unity           | ✅                   |
+| 6     | Refatorar tela Unity                  | ✅                   |
+| 7     | Login no dashboard                    | ✅                   |
+| 8     | CRUD turmas e alunos                  | ✅                   |
+| 9     | Alertas pedagógicos                   | ✅                   |
+| 10    | Geração de PDF formal                 | ✅                   |
+| 11    | Indicador de desempenho na Home       | ✅                   |
+| 12    | Área Admin no dashboard               | ✅                   |
+| 13    | Tela de perfil do usuário             | ✅                   |
+| 14    | Refactor Escolas → Instituições       | ✅                   |
+| 15    | Fix bug sessão múltipla por categoria | ✅                   |
+| 16    | Histórico de sessões com categoria    | ✅                   |
+| 17    | Edição de turmas no dashboard         | 🔜                   |
+| 18    | Responsividade                        | 🔜                   |
+| 19    | Design final da designer              | 🔜                   |
+| 20    | Publicar backend                      | 🔜                   |
+| 21    | Coleta nas escolas parceiras          | 🔜                   |
+| 22    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
 
 ---
 
