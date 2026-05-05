@@ -196,7 +196,7 @@ export default function GerenciarUsuarios() {
                                 <input
                                     className="campo-input"
                                     type="email"
-                                    placeholder="email@escola.com"
+                                    placeholder="email@instituicao.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -346,7 +346,7 @@ export default function GerenciarUsuarios() {
                                                         {labelRole(u.role)}
                                                     </span>
                                                     {u.institutionId && (
-                                                        <span className="tag-escola">
+                                                        <span className="tag-instituicao">
                                                             🏫{" "}
                                                             {
                                                                 u.institutionId

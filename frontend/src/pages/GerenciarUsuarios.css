@@ -70,7 +70,7 @@
     color: var(--cor-texto-leve);
 }
 
-.tag-escola {
+.tag-instituicao {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--cor-texto-leve);
@@ -84,7 +84,7 @@
     flex-shrink: 0;
 }
 
-/* Reutiliza .btn-acao do GerenciarEscolas — precisa importar */
+/* Reutiliza .btn-acao do GerenciarInsituicoes — precisa importar */
 .btn-acao {
     padding: 0.4rem 0.85rem;
     border-radius: 6px;
