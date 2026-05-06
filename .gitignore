@@ -5,3 +5,6 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+# Screenshots e uploads
+backend/uploads/
