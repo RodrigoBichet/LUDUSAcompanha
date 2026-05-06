@@ -63,6 +63,11 @@ const StudentSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        capturaSolicitadaOrigem: {
+            type: String,
+            enum: ["dashboard", "unity", null],
+            default: null,
+        },
     },
     {
         timestamps: true,

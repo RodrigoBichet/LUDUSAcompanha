@@ -14,4 +14,9 @@ router.get("/schools", controller.listarInstituicoes);
 router.get("/groups/:institutionId", controller.listarTurmas);
 router.get("/students/:groupId", controller.listarAlunos);
 
+router.post(
+    "/students/:id/solicitar-captura",
+    controller.solicitarCapturaAluno,
+);
+
 module.exports = router;

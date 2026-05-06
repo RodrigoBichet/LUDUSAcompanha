@@ -58,6 +58,8 @@ export default function PerfilAluno() {
     // Captura de screenshots
     const [solicitandoCaptura, setSolicitandoCaptura] = useState(false);
 
+    const [modalCaptura, setModalCaptura] = useState(null);
+
     useEffect(() => {
         carregarDados();
     }, [id]);
@@ -188,6 +190,19 @@ export default function PerfilAluno() {
     const handleSolicitarCaptura = async () => {
         if (!aluno?._id) return;
 
+        if (
+            aluno.capturaSolicitada &&
+            aluno.capturaSolicitadaOrigem === "unity"
+        ) {
+            setModalCaptura({
+                titulo: "Imagem já ativada pelo jogo",
+                mensagem:
+                    "A imagem no mapa de calor já foi ativada pelo jogo. Aguarde a próxima sessão ser registrada ou desative pelo jogo.",
+            });
+
+            return;
+        }
+
         const novoEstado = !aluno.capturaSolicitada;
 
         try {
@@ -198,13 +213,36 @@ export default function PerfilAluno() {
             setAluno((alunoAtual) => ({
                 ...alunoAtual,
                 capturaSolicitada: resposta.data.capturaSolicitada,
+                capturaSolicitadaOrigem: resposta.data.capturaSolicitadaOrigem,
             }));
-        } catch {
-            alert("Erro ao atualizar solicitação de captura.");
+        } catch (erro) {
+            setModalCaptura({
+                titulo: "Não foi possível atualizar",
+                mensagem:
+                    erro.response?.data?.mensagem ||
+                    "Erro ao atualizar solicitação de captura.",
+            });
         } finally {
             setSolicitandoCaptura(false);
         }
     };
+
+    const capturaAtivaPelaUnity =
+        aluno?.capturaSolicitada && aluno?.capturaSolicitadaOrigem === "unity";
+
+    const textoCaptura = capturaAtivaPelaUnity
+        ? "Ativado pelo jogo: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
+        : aluno?.capturaSolicitada
+          ? "Ativado pelo dashboard: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
+          : "Ative para que a próxima sessão salve imagens do jogo e facilite a leitura do mapa de calor.";
+
+    const textoBotaoCaptura = solicitandoCaptura
+        ? "Atualizando..."
+        : capturaAtivaPelaUnity
+          ? "Ativado pelo jogo"
+          : aluno?.capturaSolicitada
+            ? "Desativar imagens"
+            : "Ativar imagens";
 
     const desempenho = indicadorDesempenho();
 
@@ -363,9 +401,7 @@ export default function PerfilAluno() {
                                         <div>
                                             <strong>Captura de tela</strong>
                                             <p className="texto-leve">
-                                                {aluno.capturaSolicitada
-                                                    ? "Ativado: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
-                                                    : "Ative para que a próxima sessão salve imagens do jogo e facilite a leitura do mapa de calor."}
+                                                {textoCaptura}
                                             </p>
                                         </div>
 
@@ -377,13 +413,12 @@ export default function PerfilAluno() {
                                                     : "btn-captura"
                                             }
                                             onClick={handleSolicitarCaptura}
-                                            disabled={solicitandoCaptura}
+                                            disabled={
+                                                solicitandoCaptura ||
+                                                capturaAtivaPelaUnity
+                                            }
                                         >
-                                            {solicitandoCaptura
-                                                ? "Atualizando..."
-                                                : aluno.capturaSolicitada
-                                                  ? "Desativar imagens"
-                                                  : "Ativar imagens"}
+                                            {textoBotaoCaptura}
                                         </button>
                                     </div>
                                 )}
@@ -906,6 +941,30 @@ export default function PerfilAluno() {
                         <button className="btn-pdf" onClick={gerarPDF}>
                             📄 Gerar Relatório PDF
                         </button>
+                    </div>
+                )}
+
+                {modalCaptura && (
+                    <div className="modal-captura-backdrop">
+                        <div className="modal-captura">
+                            <div className="modal-captura-icone">🖼️</div>
+
+                            <div>
+                                <h3>{modalCaptura.titulo}</h3>
+                                <p>{modalCaptura.mensagem}</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="btn-captura-modal"
+                                onClick={() => {
+                                    setModalCaptura(null);
+                                    carregarDados();
+                                }}
+                            >
+                                Entendi
+                            </button>
+                        </div>
                     </div>
                 )}
 

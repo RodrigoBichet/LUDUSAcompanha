@@ -112,6 +112,28 @@ export default function RelatorioPDF({
 
     const idade = calcularIdade(aluno?.birthDate);
 
+    const sessoesComImagem =
+        sessoes?.filter((sessao) => sessao.screenshots?.length > 0) || [];
+
+    const totalImagensCapturadas = sessoesComImagem.reduce(
+        (total, sessao) => total + (sessao.screenshots?.length || 0),
+        0,
+    );
+
+    const totalSessoesComImagem = sessoesComImagem.length;
+    const totalSessoesSemImagem =
+        (sessoes?.length || 0) - totalSessoesComImagem;
+
+    const descreverMapaInteracao = (sessao) => {
+        const quantidade = sessao.screenshots?.length || 0;
+
+        if (quantidade === 0) {
+            return "Mapa geral de interações";
+        }
+
+        return `${quantidade} ${quantidade > 1 ? "imagens" : "imagem"} por fase`;
+    };
+
     return (
         <div id="relatorio-pdf" className="relatorio-pdf">
             {/* Cabeçalho */}
@@ -386,6 +408,80 @@ export default function RelatorioPDF({
                             </tbody>
                         </table>
                     </div>
+                    <div className="pdf-divisor" />
+                </>
+            )}
+
+            {/* Mapas de interação */}
+            {sessoes?.length > 0 && (
+                <>
+                    <div className="pdf-secao">
+                        <div className="pdf-secao-titulo">
+                            Mapas de Interação
+                        </div>
+
+                        <p className="pdf-texto-intro">
+                            O LUDUS Acompanha registra os caminhos do mouse e os
+                            cliques realizados durante o jogo. Quando a captura
+                            de imagem está ativada, o mapa pode ser analisado
+                            sobre a imagem da fase jogada. Quando não há imagem
+                            capturada, o sistema mantém o mapa geral de
+                            interações da sessão.
+                        </p>
+
+                        <div className="pdf-mapas-resumo">
+                            <div className="pdf-mapa-resumo-item">
+                                <span className="pdf-mapa-resumo-valor">
+                                    {totalSessoesComImagem}
+                                </span>
+                                <span className="pdf-mapa-resumo-label">
+                                    Sessões com imagens
+                                </span>
+                            </div>
+
+                            <div className="pdf-mapa-resumo-item">
+                                <span className="pdf-mapa-resumo-valor">
+                                    {totalSessoesSemImagem}
+                                </span>
+                                <span className="pdf-mapa-resumo-label">
+                                    Sessões com mapa geral
+                                </span>
+                            </div>
+
+                            <div className="pdf-mapa-resumo-item">
+                                <span className="pdf-mapa-resumo-valor">
+                                    {totalImagensCapturadas}
+                                </span>
+                                <span className="pdf-mapa-resumo-label">
+                                    Imagens capturadas
+                                </span>
+                            </div>
+                        </div>
+
+                        <table className="pdf-tabela pdf-tabela-mapas">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Categoria</th>
+                                    <th>Tipo de mapa disponível</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sessoes.map((sessao) => (
+                                    <tr key={`mapa-${sessao.sessionId}`}>
+                                        <td>
+                                            {formatarDataHora(sessao.startedAt)}
+                                        </td>
+                                        <td>{obterCategoriasSessao(sessao)}</td>
+                                        <td>
+                                            {descreverMapaInteracao(sessao)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div className="pdf-divisor" />
                 </>
             )}

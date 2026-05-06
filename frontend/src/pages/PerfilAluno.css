@@ -384,3 +384,64 @@
     opacity: 0.65;
     cursor: not-allowed;
 }
+
+/* Modal de captura */
+.modal-captura-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4.5rem;
+    background: rgba(28, 43, 58, 0.35);
+}
+
+.modal-captura {
+    width: min(460px, calc(100vw - 2rem));
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.8rem 1rem;
+    padding: 1.1rem;
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    box-shadow: var(--sombra-card);
+}
+
+.modal-captura-icone {
+    width: 2.4rem;
+    height: 2.4rem;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    font-size: 1.25rem;
+}
+
+.modal-captura h3 {
+    margin: 0 0 0.3rem;
+    font-size: 1rem;
+    color: var(--cor-texto);
+}
+
+.modal-captura p {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--cor-texto-leve);
+}
+
+.btn-captura-modal {
+    grid-column: 2;
+    justify-self: end;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    background: var(--cor-primaria);
+    color: white;
+    font-family: var(--fonte-corpo);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+}

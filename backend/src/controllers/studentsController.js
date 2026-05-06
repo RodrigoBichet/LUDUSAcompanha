@@ -325,14 +325,8 @@ const deletarAnotacao = async (req, res) => {
 
 const solicitarCaptura = async (req, res) => {
     try {
-        // Se "ativo" não for enviado no body, assume true por padrão
         const ativo = req.body.ativo !== false;
-
-        const aluno = await Student.findByIdAndUpdate(
-            req.params.id,
-            { capturaSolicitada: ativo },
-            { returnDocument: "after" },
-        );
+        const aluno = await Student.findById(req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -341,15 +335,33 @@ const solicitarCaptura = async (req, res) => {
             });
         }
 
+        if (
+            aluno.capturaSolicitada &&
+            aluno.capturaSolicitadaOrigem === "unity"
+        ) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem:
+                    "A captura de imagens já foi ativada pelo jogo. Aguarde a próxima sessão ser registrada ou desative pelo jogo.",
+                capturaSolicitada: aluno.capturaSolicitada,
+                capturaSolicitadaOrigem: aluno.capturaSolicitadaOrigem,
+            });
+        }
+
+        aluno.capturaSolicitada = ativo;
+        aluno.capturaSolicitadaOrigem = ativo ? "dashboard" : null;
+        await aluno.save();
+
         const acao = ativo ? "solicitada" : "cancelada";
         console.log(
-            `[LUDUS] Captura de screenshots ${acao} para: ${aluno.name}`,
+            `[LUDUS] Captura de screenshots ${acao} pelo dashboard para: ${aluno.name}`,
         );
 
         return res.json({
             sucesso: true,
             mensagem: `Captura de screenshots ${acao} com sucesso!`,
             capturaSolicitada: aluno.capturaSolicitada,
+            capturaSolicitadaOrigem: aluno.capturaSolicitadaOrigem,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao solicitar captura:", erro.message);

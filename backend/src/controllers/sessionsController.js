@@ -117,8 +117,12 @@ const criarSessao = async (req, res) => {
             try {
                 await Student.findOneAndUpdate(
                     { name: dados.playerId, capturaSolicitada: true },
-                    { capturaSolicitada: false },
+                    {
+                        capturaSolicitada: false,
+                        capturaSolicitadaOrigem: null,
+                    },
                 );
+
                 console.log(
                     `[LUDUS] Flag capturaSolicitada resetado para: ${dados.playerId}`,
                 );
@@ -153,7 +157,10 @@ const criarSessao = async (req, res) => {
 const listarSessoes = async (req, res) => {
     try {
         const sessoes = await Session.find()
-            .select("sessionId playerId gameId platform startedAt durationMs")
+            .select(
+                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots",
+            )
+
             .sort({ createdAt: -1 })
             .limit(50);
 
@@ -206,8 +213,9 @@ const sessoesPorJogador = async (req, res) => {
     try {
         const sessoes = await Session.find({ playerId: req.params.playerId })
             .select(
-                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents",
+                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots",
             )
+
             .sort({ startedAt: -1 });
 
         return res.json({

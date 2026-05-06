@@ -256,3 +256,37 @@
     margin-bottom: 0.75rem;
     line-height: 1.5;
 }
+
+/* Mapas de interação */
+.pdf-mapas-resumo {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.pdf-mapa-resumo-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.55rem;
+    text-align: center;
+}
+
+.pdf-mapa-resumo-valor {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1a1a1a;
+}
+
+.pdf-mapa-resumo-label {
+    display: block;
+    font-size: 0.68rem;
+    color: #666;
+    margin-top: 0.15rem;
+}
+
+.pdf-tabela-mapas th,
+.pdf-tabela-mapas td {
+    font-size: 0.72rem;
+}
