@@ -1,4 +1,4 @@
-# LUDUS Acompanha
+﻿# LUDUS Acompanha
 
 > Projeto de Mestrado em Ciência da Computação — UFPel (2026)  
 > Autor: Rodrigo Leitzke Bichet  
@@ -86,7 +86,8 @@ LUDUSAcompanha/
 │   │   └── App.jsx
 │   └── package.json
 └── docs/
-    └── LUDUS_API.postman_collection.json
+    ├── LUDUS_API.postman_collection.json
+    └── SETUP.md
 ```
 
 ---
@@ -184,6 +185,7 @@ node src/scripts/criarAdmin.js
 | POST/GET/PUT/DELETE | `/api/students`                           | ✅   |
 | POST                | `/api/students/:id/anotacoes`             | ✅   |
 | DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅   |
+| PATCH               | `/api/students/:id/solicitar-captura`     | ✅   |
 
 ### Sessions
 
@@ -231,9 +233,15 @@ node src/scripts/criarAdmin.js
 - Histórico de sessões clicável com nome da categoria em destaque
 - Histórico de anotações do professor com autor e data
 - Geração de PDF formal para apresentação aos pais
+- Solicitação de imagens da próxima sessão para compor o mapa de calor por fase
 
 ---
 
+## Imagens para mapa de calor
+
+O professor pode ativar, no perfil do aluno, a opção **Imagens no mapa de calor**. Quando ativada, a próxima sessão desse aluno no jogo salva imagens das fases para serem usadas como fundo na visualização do mapa de calor.
+
+A captura é sob demanda: após o backend receber uma sessão com imagens, o campo `capturaSolicitada` do aluno volta automaticamente para `false`. As imagens geradas em runtime são salvas em `backend/uploads/screenshots/` e não devem ser versionadas no Git.
 ## Alertas pedagógicos automáticos
 
 | Alerta                   | Condição                             | Severidade  |
@@ -292,12 +300,13 @@ node src/scripts/criarAdmin.js
 | 14    | Refactor Escolas → Instituições       | ✅                   |
 | 15    | Fix bug sessão múltipla por categoria | ✅                   |
 | 16    | Histórico de sessões com categoria    | ✅                   |
-| 17    | Edição de turmas no dashboard         | 🔜                   |
-| 18    | Responsividade                        | 🔜                   |
-| 19    | Design final da designer              | 🔜                   |
-| 20    | Publicar backend                      | 🔜                   |
-| 21    | Coleta nas escolas parceiras          | 🔜                   |
-| 22    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
+| 17    | Solicitação de imagens para mapa de calor | ✅                   |
+| 18    | Edição de turmas no dashboard         | 🔜                   |
+| 19    | Responsividade                        | 🔜                   |
+| 20    | Design final da designer              | 🔜                   |
+| 21    | Publicar backend                      | 🔜                   |
+| 22    | Coleta nas escolas parceiras          | 🔜                   |
+| 23    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
 
 ---
 

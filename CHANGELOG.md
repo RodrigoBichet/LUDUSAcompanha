@@ -1,7 +1,29 @@
-# Changelog — LUDUS Acompanha
+﻿# Changelog — LUDUS Acompanha
 
 Todas as mudanças relevantes do projeto são registradas aqui.  
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+---
+
+## [1.6.0] — 2026-05-06 — Solicitação de imagens para mapa de calor
+
+### Adicionado
+
+- `Student.js` — campo `capturaSolicitada` para controlar captura sob demanda por aluno
+- `Session.js` — sub-schema `FaseScreenshotSchema` e campo `screenshots[]` para armazenar caminhos das imagens por fase
+- `studentsController.js` — método `solicitarCaptura()` para ativar ou cancelar captura de imagens
+- `students.js` — rota `PATCH /api/students/:id/solicitar-captura`
+- `sessionsController.js` — processamento de screenshots em base64, salvando arquivos em `backend/uploads/screenshots/`
+- `app.js` — exposição estática de `/uploads` e limite maior para JSON com imagens
+- `unityController.js` — retorno de `capturaSolicitada` na listagem pública de alunos consumida pela Unity
+- `PerfilAluno.jsx` — bloco "Imagens no mapa de calor" para professor ativar/desativar a próxima captura
+- `PerfilAluno.css` — estilos do bloco e botão de solicitação de imagens
+- `api.js` — função `solicitarCaptura()`
+- `.gitignore` — ignora `backend/uploads/`, evitando versionar imagens geradas em runtime
+
+### Comportamento
+
+- A captura é sob demanda: após o backend receber uma sessão com screenshots, `capturaSolicitada` volta automaticamente para `false`.
 
 ---
 
@@ -207,7 +229,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Próximas versões planejadas
 
-- `[1.6.0]` — Edição de turmas no dashboard
-- `[1.7.0]` — Responsividade + design final da designer
-- `[1.8.0]` — Sistema publicado e testado nas instituições parceiras
+- `[1.7.0]` — Edição de turmas no dashboard
+- `[1.8.0]` — Responsividade + design final da designer
+- `[1.9.0]` — Sistema publicado e testado nas instituições parceiras
 - `[2.0.0]` — ML: K-Means + Árvore de Decisão
