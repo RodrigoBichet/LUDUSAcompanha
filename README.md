@@ -151,7 +151,8 @@ node src/scripts/criarAdmin.js
 | ------ | ---------------------------------- | ------------------ |
 | GET    | `/api/unity/schools`               | Lista instituições |
 | GET    | `/api/unity/groups/:institutionId` | Lista turmas       |
-| GET    | `/api/unity/students/:groupId`     | Lista alunos       |
+| GET    | `/api/unity/students/:groupId`               | Lista alunos       |
+| POST   | `/api/unity/students/:id/solicitar-captura` | Liga/desliga imagens para a próxima sessão no jogo |
 
 ### Auth
 
@@ -212,10 +213,10 @@ node src/scripts/criarAdmin.js
 | ---------------------- | --------------------- | ---------------------------------------------- |
 | Login                  | `/login`              | Autenticação JWT                               |
 | Home                   | `/`                   | Lista de alunos com indicador de desempenho    |
-| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap e timeline agrupada por fase           |
+| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap geral e por fase, com imagens quando disponíveis |
 | Turmas                 | `/turmas`             | Gerenciamento de turmas                        |
 | Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos                     |
-| Perfil Aluno           | `/aluno/:id`          | Dados, anotações, alertas, monitoramento e PDF |
+| Perfil Aluno           | `/aluno/:id`          | Dados, anotações, alertas, monitoramento, PDF e solicitação de imagens |
 | Gerenciar Instituições | `/admin/instituicoes` | CRUD de instituições (apenas admin)            |
 | Gerenciar Usuários     | `/admin/usuarios`     | CRUD de usuários (apenas admin)                |
 | Meu Perfil             | `/perfil`             | Edição de dados e senha do usuário logado      |
@@ -234,14 +235,23 @@ node src/scripts/criarAdmin.js
 - Histórico de anotações do professor com autor e data
 - Geração de PDF formal para apresentação aos pais
 - Solicitação de imagens da próxima sessão para compor o mapa de calor por fase
+- Controle de origem da solicitação de imagens entre dashboard e jogo Unity
+- Modal visual para avisos de captura, sem uso de alerta nativo do navegador
 
 ---
 
 ## Imagens para mapa de calor
 
-O professor pode ativar, no perfil do aluno, a opção **Imagens no mapa de calor**. Quando ativada, a próxima sessão desse aluno no jogo salva imagens das fases para serem usadas como fundo na visualização do mapa de calor.
+O professor pode ativar, no perfil do aluno, a opção **Imagens no mapa de calor**. Quando ativada, a próxima sessão/categoria desse aluno salva imagens das fases para serem usadas como fundo na visualização do mapa de calor.
 
-A captura é sob demanda: após o backend receber uma sessão com imagens, o campo `capturaSolicitada` do aluno volta automaticamente para `false`. As imagens geradas em runtime são salvas em `backend/uploads/screenshots/` e não devem ser versionadas no Git.
+A solicitação pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. Para evitar conflitos, o backend registra também a origem da solicitação em `capturaSolicitadaOrigem` (`dashboard` ou `unity`). Se uma origem já ativou a captura, a outra interface exibe aviso e bloqueia a alteração até a sessão ser registrada ou a própria origem cancelar.
+
+Após o backend receber uma sessão com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime são salvas em `backend/uploads/screenshots/` e não devem ser versionadas no Git.
+
+Na tela de detalhes da sessão, o mapa de interações possui aba **Geral** e abas por fase. Quando há imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando não há imagens, o sistema mantém o mapa geral de interações.
+
+O relatório PDF do aluno também resume quais sessões possuem imagens por fase e quais possuem apenas o mapa geral.
+
 ## Alertas pedagógicos automáticos
 
 | Alerta                   | Condição                             | Severidade  |
@@ -301,12 +311,14 @@ A captura é sob demanda: após o backend receber uma sessão com imagens, o cam
 | 15    | Fix bug sessão múltipla por categoria | ✅                   |
 | 16    | Histórico de sessões com categoria    | ✅                   |
 | 17    | Solicitação de imagens para mapa de calor | ✅                   |
-| 18    | Edição de turmas no dashboard         | 🔜                   |
-| 19    | Responsividade                        | 🔜                   |
-| 20    | Design final da designer              | 🔜                   |
-| 21    | Publicar backend                      | 🔜                   |
-| 22    | Coleta nas escolas parceiras          | 🔜                   |
-| 23    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
+| 18    | Controle de origem dashboard/Unity para captura | ✅                   |
+| 19    | Heatmap com abas Geral e por fase     | ✅                   |
+| 20    | Edição de turmas no dashboard         | 🔜                   |
+| 21    | Responsividade                        | 🔜                   |
+| 22    | Design final da designer              | 🔜                   |
+| 23    | Publicar backend                      | 🔜                   |
+| 24    | Coleta nas escolas parceiras          | 🔜                   |
+| 25    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
 
 ---
 

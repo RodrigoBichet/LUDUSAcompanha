@@ -5,6 +5,33 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.7.0] — 2026-05-06 — Controle de origem e heatmap por fase
+
+### Adicionado
+
+- `Student.js` — campo `capturaSolicitadaOrigem` para registrar se a captura foi ativada pelo dashboard ou pela Unity
+- `unityController.js` — rota pública para a Unity ligar/desligar captura de imagens da próxima sessão
+- `DetalhesSessao.jsx` — abas **Geral** e por fase no mapa de interações
+- `DetalhesSessao.jsx` — desenho do caminho do mouse e cliques sobre imagens capturadas por fase
+- `RelatorioPDF.jsx` — seção "Mapas de Interação" com resumo de sessões com imagens e sessões com mapa geral
+- `PerfilAluno.jsx` — modal visual para avisos de captura, substituindo alerta nativo do navegador
+
+### Alterado
+
+- `studentsController.js` — solicitações feitas pelo dashboard agora respeitam a origem da captura
+- `unityController.js` — solicitações feitas pela Unity agora respeitam a origem da captura
+- `sessionsController.js` — reset automático limpa `capturaSolicitada` e `capturaSolicitadaOrigem` após receber sessão com imagens
+- `PerfilAluno.jsx` — bloqueia alteração no dashboard quando a captura foi ativada pelo jogo
+- `DetalhesSessao.css` e `PerfilAluno.css` — estilos para abas de heatmap, badge de imagens e modal de captura
+
+### Comportamento
+
+- A captura vale para a próxima sessão/categoria.
+- Dashboard e Unity não sobrescrevem solicitações feitas pela outra origem.
+- Sessões sem imagens continuam exibindo o mapa geral de interações.
+
+---
+
 ## [1.6.0] — 2026-05-06 — Solicitação de imagens para mapa de calor
 
 ### Adicionado
