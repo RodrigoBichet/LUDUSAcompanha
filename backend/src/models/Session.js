@@ -24,7 +24,7 @@ const MetricasSchema = new mongoose.Schema(
         totalInactivityMs: { type: Number, default: 0 },
     },
     { _id: false },
-); // _id: false — sub-schemas não precisam de ID próprio
+);
 
 const CliqueSchema = new mongoose.Schema(
     {
@@ -54,13 +54,25 @@ const GameEventSchema = new mongoose.Schema(
     { _id: false },
 );
 
+// Sub-schema do screenshot de uma fase
+// O campo screenshotBase64 existe apenas no JSON do Unity — o backend
+// extrai, salva como arquivo e armazena somente o caminho público aqui.
+const FaseScreenshotSchema = new mongoose.Schema(
+    {
+        faseIndex: { type: Number }, // Índice da fase (0, 1, 2, 3)
+        timestamp: { type: Number }, // Ms desde o início da sessão
+        caminho: { type: String, default: null }, // Ex: /uploads/screenshots/abc_fase0.jpg
+    },
+    { _id: false },
+);
+
 // -------------------------------------------------------------------------
 // Schema principal da sessão
 // -------------------------------------------------------------------------
 
 const SessionSchema = new mongoose.Schema(
     {
-        sessionId: { type: String, required: true, unique: true }, // UUID do Unity
+        sessionId: { type: String, required: true, unique: true },
         playerId: { type: String, required: true },
         gameId: { type: String, required: true },
         gameVersion: { type: String },
@@ -72,9 +84,13 @@ const SessionSchema = new mongoose.Schema(
         clicks: { type: [CliqueSchema], default: [] },
         mousePath: { type: [PathPointSchema], default: [] },
         gameEvents: { type: [GameEventSchema], default: [] },
+
+        // Screenshots capturados pelo SDK Unity a cada início de fase.
+        // Vazios (array vazio) quando a captura não estava ativa na sessão.
+        screenshots: { type: [FaseScreenshotSchema], default: [] },
     },
     {
-        timestamps: true, // Adiciona createdAt e updatedAt automaticamente
+        timestamps: true,
     },
 );
 

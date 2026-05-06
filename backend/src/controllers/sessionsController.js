@@ -5,13 +5,65 @@
 //
 // Controller das sessões de jogo.
 // Recebe o JSON do SDK Unity, valida e salva no MongoDB.
+// Se a sessão contém screenshots, salva os arquivos em disco e
+// armazena apenas o caminho no banco — nunca o base64.
 // =============================================================================
 
+const fs = require("fs");
+const path = require("path");
 const Session = require("../models/Session");
+const Student = require("../models/Student");
+
+// Pasta onde os screenshots das fases serão salvos
+// Fica em backend/uploads/screenshots/ — servida como static pelo Express
+const PASTA_SCREENSHOTS = path.join(__dirname, "../../uploads/screenshots");
+
+// -------------------------------------------------------------------------
+// processarScreenshots
+// Função auxiliar chamada dentro do criarSessao.
+// Percorre o array de screenshots recebido do SDK, salva cada imagem
+// como arquivo JPEG em disco e substitui o base64 pelo caminho do arquivo.
+// Retorna um novo array já sem o campo screenshotBase64.
+// -------------------------------------------------------------------------
+
+const processarScreenshots = (screenshots, sessionId) => {
+    // Garante que a pasta de destino existe antes de tentar salvar
+    if (!fs.existsSync(PASTA_SCREENSHOTS)) {
+        fs.mkdirSync(PASTA_SCREENSHOTS, { recursive: true });
+    }
+
+    return screenshots.map((screenshot) => {
+        // Se por algum motivo o base64 vier vazio, ignora sem quebrar
+        if (!screenshot.screenshotBase64) {
+            return {
+                faseIndex: screenshot.faseIndex,
+                timestamp: screenshot.timestamp,
+                caminho: null,
+            };
+        }
+
+        // Nome do arquivo: sessionId_faseN.jpg — garante unicidade
+        const nomeArquivo = `${sessionId}_fase${screenshot.faseIndex}.jpg`;
+        const caminhoCompleto = path.join(PASTA_SCREENSHOTS, nomeArquivo);
+
+        // Decodifica o base64 e salva como arquivo binário
+        const buffer = Buffer.from(screenshot.screenshotBase64, "base64");
+        fs.writeFileSync(caminhoCompleto, buffer);
+
+        console.log(`[LUDUS] Screenshot salvo: ${nomeArquivo}`);
+
+        // Retorna o objeto sem o base64 — só com o caminho público
+        return {
+            faseIndex: screenshot.faseIndex,
+            timestamp: screenshot.timestamp,
+            caminho: `/uploads/screenshots/${nomeArquivo}`,
+        };
+    });
+};
 
 // -------------------------------------------------------------------------
 // criarSessao — POST /api/sessions
-// Recebe o JSON da sessão gerado pelo LudusExporter e salva no banco
+// Recebe o JSON da sessão gerado pelo LudusExporter e salva no banco.
 // -------------------------------------------------------------------------
 
 const criarSessao = async (req, res) => {
@@ -27,7 +79,7 @@ const criarSessao = async (req, res) => {
             });
         }
 
-        // Verifica se já existe uma sessão com esse ID (evita duplicatas)
+        // Verifica duplicata
         const sessaoExistente = await Session.findOne({
             sessionId: dados.sessionId,
         });
@@ -38,13 +90,46 @@ const criarSessao = async (req, res) => {
             });
         }
 
-        // Cria e salva a sessão no MongoDB
+        // Processa screenshots se a sessão trouxer algum
+        // O base64 é extraído, salvo em disco e substituído pelo caminho
+        const temScreenshots =
+            Array.isArray(dados.screenshots) && dados.screenshots.length > 0;
+
+        if (temScreenshots) {
+            dados.screenshots = processarScreenshots(
+                dados.screenshots,
+                dados.sessionId,
+            );
+        }
+
+        // Salva a sessão no MongoDB (sem base64 — só caminhos)
         const sessao = new Session(dados);
         await sessao.save();
 
         console.log(
             `[LUDUS] Sessão recebida: ${sessao.sessionId} | Player: ${sessao.playerId}`,
         );
+
+        // Se a sessão veio com screenshots, reseta o flag capturaSolicitada do aluno.
+        // O flag é buscado pelo nome do jogador (playerId = nome do aluno no sistema).
+        // Usamos findOneAndUpdate para não travar o fluxo caso o aluno não seja encontrado.
+        if (temScreenshots) {
+            try {
+                await Student.findOneAndUpdate(
+                    { name: dados.playerId, capturaSolicitada: true },
+                    { capturaSolicitada: false },
+                );
+                console.log(
+                    `[LUDUS] Flag capturaSolicitada resetado para: ${dados.playerId}`,
+                );
+            } catch (erroReset) {
+                // Não interrompe o fluxo — o reset é secundário
+                console.warn(
+                    "[LUDUS] Não foi possível resetar capturaSolicitada:",
+                    erroReset.message,
+                );
+            }
+        }
 
         return res.status(201).json({
             sucesso: true,
@@ -63,14 +148,13 @@ const criarSessao = async (req, res) => {
 
 // -------------------------------------------------------------------------
 // listarSessoes — GET /api/sessions
-// Lista todas as sessões (útil para debug)
 // -------------------------------------------------------------------------
 
 const listarSessoes = async (req, res) => {
     try {
         const sessoes = await Session.find()
-            .select("sessionId playerId gameId platform startedAt durationMs") // só campos essenciais
-            .sort({ createdAt: -1 }) // mais recentes primeiro
+            .select("sessionId playerId gameId platform startedAt durationMs")
+            .sort({ createdAt: -1 })
             .limit(50);
 
         return res.json({
@@ -89,7 +173,6 @@ const listarSessoes = async (req, res) => {
 
 // -------------------------------------------------------------------------
 // buscarSessao — GET /api/sessions/:sessionId
-// Retorna uma sessão completa pelo ID
 // -------------------------------------------------------------------------
 
 const buscarSessao = async (req, res) => {
@@ -118,6 +201,7 @@ const buscarSessao = async (req, res) => {
 // -------------------------------------------------------------------------
 // sessoesPorJogador — GET /api/sessions/player/:playerId
 // -------------------------------------------------------------------------
+
 const sessoesPorJogador = async (req, res) => {
     try {
         const sessoes = await Session.find({ playerId: req.params.playerId })

@@ -143,7 +143,6 @@ const atualizarAluno = async (req, res) => {
             guardianContact,
         } = req.body;
 
-        // Busca o aluno atual para verificar se o nome mudou
         const alunoAtual = await Student.findById(req.params.id);
         if (!alunoAtual) {
             return res.status(404).json({
@@ -155,7 +154,6 @@ const atualizarAluno = async (req, res) => {
         const nomeAntigo = alunoAtual.name;
         const nomeMudou = name && name !== nomeAntigo;
 
-        // Atualiza o aluno
         const aluno = await Student.findByIdAndUpdate(
             req.params.id,
             {
@@ -312,6 +310,56 @@ const deletarAnotacao = async (req, res) => {
     }
 };
 
+// -------------------------------------------------------------------------
+// solicitarCaptura — PATCH /api/students/:id/solicitar-captura
+//
+// Ativa ou desativa a solicitação de captura de screenshots para um aluno.
+// Quando ativo, o SDK Unity detecta o flag ao carregar o aluno na tela de
+// identificação e ativa o toggle de captura automaticamente.
+// O flag é resetado automaticamente pelo backend ao receber uma sessão
+// que já contém screenshots (sessionsController.js).
+//
+// Body: { "ativo": true }  → solicita captura
+//       { "ativo": false } → cancela solicitação
+// -------------------------------------------------------------------------
+
+const solicitarCaptura = async (req, res) => {
+    try {
+        // Se "ativo" não for enviado no body, assume true por padrão
+        const ativo = req.body.ativo !== false;
+
+        const aluno = await Student.findByIdAndUpdate(
+            req.params.id,
+            { capturaSolicitada: ativo },
+            { returnDocument: "after" },
+        );
+
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
+
+        const acao = ativo ? "solicitada" : "cancelada";
+        console.log(
+            `[LUDUS] Captura de screenshots ${acao} para: ${aluno.name}`,
+        );
+
+        return res.json({
+            sucesso: true,
+            mensagem: `Captura de screenshots ${acao} com sucesso!`,
+            capturaSolicitada: aluno.capturaSolicitada,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao solicitar captura:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao solicitar captura",
+        });
+    }
+};
+
 module.exports = {
     criarAluno,
     listarAlunos,
@@ -320,4 +368,5 @@ module.exports = {
     deletarAluno,
     adicionarAnotacao,
     deletarAnotacao,
+    solicitarCaptura,
 };

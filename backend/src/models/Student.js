@@ -35,6 +35,7 @@ const StudentSchema = new mongoose.Schema(
             ref: "Group",
             required: true,
         },
+
         // Informações clínicas
         supportLevel: {
             type: String,
@@ -43,14 +44,25 @@ const StudentSchema = new mongoose.Schema(
         },
         otherConditions: {
             type: String,
-            default: "", // Ex: "TDAH, Dislexia"
+            default: "",
         },
+
         // Responsável
         guardianName: { type: String, default: "" },
         guardianContact: { type: String, default: "" },
 
         // Histórico de anotações do professor
         anotacoes: { type: [AnotacaoSchema], default: [] },
+
+        // Flag de solicitação de captura de screenshots
+        // Ativado pelo professor no dashboard ou na tela de identificação.
+        // O SDK Unity verifica este campo ao carregar o aluno e ativa
+        // a captura automaticamente. Resetado pelo backend após receber
+        // uma sessão que contém screenshots.
+        capturaSolicitada: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,

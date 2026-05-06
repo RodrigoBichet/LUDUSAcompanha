@@ -328,3 +328,59 @@
     color: var(--cor-texto-leve);
     margin-top: 0.15rem;
 }
+
+/* Captura de imagens para mapa de calor */
+.captura-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+}
+
+.captura-card strong {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+    color: var(--cor-texto);
+}
+
+.captura-card p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.btn-captura {
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    background: var(--cor-primaria);
+    color: white;
+    font-family: var(--fonte-corpo);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.15s,
+        transform 0.1s,
+        opacity 0.15s;
+}
+
+.btn-captura:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.btn-captura.ativo {
+    background: var(--cor-aviso);
+}
+
+.btn-captura:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}

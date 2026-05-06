@@ -12,7 +12,6 @@ const Session = require("../models/Session");
 
 // -------------------------------------------------------------------------
 // resumoJogador — GET /api/dashboard/summary/:playerId
-// Retorna métricas consolidadas de todas as sessões de um jogador
 // -------------------------------------------------------------------------
 
 const resumoJogador = async (req, res) => {
@@ -27,8 +26,6 @@ const resumoJogador = async (req, res) => {
                 mensagem: `Nenhuma sessão encontrada para: ${playerId}`,
             });
         }
-
-        // --- Consolida métricas de todas as sessões ---
 
         let totalClicks = 0;
         let totalCorrect = 0;
@@ -45,7 +42,6 @@ const resumoJogador = async (req, res) => {
             totalDuracaoMs += sessao.durationMs || 0;
             totalInatividade += sessao.metrics.inactivityCount || 0;
 
-            // Contagem de sessões por categoria
             sessao.gameEvents.forEach((evento) => {
                 if (evento.eventType === "CategorySelected") {
                     try {
@@ -56,7 +52,6 @@ const resumoJogador = async (req, res) => {
                 }
             });
 
-            // Evolução temporal — uma entrada por sessão
             evolucaoTemporal.push({
                 sessionId: sessao.sessionId,
                 startedAt: sessao.startedAt,
@@ -98,14 +93,19 @@ const resumoJogador = async (req, res) => {
 
 // -------------------------------------------------------------------------
 // heatmapSessao — GET /api/dashboard/heatmap/:sessionId
-// Retorna os pontos do caminho do mouse para geração do heatmap
+//
+// Retorna os dados necessários para renderizar o heatmap no dashboard:
+// - mousePath e clicks para desenhar os pontos no canvas
+// - screenshots por fase (caminhos dos arquivos salvos em disco)
+// - gameEvents filtrados aos PhaseStarted, para o frontend saber os
+//   limites de tempo de cada fase e filtrar os pontos corretamente
 // -------------------------------------------------------------------------
 
 const heatmapSessao = async (req, res) => {
     try {
         const sessao = await Session.findOne({
             sessionId: req.params.sessionId,
-        }).select("sessionId playerId mousePath clicks");
+        }).select("sessionId playerId mousePath clicks screenshots gameEvents");
 
         if (!sessao) {
             return res.status(404).json({
@@ -114,12 +114,26 @@ const heatmapSessao = async (req, res) => {
             });
         }
 
+        // Filtra apenas os eventos de início de fase para o frontend
+        // calcular os intervalos de tempo de cada fase sem receber
+        // o payload completo de todos os eventos
+        const fases = (sessao.gameEvents || [])
+            .filter((e) => e.eventType === "PhaseStarted")
+            .map((e, index) => ({
+                faseIndex: index,
+                timestamp: e.timestamp,
+            }));
+
         return res.json({
             sucesso: true,
             sessionId: sessao.sessionId,
             playerId: sessao.playerId,
             mousePath: sessao.mousePath,
             clicks: sessao.clicks,
+            // Screenshots capturados pelo SDK (null se captura não estava ativa)
+            screenshots: sessao.screenshots || [],
+            // Timestamps de início de cada fase para filtragem no frontend
+            fases,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao buscar heatmap:", erro.message);
@@ -132,7 +146,6 @@ const heatmapSessao = async (req, res) => {
 
 // -------------------------------------------------------------------------
 // alertasAluno — GET /api/dashboard/alerts/:playerId
-// Analisa sessões e gera alertas pedagógicos automáticos
 // -------------------------------------------------------------------------
 
 const alertasAluno = async (req, res) => {
@@ -141,7 +154,7 @@ const alertasAluno = async (req, res) => {
 
         const sessoes = await Session.find({ playerId })
             .sort({ startedAt: -1 })
-            .limit(10); // analisa as últimas 10 sessões
+            .limit(10);
 
         if (sessoes.length === 0) {
             return res.json({
@@ -154,9 +167,7 @@ const alertasAluno = async (req, res) => {
 
         const alertas = [];
 
-        // -------------------------------------------------------------
         // Alerta 1 — Taxa de acerto baixa nas últimas 3 sessões
-        // -------------------------------------------------------------
         const ultimas3 = sessoes.slice(0, 3);
         if (ultimas3.length >= 2) {
             const totalAcertos = ultimas3.reduce(
@@ -197,9 +208,7 @@ const alertasAluno = async (req, res) => {
             }
         }
 
-        // -------------------------------------------------------------
         // Alerta 2 — Inatividade frequente
-        // -------------------------------------------------------------
         const totalInatividade = sessoes.reduce(
             (s, sess) => s + (sess.metrics.inactivityCount || 0),
             0,
@@ -228,9 +237,7 @@ const alertasAluno = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------------------
         // Alerta 3 — Sem jogar há muito tempo
-        // -------------------------------------------------------------
         const ultimaSessao = sessoes[0];
         const diasSemJogar = Math.floor(
             (Date.now() - new Date(ultimaSessao.startedAt).getTime()) /
@@ -258,9 +265,7 @@ const alertasAluno = async (req, res) => {
             });
         }
 
-        // -------------------------------------------------------------
         // Alerta 4 — Categoria problemática
-        // -------------------------------------------------------------
         const errosPorCategoria = {};
 
         sessoes.forEach((sessao) => {
@@ -278,12 +283,10 @@ const alertasAluno = async (req, res) => {
                         }
                     } catch (_) {}
                 }
-                if (evento.eventType === "WrongMatch" && categoriaAtual) {
+                if (evento.eventType === "WrongMatch" && categoriaAtual)
                     errosPorCategoria[categoriaAtual].erros++;
-                }
-                if (evento.eventType === "CorrectMatch" && categoriaAtual) {
+                if (evento.eventType === "CorrectMatch" && categoriaAtual)
                     errosPorCategoria[categoriaAtual].acertos++;
-                }
             });
         });
 
@@ -304,9 +307,7 @@ const alertasAluno = async (req, res) => {
             }
         });
 
-        // -------------------------------------------------------------
-        // Alerta 5 — Evolução positiva (não é problema, é feedback!)
-        // -------------------------------------------------------------
+        // Alerta 5 — Evolução positiva
         if (sessoes.length >= 3) {
             const primeiras = sessoes.slice(-3);
             const recentes = sessoes.slice(0, 3);

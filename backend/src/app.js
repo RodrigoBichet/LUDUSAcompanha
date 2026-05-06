@@ -8,6 +8,7 @@
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
@@ -16,7 +17,8 @@ const app = express();
 // -------------------------------------------------------------------------
 
 app.use(cors()); // Permite requisições de qualquer origem (Unity, Dashboard)
-app.use(express.json()); // Interpreta JSON no corpo das requisições
+app.use(express.json({ limit: "25mb" })); // Interpreta JSON no corpo das requisições
+//Screenshots em base64 podem passar do limite padrão do Express e causar erro antes de chegar no controller
 app.use("/api/users", require("./routes/users"));
 
 // -------------------------------------------------------------------------
@@ -42,5 +44,6 @@ app.use("/api/groups", require("./routes/groups"));
 app.use("/api/students", require("./routes/students"));
 app.use("/api/sessions", require("./routes/sessions"));
 app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 module.exports = app;

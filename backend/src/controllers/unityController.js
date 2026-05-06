@@ -64,7 +64,7 @@ const listarTurmas = async (req, res) => {
 const listarAlunos = async (req, res) => {
     try {
         const alunos = await Student.find({ groupId: req.params.groupId })
-            .select("_id name")
+            .select("_id name capturaSolicitada")
             .sort({ name: 1 });
 
         return res.json({ sucesso: true, alunos });

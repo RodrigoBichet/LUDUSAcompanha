@@ -30,6 +30,7 @@ import {
     buscarSessao,
     historicoJogador,
     alertasAluno,
+    solicitarCaptura,
 } from "../services/api";
 import "./PerfilAluno.css";
 import { useRef } from "react";
@@ -53,6 +54,9 @@ export default function PerfilAluno() {
     // Anotações
     const [novaAnotacao, setNovaAnotacao] = useState("");
     const [salvandoAnot, setSalvandoAnot] = useState(false);
+
+    // Captura de screenshots
+    const [solicitandoCaptura, setSolicitandoCaptura] = useState(false);
 
     useEffect(() => {
         carregarDados();
@@ -178,6 +182,27 @@ export default function PerfilAluno() {
             carregarDados();
         } catch {
             alert("Erro ao remover anotação.");
+        }
+    };
+
+    const handleSolicitarCaptura = async () => {
+        if (!aluno?._id) return;
+
+        const novoEstado = !aluno.capturaSolicitada;
+
+        try {
+            setSolicitandoCaptura(true);
+
+            const resposta = await solicitarCaptura(aluno._id, novoEstado);
+
+            setAluno((alunoAtual) => ({
+                ...alunoAtual,
+                capturaSolicitada: resposta.data.capturaSolicitada,
+            }));
+        } catch {
+            alert("Erro ao atualizar solicitação de captura.");
+        } finally {
+            setSolicitandoCaptura(false);
         }
     };
 
@@ -330,6 +355,36 @@ export default function PerfilAluno() {
                                                 </span>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+
+                                {!editando && (
+                                    <div className="captura-card">
+                                        <div>
+                                            <strong>Captura de tela</strong>
+                                            <p className="texto-leve">
+                                                {aluno.capturaSolicitada
+                                                    ? "Ativado: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
+                                                    : "Ative para que a próxima sessão salve imagens do jogo e facilite a leitura do mapa de calor."}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className={
+                                                aluno.capturaSolicitada
+                                                    ? "btn-captura ativo"
+                                                    : "btn-captura"
+                                            }
+                                            onClick={handleSolicitarCaptura}
+                                            disabled={solicitandoCaptura}
+                                        >
+                                            {solicitandoCaptura
+                                                ? "Atualizando..."
+                                                : aluno.capturaSolicitada
+                                                  ? "Desativar imagens"
+                                                  : "Ativar imagens"}
+                                        </button>
                                     </div>
                                 )}
 

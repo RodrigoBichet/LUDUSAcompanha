@@ -57,6 +57,9 @@ export const adicionarAnotacao = (id, texto) =>
 export const deletarAnotacao = (id, anotacaoId) =>
     api.delete(`/students/${id}/anotacoes/${anotacaoId}`);
 
+export const solicitarCaptura = (id, ativo = true) =>
+    api.patch(`/students/${id}/solicitar-captura`, { ativo });
+
 export const historicoJogador = (playerId) =>
     api.get(`/sessions/player/${encodeURIComponent(playerId)}`);
 
