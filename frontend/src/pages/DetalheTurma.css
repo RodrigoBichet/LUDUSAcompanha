@@ -1,3 +1,22 @@
+.contexto-jogo {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    gap: 0.5rem;
+    margin-top: -1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(78, 203, 160, 0.35);
+    border-radius: 8px;
+    background: rgba(78, 203, 160, 0.1);
+    color: var(--cor-texto-leve);
+    font-size: 0.82rem;
+}
+
+.contexto-jogo strong {
+    color: var(--cor-primaria);
+}
+
 .lista-alunos {
     display: flex;
     flex-direction: column;
@@ -72,4 +91,11 @@
 .form-grid .btn-primario,
 .form-grid .form-erro {
     grid-column: 1 / -1;
+}
+
+.form-grid .form-acoes {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }

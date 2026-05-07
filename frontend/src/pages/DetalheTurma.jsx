@@ -26,6 +26,13 @@ export default function DetalheTurma() {
 
     const gameIdSelecionado = searchParams.get("gameId");
 
+    const nomesJogos = {
+        "para-que-serve": "Para Que Serve?",
+        "historietas-divertidas": "Historietas Divertidas",
+    };
+
+    const nomeJogoSelecionado = nomesJogos[gameIdSelecionado];
+
     const [turma, setTurma] = useState(null);
     const [alunos, setAlunos] = useState([]);
     const [carregando, setCarregando] = useState(true);
@@ -101,6 +108,19 @@ export default function DetalheTurma() {
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     };
 
+    const fecharFormAluno = () => {
+        setMostrarForm(false);
+        setErroForm("");
+        setForm({
+            name: "",
+            birthDate: "",
+            supportLevel: "Não informado",
+            otherConditions: "",
+            guardianName: "",
+            guardianContact: "",
+        });
+    };
+
     const handleCriarAluno = async (e) => {
         e.preventDefault();
         setErroForm("");
@@ -113,15 +133,7 @@ export default function DetalheTurma() {
         try {
             setSalvando(true);
             await criarAluno({ ...form, groupId: id });
-            setForm({
-                name: "",
-                birthDate: "",
-                supportLevel: "Não informado",
-                otherConditions: "",
-                guardianName: "",
-                guardianContact: "",
-            });
-            setMostrarForm(false);
+            fecharFormAluno();
             carregarDados();
         } catch {
             setErroForm("Erro ao cadastrar aluno. Tente novamente.");
@@ -145,7 +157,11 @@ export default function DetalheTurma() {
         <div>
             <Header
                 titulo={turma?.name || "Turma"}
-                subtitulo="Gerencie os alunos desta turma"
+                subtitulo={
+                    nomeJogoSelecionado
+                        ? `Turma acompanhada no jogo ${nomeJogoSelecionado}`
+                        : "Gerencie os alunos desta turma"
+                }
             />
 
             <div className="pagina-conteudo">
@@ -155,6 +171,13 @@ export default function DetalheTurma() {
                 >
                     ← Voltar para Turmas
                 </button>
+
+                {nomeJogoSelecionado && (
+                    <div className="contexto-jogo">
+                        <span>Jogo acompanhado</span>
+                        <strong>{nomeJogoSelecionado}</strong>
+                    </div>
+                )}
 
                 {carregando && (
                     <div className="estado-centro">
@@ -178,12 +201,14 @@ export default function DetalheTurma() {
                                 <h2>Alunos</h2>
                                 <span className="badge">{alunos.length}</span>
                             </div>
-                            <button
-                                className="btn-primario"
-                                onClick={() => setMostrarForm(!mostrarForm)}
-                            >
-                                {mostrarForm ? "✕ Cancelar" : "+ Novo Aluno"}
-                            </button>
+                            {!mostrarForm && (
+                                <button
+                                    className="btn-primario"
+                                    onClick={() => setMostrarForm(true)}
+                                >
+                                    + Novo Aluno
+                                </button>
+                            )}
                         </div>
 
                         {/* Formulário de novo aluno */}
@@ -318,15 +343,26 @@ export default function DetalheTurma() {
                                         <p className="form-erro">{erroForm}</p>
                                     )}
 
-                                    <button
-                                        type="submit"
-                                        className="btn-primario"
-                                        disabled={salvando}
-                                    >
-                                        {salvando
-                                            ? "Salvando..."
-                                            : "Cadastrar Aluno"}
-                                    </button>
+                                    <div className="form-acoes">
+                                        <button
+                                            type="submit"
+                                            className="btn-primario"
+                                            disabled={salvando}
+                                        >
+                                            {salvando
+                                                ? "Salvando..."
+                                                : "Cadastrar Aluno"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="btn-secundario"
+                                            onClick={fecharFormAluno}
+                                            disabled={salvando}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
                         )}
