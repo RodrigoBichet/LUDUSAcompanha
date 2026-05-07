@@ -4,7 +4,7 @@
    ============================================================================= */
 
 .relatorio-pdf {
-    font-family: "Georgia", serif;
+    font-family: "Nunito", Arial, sans-serif;
     font-size: 12px;
     color: #1a1a1a;
     background: white;
@@ -289,4 +289,10 @@
 .pdf-tabela-mapas th,
 .pdf-tabela-mapas td {
     font-size: 0.72rem;
+}
+
+.pdf-logo-titulo,
+.pdf-titulo-relatorio,
+.pdf-secao-titulo {
+    font-family: "Nunito", Arial, sans-serif;
 }

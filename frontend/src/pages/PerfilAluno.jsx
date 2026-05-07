@@ -195,9 +195,9 @@ export default function PerfilAluno() {
             aluno.capturaSolicitadaOrigem === "unity"
         ) {
             setModalCaptura({
-                titulo: "Imagem já ativada pelo jogo",
+                titulo: "Imagem já ativada no jogo",
                 mensagem:
-                    "A imagem no mapa de calor já foi ativada pelo jogo. Aguarde a próxima sessão ser registrada ou desative pelo jogo.",
+                    "A imagem no mapa de calor já foi ativada no jogo. Aguarde a próxima sessão ser registrada ou desative a opção no jogo.",
             });
 
             return;
@@ -217,10 +217,10 @@ export default function PerfilAluno() {
             }));
         } catch (erro) {
             setModalCaptura({
-                titulo: "Não foi possível atualizar",
+                titulo: "Não foi possível salvar",
                 mensagem:
                     erro.response?.data?.mensagem ||
-                    "Erro ao atualizar solicitação de captura.",
+                    "Não foi possível atualizar a imagem no mapa de calor.",
             });
         } finally {
             setSolicitandoCaptura(false);
@@ -231,18 +231,18 @@ export default function PerfilAluno() {
         aluno?.capturaSolicitada && aluno?.capturaSolicitadaOrigem === "unity";
 
     const textoCaptura = capturaAtivaPelaUnity
-        ? "Ativado pelo jogo: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
+        ? "Ativado no jogo: a próxima sessão deste aluno mostrará as imagens das fases junto ao mapa de calor."
         : aluno?.capturaSolicitada
-          ? "Ativado pelo dashboard: a próxima sessão deste aluno salvará imagens das fases para aparecerem no mapa de calor."
-          : "Ative para que a próxima sessão salve imagens do jogo e facilite a leitura do mapa de calor.";
+          ? "Ativado nesta tela: a próxima sessão deste aluno mostrará as imagens das fases junto ao mapa de calor."
+          : "Ative para mostrar as imagens da próxima sessão junto ao mapa de calor.";
 
     const textoBotaoCaptura = solicitandoCaptura
-        ? "Atualizando..."
+        ? "Salvando..."
         : capturaAtivaPelaUnity
-          ? "Ativado pelo jogo"
+          ? "Ativado no jogo"
           : aluno?.capturaSolicitada
-            ? "Desativar imagens"
-            : "Ativar imagens";
+            ? "Desativar imagem"
+            : "Ativar imagem";
 
     const desempenho = indicadorDesempenho();
 
@@ -399,7 +399,9 @@ export default function PerfilAluno() {
                                 {!editando && (
                                     <div className="captura-card">
                                         <div>
-                                            <strong>Captura de tela</strong>
+                                            <strong>
+                                                Imagem no mapa de calor
+                                            </strong>
                                             <p className="texto-leve">
                                                 {textoCaptura}
                                             </p>

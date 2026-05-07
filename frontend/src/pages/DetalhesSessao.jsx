@@ -293,7 +293,7 @@ export default function DetalhesSessao() {
                 ctx.font = `${Math.max(16, W * 0.016)}px sans-serif`;
                 ctx.textAlign = "center";
                 ctx.fillText(
-                    "Sem interações registradas nesta fase",
+                    "Nenhuma interação registrada nesta fase",
                     W / 2,
                     H / 2,
                 );
@@ -520,14 +520,14 @@ export default function DetalhesSessao() {
                                     <div>
                                         <h3>Mapa de Interações</h3>
                                         <p className="texto-leve">
-                                            🟢 Caminho do mouse &nbsp;|&nbsp; 🔴
+                                            🟢 Movimento &nbsp;|&nbsp; 🔴
                                             Cliques
                                         </p>
                                     </div>
 
                                     {heatmap?.screenshots?.length > 0 && (
                                         <span className="heatmap-badge">
-                                            Imagens capturadas
+                                            Imagens disponíveis
                                         </span>
                                     )}
                                 </div>
@@ -581,8 +581,8 @@ export default function DetalhesSessao() {
 
                                 <p className="texto-leve heatmap-ajuda">
                                     {heatmap?.screenshots?.length > 0
-                                        ? "Use Geral para ver toda a sessão ou selecione uma fase para ver as interações sobre a imagem capturada no jogo."
-                                        : "Sessões sem imagem capturada usam o mapa de calor com fundo neutro."}
+                                        ? "Use Geral para ver toda a sessão ou escolha uma fase para ver as interações sobre a imagem do jogo."
+                                        : "Esta sessão não possui imagem de fundo. O mapa mostra as interações em uma área neutra."}
                                 </p>
                             </div>
                         </div>

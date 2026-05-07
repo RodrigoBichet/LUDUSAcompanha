@@ -63,21 +63,21 @@ export default function RelatorioPDF({
     const traduzirAlerta = (alerta) => {
         const descricoes = {
             taxa_baixa:
-                "A criança está acertando menos da metade das atividades nas últimas sessões. Isso pode indicar dificuldade com o conteúdo apresentado.",
+                "Nas últimas sessões, o aluno acertou menos da metade das atividades. Esse resultado pode sugerir que o conteúdo precisa ser retomado com mais apoio.",
             taxa_regular:
-                "A criança está acertando entre metade e a maioria das atividades. Há espaço para melhorar com mais prática.",
+                "O aluno acertou entre metade e a maioria das atividades. Esse resultado indica um desempenho em desenvolvimento, que pode evoluir com novas práticas.",
             inatividade_alta:
-                "A criança ficou parada por longos períodos durante o jogo, sem interagir com a tela. Isso pode indicar distração, cansaço ou dificuldade de concentração.",
+                "O aluno permaneceu sem interagir por períodos mais longos durante o jogo. Esse comportamento pode estar relacionado a pausa, dúvida, cansaço ou necessidade de mediação.",
             inatividade_media:
-                "A criança teve alguns momentos de pausa durante o jogo. Vale observar se precisa de incentivo ou pausas planejadas.",
+                "O aluno apresentou alguns momentos de pausa durante o jogo. Vale observar se esses momentos ocorreram por reflexão, distração ou necessidade de apoio.",
             sem_jogar_longo:
-                "Faz mais de duas semanas desde a última vez que a criança jogou. A regularidade é importante para o aprendizado.",
+                "Já se passaram mais de duas semanas desde a última sessão registrada. A regularidade pode ajudar no acompanhamento da evolução do aluno.",
             sem_jogar:
-                "Faz uma semana desde a última sessão. Recomenda-se manter uma frequência regular de atividades.",
+                "Já se passou uma semana desde a última sessão registrada. Pode ser interessante retomar as atividades para manter o acompanhamento.",
             categoria_problematica:
-                "A criança está com mais dificuldade em uma categoria específica do jogo. Vale dedicar atenção especial a esse tema.",
+                "Uma das categorias apresentou maior número de erros. Esse dado pode ajudar o professor a identificar conteúdos que merecem nova mediação.",
             evolucao_positiva:
-                "A criança melhorou significativamente nas últimas sessões! O esforço está dando resultado.",
+                "O aluno apresentou melhora nas últimas sessões. Esse avanço pode indicar adaptação ao jogo, maior familiaridade com as atividades ou evolução no conteúdo trabalhado.",
         };
         return descricoes[alerta.tipo] || alerta.descricao;
     };
@@ -128,7 +128,7 @@ export default function RelatorioPDF({
         const quantidade = sessao.screenshots?.length || 0;
 
         if (quantidade === 0) {
-            return "Mapa geral de interações";
+            return "Mapa sem imagem de fundo";
         }
 
         return `${quantidade} ${quantidade > 1 ? "imagens" : "imagem"} por fase`;
@@ -227,7 +227,7 @@ export default function RelatorioPDF({
                             Resumo Geral de Desempenho
                         </div>
                         <p className="pdf-texto-intro">
-                            O quadro abaixo apresenta um resumo de todas as
+                            O quadro abaixo reúne os principais resultados das
                             sessões realizadas pelo aluno no jogo educacional{" "}
                             <strong>Para Que Serve?</strong>.
                         </p>
@@ -279,8 +279,9 @@ export default function RelatorioPDF({
                                 Categorias Praticadas
                             </div>
                             <p className="pdf-texto-intro">
-                                O jogo é dividido em categorias temáticas. Veja
-                                quais o aluno já praticou:
+                                O jogo é organizado em categorias temáticas.
+                                Abaixo estão as categorias já praticadas pelo
+                                aluno:
                             </p>
                             <div className="pdf-categorias">
                                 {Object.entries(resumo.categorias).map(
@@ -313,9 +314,9 @@ export default function RelatorioPDF({
                             Observações Pedagógicas
                         </div>
                         <p className="pdf-texto-intro">
-                            O sistema identificou automaticamente os seguintes
-                            pontos de atenção com base no histórico de sessões
-                            do aluno:
+                            Com base no histórico de sessões, o sistema destacou
+                            alguns pontos que podem apoiar a observação
+                            pedagógica do professor:
                         </p>
                         <div className="pdf-alertas">
                             {alertas.map((alerta, i) => (
@@ -346,9 +347,9 @@ export default function RelatorioPDF({
                             Histórico Detalhado de Sessões
                         </div>
                         <p className="pdf-texto-intro">
-                            Cada linha representa uma sessão de jogo. "Acertos"
-                            e "Erros" referem-se às tentativas de associar a
-                            imagem correta durante o jogo.
+                            Cada linha representa uma sessão de jogo. Os acertos
+                            e erros indicam as tentativas de associar cada item
+                            à imagem correspondente durante a atividade.
                         </p>
                         <table className="pdf-tabela">
                             <thead>
@@ -421,12 +422,11 @@ export default function RelatorioPDF({
                         </div>
 
                         <p className="pdf-texto-intro">
-                            O LUDUS Acompanha registra os caminhos do mouse e os
-                            cliques realizados durante o jogo. Quando a captura
-                            de imagem está ativada, o mapa pode ser analisado
-                            sobre a imagem da fase jogada. Quando não há imagem
-                            capturada, o sistema mantém o mapa geral de
-                            interações da sessão.
+                            O LUDUS Acompanha registra os movimentos e cliques
+                            realizados durante o jogo. Quando há imagem da fase,
+                            o mapa pode ser analisado sobre a própria tela
+                            jogada. Quando não há imagem disponível, o sistema
+                            apresenta um mapa geral das interações da sessão.
                         </p>
 
                         <div className="pdf-mapas-resumo">
@@ -435,7 +435,7 @@ export default function RelatorioPDF({
                                     {totalSessoesComImagem}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Sessões com imagens
+                                    Sessões com imagens da fase
                                 </span>
                             </div>
 
@@ -444,7 +444,7 @@ export default function RelatorioPDF({
                                     {totalSessoesSemImagem}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Sessões com mapa geral
+                                    Sessões sem imagem de fundo
                                 </span>
                             </div>
 
@@ -453,7 +453,7 @@ export default function RelatorioPDF({
                                     {totalImagensCapturadas}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Imagens capturadas
+                                    Imagens das fases{" "}
                                 </span>
                             </div>
                         </div>
