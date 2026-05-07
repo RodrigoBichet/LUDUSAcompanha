@@ -12,11 +12,19 @@ const api = axios.create({
     baseURL: "http://localhost:3000/api",
 });
 
+const montarQueryJogo = (gameId) => {
+    if (!gameId || gameId === "todos") return "";
+
+    return `?gameId=${encodeURIComponent(gameId)}`;
+};
+
 // -------------------------------------------------------------------------
 // Dashboard
 // -------------------------------------------------------------------------
-export const resumoJogador = (playerId) =>
-    api.get(`/dashboard/summary/${encodeURIComponent(playerId)}`);
+export const resumoJogador = (playerId, gameId) =>
+    api.get(
+        `/dashboard/summary/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+    );
 export const heatmapSessao = (sessionId) =>
     api.get(`/dashboard/heatmap/${sessionId}`);
 
@@ -60,14 +68,18 @@ export const deletarAnotacao = (id, anotacaoId) =>
 export const solicitarCaptura = (id, ativo = true) =>
     api.patch(`/students/${id}/solicitar-captura`, { ativo });
 
-export const historicoJogador = (playerId) =>
-    api.get(`/sessions/player/${encodeURIComponent(playerId)}`);
+export const historicoJogador = (playerId, gameId) =>
+    api.get(
+        `/sessions/player/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+    );
 
 // -------------------------------------------------------------------------
 // Alertas
 // -------------------------------------------------------------------------
-export const alertasAluno = (playerId) =>
-    api.get(`/dashboard/alerts/${encodeURIComponent(playerId)}`);
+export const alertasAluno = (playerId, gameId) =>
+    api.get(
+        `/dashboard/alerts/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+    );
 
 // -------------------------------------------------------------------------
 // Users (Usuários — apenas admin)

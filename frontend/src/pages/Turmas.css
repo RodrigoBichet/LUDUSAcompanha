@@ -51,6 +51,12 @@
     max-width: 480px;
 }
 
+.form-acoes {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .form-erro {
     color: var(--cor-erro);
     font-size: 0.85rem;

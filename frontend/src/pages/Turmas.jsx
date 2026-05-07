@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import {
@@ -22,6 +22,10 @@ import "./Turmas.css";
 export default function Turmas() {
     const { usuario } = useAuth();
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    const institutionIdSelecionada = searchParams.get("institutionId");
+    const gameIdSelecionado = searchParams.get("gameId");
 
     const [turmas, setTurmas] = useState([]);
     const [instituicoes, setInstituicoes] = useState([]);
@@ -35,6 +39,31 @@ export default function Turmas() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
     const [editando, setEditando] = useState(null);
+
+    const turmasFiltradas = institutionIdSelecionada
+        ? turmas.filter((turma) => {
+              const institutionIdTurma =
+                  turma.institutionId?._id || turma.institutionId;
+
+              return institutionIdTurma === institutionIdSelecionada;
+          })
+        : turmas;
+
+    const instituicaoSelecionada = institutionIdSelecionada
+        ? instituicoes.find((inst) => inst._id === institutionIdSelecionada)
+        : null;
+
+    const montarUrlTurma = (turmaId) => {
+        const params = new URLSearchParams();
+
+        if (gameIdSelecionado) {
+            params.set("gameId", gameIdSelecionado);
+        }
+
+        const query = params.toString();
+
+        return query ? `/turmas/${turmaId}?${query}` : `/turmas/${turmaId}`;
+    };
 
     useEffect(() => {
         carregarDados();
@@ -59,7 +88,7 @@ export default function Turmas() {
     const abrirEdicao = (turma) => {
         setEditando(turma);
         setNomeTurma(turma.name);
-        setInstituicaoId(turma.institutionId?._id || "");
+        setInstituicaoId(turma.institutionId?._id || turma.institutionId || "");
         setErroForm("");
         setMostrarForm(true);
     };
@@ -127,27 +156,54 @@ export default function Turmas() {
     return (
         <div>
             <Header
-                titulo="Minhas Turmas"
-                subtitulo="Gerencie suas turmas e alunos"
+                titulo={instituicaoSelecionada?.name || "Minhas Turmas"}
+                subtitulo={
+                    instituicaoSelecionada
+                        ? "Turmas vinculadas a esta instituição"
+                        : "Gerencie suas turmas e alunos"
+                }
             />
 
             <div className="pagina-conteudo">
+                {institutionIdSelecionada && (
+                    <button
+                        className="btn-voltar"
+                        onClick={() =>
+                            navegar(
+                                gameIdSelecionado
+                                    ? `/?gameId=${gameIdSelecionado}`
+                                    : "/",
+                            )
+                        }
+                    >
+                        ← Voltar para Visão Geral
+                    </button>
+                )}
+
                 {/* Botão nova turma */}
                 <div className="turmas-topo">
                     <div className="secao-titulo">
                         <h2>Turmas</h2>
                         {!carregando && (
-                            <span className="badge">{turmas.length}</span>
+                            <span className="badge">
+                                {turmasFiltradas.length}
+                            </span>
                         )}
                     </div>
-                    <button
-                        className="btn-primario"
-                        onClick={() =>
-                            mostrarForm ? fecharForm() : setMostrarForm(true)
-                        }
-                    >
-                        {mostrarForm ? "✕ Cancelar" : "+ Nova Turma"}
-                    </button>
+                    {!mostrarForm && (
+                        <button
+                            className="btn-primario"
+                            onClick={() => {
+                                if (institutionIdSelecionada) {
+                                    setInstituicaoId(institutionIdSelecionada);
+                                }
+
+                                setMostrarForm(true);
+                            }}
+                        >
+                            + Nova Turma
+                        </button>
+                    )}
                 </div>
 
                 {/* Formulário de nova turma */}
@@ -183,7 +239,9 @@ export default function Turmas() {
                                     onChange={(e) =>
                                         setInstituicaoId(e.target.value)
                                     }
-                                    disabled={salvando}
+                                    disabled={
+                                        salvando || !!institutionIdSelecionada
+                                    }
                                 >
                                     <option value="">Selecione...</option>
                                     {instituicoes.map((inst) => (
@@ -192,21 +250,39 @@ export default function Turmas() {
                                         </option>
                                     ))}
                                 </select>
+
+                                {institutionIdSelecionada && (
+                                    <p className="texto-leve">
+                                        A turma será vinculada à instituição
+                                        selecionada na Visão Geral.
+                                    </p>
+                                )}
                             </div>
                             {erroForm && (
                                 <p className="form-erro">{erroForm}</p>
                             )}
-                            <button
-                                type="submit"
-                                className="btn-primario"
-                                disabled={salvando}
-                            >
-                                {salvando
-                                    ? "Salvando..."
-                                    : editando
-                                      ? "Salvar alterações"
-                                      : "Salvar Turma"}
-                            </button>
+                            <div className="form-acoes">
+                                <button
+                                    type="submit"
+                                    className="btn-primario"
+                                    disabled={salvando}
+                                >
+                                    {salvando
+                                        ? "Salvando..."
+                                        : editando
+                                          ? "Salvar alterações"
+                                          : "Salvar Turma"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="btn-secundario"
+                                    onClick={fecharForm}
+                                    disabled={salvando}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </form>
                     </div>
                 )}
@@ -230,7 +306,7 @@ export default function Turmas() {
                 {/* Lista de turmas */}
                 {!carregando &&
                     !erro &&
-                    (turmas.length === 0 ? (
+                    (turmasFiltradas.length === 0 ? (
                         <div className="card estado-vazio">
                             <span className="estado-vazio-icone">📚</span>
                             <p>Nenhuma turma cadastrada ainda.</p>
@@ -240,7 +316,7 @@ export default function Turmas() {
                         </div>
                     ) : (
                         <div className="lista-turmas">
-                            {turmas.map((turma) => (
+                            {turmasFiltradas.map((turma) => (
                                 <div
                                     key={turma._id}
                                     className="card card-turma"
@@ -248,7 +324,7 @@ export default function Turmas() {
                                     <div
                                         className="turma-info"
                                         onClick={() =>
-                                            navegar(`/turmas/${turma._id}`)
+                                            navegar(montarUrlTurma(turma._id))
                                         }
                                     >
                                         <span className="turma-icone">📚</span>
@@ -264,7 +340,9 @@ export default function Turmas() {
                                         <button
                                             className="btn-ver"
                                             onClick={() =>
-                                                navegar(`/turmas/${turma._id}`)
+                                                navegar(
+                                                    montarUrlTurma(turma._id),
+                                                )
                                             }
                                         >
                                             Ver alunos →

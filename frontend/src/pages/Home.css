@@ -1,3 +1,147 @@
+.jogos-selecao {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    background: white;
+}
+
+.jogos-selecao h2 {
+    margin-bottom: 0.25rem;
+}
+
+.jogos-opcoes {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.jogo-opcao {
+    position: relative;
+    min-width: 190px;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s,
+        transform 0.15s;
+}
+
+.jogo-opcao:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--cor-primaria);
+}
+
+.jogo-opcao.ativo {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.1);
+}
+
+.jogo-opcao:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.jogo-opcao-nome,
+.jogo-opcao-descricao {
+    display: block;
+}
+
+.jogo-opcao-nome {
+    font-weight: 800;
+}
+
+.jogo-opcao-descricao {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: var(--cor-texto-leve);
+}
+
+.jogo-opcao-badge {
+    display: inline-block;
+    margin-top: 0.45rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: var(--cor-borda);
+    color: var(--cor-texto-leve);
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+@media (max-width: 780px) {
+    .jogos-selecao {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .jogos-opcoes {
+        flex-direction: column;
+    }
+
+    .jogo-opcao {
+        width: 100%;
+    }
+}
+
+.grid-instituicoes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.card-instituicao {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+}
+
+.card-instituicao:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.instituicao-icone {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: rgba(78, 203, 160, 0.14);
+    color: var(--cor-primaria);
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.instituicao-info {
+    flex: 1;
+}
+
+.instituicao-info h3 {
+    margin-bottom: 0.2rem;
+}
+
+.instituicao-meta {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--cor-primaria);
+}
+
 /* Título de seção com badge */
 .secao-titulo {
     display: flex;

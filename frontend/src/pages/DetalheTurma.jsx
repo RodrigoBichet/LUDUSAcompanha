@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import {
@@ -21,7 +21,10 @@ import "./DetalheTurma.css";
 export default function DetalheTurma() {
     const { id } = useParams();
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
     const { usuario } = useAuth();
+
+    const gameIdSelecionado = searchParams.get("gameId");
 
     const [turma, setTurma] = useState(null);
     const [alunos, setAlunos] = useState([]);
@@ -44,6 +47,37 @@ export default function DetalheTurma() {
     useEffect(() => {
         carregarDados();
     }, [id]);
+
+    const montarUrlAluno = (alunoId) => {
+        const params = new URLSearchParams();
+
+        if (gameIdSelecionado) {
+            params.set("gameId", gameIdSelecionado);
+        }
+
+        const query = params.toString();
+
+        return query ? `/aluno/${alunoId}?${query}` : `/aluno/${alunoId}`;
+    };
+
+    const montarUrlVoltar = () => {
+        const params = new URLSearchParams();
+
+        const institutionIdTurma =
+            turma?.institutionId?._id || turma?.institutionId;
+
+        if (institutionIdTurma) {
+            params.set("institutionId", institutionIdTurma);
+        }
+
+        if (gameIdSelecionado) {
+            params.set("gameId", gameIdSelecionado);
+        }
+
+        const query = params.toString();
+
+        return query ? `/turmas?${query}` : "/turmas";
+    };
 
     const carregarDados = async () => {
         try {
@@ -117,7 +151,7 @@ export default function DetalheTurma() {
             <div className="pagina-conteudo">
                 <button
                     className="btn-voltar"
-                    onClick={() => navegar("/turmas")}
+                    onClick={() => navegar(montarUrlVoltar())}
                 >
                     ← Voltar para Turmas
                 </button>
@@ -321,7 +355,9 @@ export default function DetalheTurma() {
                                                 className="aluno-info"
                                                 onClick={() =>
                                                     navegar(
-                                                        `/aluno/${aluno._id}`,
+                                                        montarUrlAluno(
+                                                            aluno._id,
+                                                        ),
                                                     )
                                                 }
                                             >
@@ -362,7 +398,9 @@ export default function DetalheTurma() {
                                                     className="btn-ver"
                                                     onClick={() =>
                                                         navegar(
-                                                            `/aluno/${aluno._id}`,
+                                                            montarUrlAluno(
+                                                                aluno._id,
+                                                            ),
                                                         )
                                                     }
                                                 >

@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import {
@@ -39,6 +39,9 @@ import RelatorioPDF from "../components/shared/RelatorioPDF";
 export default function PerfilAluno() {
     const { id } = useParams();
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    const gameIdSelecionado = searchParams.get("gameId");
 
     const [aluno, setAluno] = useState(null);
     const [resumo, setResumo] = useState(null);
@@ -62,7 +65,7 @@ export default function PerfilAluno() {
 
     useEffect(() => {
         carregarDados();
-    }, [id]);
+    }, [id, gameIdSelecionado]);
 
     //Alertas
     const [alertas, setAlertas] = useState([]);
@@ -91,10 +94,11 @@ export default function PerfilAluno() {
             // Busca dados de monitoramento pelo nome do aluno
             try {
                 const [resResumo, resSessoes, resAlertas] = await Promise.all([
-                    resumoJogador(aluno.name),
-                    historicoJogador(aluno.name),
-                    alertasAluno(aluno.name),
+                    resumoJogador(aluno.name, gameIdSelecionado),
+                    historicoJogador(aluno.name, gameIdSelecionado),
+                    alertasAluno(aluno.name, gameIdSelecionado),
                 ]);
+
                 console.log("RESUMO:", resResumo.data);
                 console.log("SESSOES:", resSessoes.data);
                 console.log("ALERTAS:", resAlertas.data);
@@ -270,6 +274,18 @@ export default function PerfilAluno() {
         } catch {
             return null;
         }
+    };
+
+    const montarUrlSessao = (sessionId) => {
+        const params = new URLSearchParams();
+
+        if (gameIdSelecionado) {
+            params.set("gameId", gameIdSelecionado);
+        }
+
+        const query = params.toString();
+
+        return query ? `/sessao/${sessionId}?${query}` : `/sessao/${sessionId}`;
     };
 
     const gerarPDF = async () => {
@@ -887,7 +903,9 @@ export default function PerfilAluno() {
                                                     className="item-sessao"
                                                     onClick={() =>
                                                         navegar(
-                                                            `/sessao/${sessao.sessionId}`,
+                                                            montarUrlSessao(
+                                                                sessao.sessionId,
+                                                            ),
                                                         )
                                                     }
                                                 >

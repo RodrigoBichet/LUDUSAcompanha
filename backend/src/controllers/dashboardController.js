@@ -10,6 +10,16 @@
 
 const Session = require("../models/Session");
 
+const montarFiltroSessao = (playerId, gameId) => {
+    const filtro = { playerId };
+
+    if (gameId && gameId !== "todos") {
+        filtro.gameId = gameId;
+    }
+
+    return filtro;
+};
+
 // -------------------------------------------------------------------------
 // resumoJogador — GET /api/dashboard/summary/:playerId
 // -------------------------------------------------------------------------
@@ -17,8 +27,11 @@ const Session = require("../models/Session");
 const resumoJogador = async (req, res) => {
     try {
         const { playerId } = req.params;
+        const { gameId } = req.query;
 
-        const sessoes = await Session.find({ playerId }).sort({ startedAt: 1 });
+        const sessoes = await Session.find(
+            montarFiltroSessao(playerId, gameId),
+        ).sort({ startedAt: 1 });
 
         if (sessoes.length === 0) {
             return res.status(404).json({
@@ -72,6 +85,7 @@ const resumoJogador = async (req, res) => {
         return res.json({
             sucesso: true,
             playerId,
+            gameId: gameId || "todos",
             totalSessoes: sessoes.length,
             totalClicks,
             totalCorrect,
@@ -151,8 +165,9 @@ const heatmapSessao = async (req, res) => {
 const alertasAluno = async (req, res) => {
     try {
         const { playerId } = req.params;
+        const { gameId } = req.query;
 
-        const sessoes = await Session.find({ playerId })
+        const sessoes = await Session.find(montarFiltroSessao(playerId, gameId))
             .sort({ startedAt: -1 })
             .limit(10);
 
@@ -160,6 +175,7 @@ const alertasAluno = async (req, res) => {
             return res.json({
                 sucesso: true,
                 playerId,
+                gameId: gameId || "todos",
                 alertas: [],
                 mensagem: "Nenhuma sessão encontrada para análise.",
             });
@@ -340,6 +356,7 @@ const alertasAluno = async (req, res) => {
         return res.json({
             sucesso: true,
             playerId,
+            gameId: gameId || "todos",
             totalAlertas: alertas.length,
             alertas,
         });

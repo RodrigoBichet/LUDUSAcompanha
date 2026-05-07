@@ -211,7 +211,16 @@ const buscarSessao = async (req, res) => {
 
 const sessoesPorJogador = async (req, res) => {
     try {
-        const sessoes = await Session.find({ playerId: req.params.playerId })
+        const { playerId } = req.params;
+        const { gameId } = req.query;
+
+        const filtro = { playerId };
+
+        if (gameId && gameId !== "todos") {
+            filtro.gameId = gameId;
+        }
+
+        const sessoes = await Session.find(filtro)
             .select(
                 "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots",
             )
@@ -220,6 +229,7 @@ const sessoesPorJogador = async (req, res) => {
 
         return res.json({
             sucesso: true,
+            gameId: gameId || "todos",
             total: sessoes.length,
             sessoes,
         });
