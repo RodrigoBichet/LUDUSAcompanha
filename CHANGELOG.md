@@ -1,7 +1,49 @@
 ﻿# Changelog — LUDUS Acompanha
 
-Todas as mudanças relevantes do projeto são registradas aqui.  
+Todas as mudancas relevantes do projeto sao registradas aqui.  
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+---
+
+## [1.8.0] — 2026-05-07 — Home com selecao de jogo e fluxo por instituicao
+
+### Adicionado
+
+- `Home.jsx` — selecao de jogo na visao geral do dashboard
+- `Home.jsx` — card para **Para Que Serve?** como jogo ativo
+- `Home.jsx` — card para **Historietas Divertidas** como integracao futura bloqueada
+- `Home.jsx` — listagem de instituicoes apos selecao do jogo acompanhado
+- `Home.css` — estilos para selecao de jogo e cards de instituicao
+- `Turmas.jsx` — leitura de `institutionId` e `gameId` via query string
+- `Turmas.jsx` — filtro visual de turmas por instituicao ao acessar pela Home
+- `DetalheTurma.jsx` — preservacao de `gameId` ao abrir o perfil do aluno
+- `PerfilAluno.jsx` — preservacao de `gameId` ao abrir detalhes de sessao
+- `DetalheTurma.jsx` — indicador visual do jogo acompanhado na tela da turma
+- `api.js` — suporte opcional a `gameId` nas chamadas de resumo, historico e alertas
+
+### Alterado
+
+- `Home.jsx` — deixou de listar diretamente todos os alunos e passou a seguir o fluxo jogo -> instituicao -> turma -> aluno
+- `Home.jsx` — passa a persistir o jogo selecionado na URL com `?gameId=...`
+- `Turmas.jsx` — botao de voltar preserva `gameId` ao retornar para a Home
+- `Turmas.jsx` — criacao de turma a partir de uma instituicao ja vem vinculada a essa instituicao
+- `Turmas.jsx` — botao de cancelar foi movido para dentro do formulario de turma
+- `DetalheTurma.jsx` — botao de cancelar foi movido para dentro do formulario de aluno
+- `DetalheTurma.jsx` — formulario de aluno agora limpa os campos ao cancelar ou concluir cadastro
+- `dashboardController.js` — resumo e alertas aceitam filtro opcional por `gameId`
+- `sessionsController.js` — historico de sessoes por jogador aceita filtro opcional por `gameId`
+
+### Comportamento
+
+- O dashboard agora preserva o contexto do jogo acompanhado nas principais rotas:
+    - `/?gameId=para-que-serve`
+    - `/turmas?institutionId=...&gameId=para-que-serve`
+    - `/turmas/:id?gameId=para-que-serve`
+    - `/aluno/:id?gameId=para-que-serve`
+    - `/sessao/:sessionId?gameId=para-que-serve`
+- Quando `gameId` e informado, resumo, historico e alertas do aluno sao filtrados por jogo.
+- Quando `gameId` nao e informado, as chamadas continuam funcionando no modo geral.
+- A estrutura prepara a plataforma para receber novos jogos futuramente, sem implementar ainda cadastro completo de jogos.
 
 ---
 
@@ -10,122 +52,117 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado
 
 - `Student.js` — campo `capturaSolicitadaOrigem` para registrar se a captura foi ativada pelo dashboard ou pela Unity
-- `unityController.js` — rota pública para a Unity ligar/desligar captura de imagens da próxima sessão
-- `DetalhesSessao.jsx` — abas **Geral** e por fase no mapa de interações
+- `unityController.js` — rota publica para a Unity ligar/desligar captura de imagens da proxima sessao
+- `DetalhesSessao.jsx` — abas **Geral** e por fase no mapa de interacoes
 - `DetalhesSessao.jsx` — desenho do caminho do mouse e cliques sobre imagens capturadas por fase
-- `RelatorioPDF.jsx` — seção "Mapas de Interação" com resumo de sessões com imagens e sessões com mapa geral
+- `RelatorioPDF.jsx` — secao "Mapas de Interacao" com resumo de sessoes com imagens e sessoes com mapa geral
 - `PerfilAluno.jsx` — modal visual para avisos de captura, substituindo alerta nativo do navegador
 
 ### Alterado
 
-- `studentsController.js` — solicitações feitas pelo dashboard agora respeitam a origem da captura
-- `unityController.js` — solicitações feitas pela Unity agora respeitam a origem da captura
-- `sessionsController.js` — reset automático limpa `capturaSolicitada` e `capturaSolicitadaOrigem` após receber sessão com imagens
-- `PerfilAluno.jsx` — bloqueia alteração no dashboard quando a captura foi ativada pelo jogo
+- `studentsController.js` — solicitacoes feitas pelo dashboard agora respeitam a origem da captura
+- `unityController.js` — solicitacoes feitas pela Unity agora respeitam a origem da captura
+- `sessionsController.js` — reset automatico limpa `capturaSolicitada` e `capturaSolicitadaOrigem` apos receber sessao com imagens
+- `PerfilAluno.jsx` — bloqueia alteracao no dashboard quando a captura foi ativada pelo jogo
 - `DetalhesSessao.css` e `PerfilAluno.css` — estilos para abas de heatmap, badge de imagens e modal de captura
 
 ### Comportamento
 
-- A captura vale para a próxima sessão/categoria.
-- Dashboard e Unity não sobrescrevem solicitações feitas pela outra origem.
-- Sessões sem imagens continuam exibindo o mapa geral de interações.
+- A captura vale para a proxima sessao/categoria.
+- Dashboard e Unity nao sobrescrevem solicitacoes feitas pela outra origem.
+- Sessoes sem imagens continuam exibindo o mapa geral de interacoes.
 
 ---
 
-## [1.6.0] — 2026-05-06 — Solicitação de imagens para mapa de calor
+## [1.6.0] — 2026-05-06 — Solicitacao de imagens para mapa de calor
 
 ### Adicionado
 
 - `Student.js` — campo `capturaSolicitada` para controlar captura sob demanda por aluno
 - `Session.js` — sub-schema `FaseScreenshotSchema` e campo `screenshots[]` para armazenar caminhos das imagens por fase
-- `studentsController.js` — método `solicitarCaptura()` para ativar ou cancelar captura de imagens
+- `studentsController.js` — metodo `solicitarCaptura()` para ativar ou cancelar captura de imagens
 - `students.js` — rota `PATCH /api/students/:id/solicitar-captura`
 - `sessionsController.js` — processamento de screenshots em base64, salvando arquivos em `backend/uploads/screenshots/`
-- `app.js` — exposição estática de `/uploads` e limite maior para JSON com imagens
-- `unityController.js` — retorno de `capturaSolicitada` na listagem pública de alunos consumida pela Unity
-- `PerfilAluno.jsx` — bloco "Imagens no mapa de calor" para professor ativar/desativar a próxima captura
-- `PerfilAluno.css` — estilos do bloco e botão de solicitação de imagens
-- `api.js` — função `solicitarCaptura()`
+- `app.js` — exposicao estatica de `/uploads` e limite maior para JSON com imagens
+- `unityController.js` — retorno de `capturaSolicitada` na listagem publica de alunos consumida pela Unity
+- `PerfilAluno.jsx` — bloco "Imagens no mapa de calor" para professor ativar/desativar a proxima captura
+- `PerfilAluno.css` — estilos do bloco e botao de solicitacao de imagens
+- `api.js` — funcao `solicitarCaptura()`
 - `.gitignore` — ignora `backend/uploads/`, evitando versionar imagens geradas em runtime
 
 ### Comportamento
 
-- A captura é sob demanda: após o backend receber uma sessão com screenshots, `capturaSolicitada` volta automaticamente para `false`.
+- A captura e sob demanda: apos o backend receber uma sessao com screenshots, `capturaSolicitada` volta automaticamente para `false`.
 
 ---
 
-## [1.5.0] — 2026-05-02 — Fix bug de sessão + histórico com categoria
+## [1.5.0] — 2026-05-02 — Fix bug de sessao + historico com categoria
 
 ### Corrigido
 
-- `LudusMonitor.cs` — adiciona campo `_currentPlayerId` para persistir jogador entre sessões
-- `LudusMonitor.cs` — adiciona método `DefinirJogador()` — registra jogador sem iniciar sessão
-- `LudusMonitor.cs` — simplifica `ReiniciarSessao()` — remove `EndSession()` automático que gerava sessão extra vazia
-- `LudusGameEvents.cs` — adiciona `DefinirJogador()` — API pública para tela de identificação
-- `LudusGameEvents.cs` — adiciona `NovaSessaoCategoria()` — reinicia sessão e registra categoria
+- `LudusMonitor.cs` — adiciona campo `_currentPlayerId` para persistir jogador entre sessoes
+- `LudusMonitor.cs` — adiciona metodo `DefinirJogador()` — registra jogador sem iniciar sessao
+- `LudusMonitor.cs` — simplifica `ReiniciarSessao()` — remove `EndSession()` automatico que gerava sessao extra vazia
+- `LudusGameEvents.cs` — adiciona `DefinirJogador()` — API publica para tela de identificacao
+- `LudusGameEvents.cs` — adiciona `NovaSessaoCategoria()` — reinicia sessao e registra categoria
 - `Menu.cs` — substitui chamada de `CategorySelected()` por `NovaSessaoCategoria()` ao selecionar categoria
-- Tela de identificação — substitui `StartSession()` por `DefinirJogador()`, separando identificação do início de sessão
+- Tela de identificacao — substitui `StartSession()` por `DefinirJogador()`, separando identificacao do inicio de sessao
 
 ### Adicionado
 
-- `PerfilAluno.jsx` — função `extrairCategoria()` — lê `gameEvents` para obter o nome da categoria de cada sessão
-- `PerfilAluno.jsx` — card do histórico de sessões exibe categoria em destaque e data em tamanho secundário
+- `PerfilAluno.jsx` — funcao `extrairCategoria()` — le `gameEvents` para obter o nome da categoria de cada sessao
+- `PerfilAluno.jsx` — card do historico de sessoes exibe categoria em destaque e data em tamanho secundario
 - `PerfilAluno.css` — classes `.sessao-categoria` e `.sessao-data-menor`
-- `DetalhesSessao.jsx` — Header dinâmico exibe nome da categoria da sessão no título da página
+- `DetalhesSessao.jsx` — Header dinamico exibe nome da categoria da sessao no titulo da pagina
 
 ---
 
-## [1.4.0] — 2026-04-29 — Refactor: Escolas renomeadas para Instituições
+## [1.4.0] — 2026-04-29 — Refactor: Escolas renomeadas para Instituicoes
 
 ### Alterado
 
-- `backend/src/models/School.js` → `Institution.js` — model renomeado
-- `backend/src/controllers/schoolsController.js` → `institutionsController.js`
-- `backend/src/routes/schools.js` → `institutions.js`
-- `/api/schools` → `/api/institutions` em `app.js`
-- `User.js` e `Group.js` — `schoolId` → `institutionId`, ref `"School"` → `"Institution"`
+- `backend/src/models/School.js` -> `Institution.js` — model renomeado
+- `backend/src/controllers/schoolsController.js` -> `institutionsController.js`
+- `backend/src/routes/schools.js` -> `institutions.js`
+- `/api/schools` -> `/api/institutions` em `app.js`
+- `User.js` e `Group.js` — `schoolId` -> `institutionId`, ref `"School"` -> `"Institution"`
 - `groupsController.js` — filtro e populate atualizados para `institutionId`
-- `authController.js` — `schoolId` → `institutionId` em registro, login, perfil e atualizarPerfil
-- `usersController.js` — `schoolId` → `institutionId` em listar e atualizar
-- `unityController.js` — `School` → `Institution`, `schoolId` → `institutionId`
-- `unity.js` (routes) — parâmetro `:schoolId` → `:institutionId`
-- `frontend/src/services/api.js` — funções `listarEscolas`, `criarEscola`, etc. → `listarInstituicoes`, `criarInstituicao`, etc.; URL `/schools` → `/institutions`
-- `frontend/src/pages/GerenciarEscolas.jsx` → `GerenciarInstituicoes.jsx` — todos os labels e variáveis atualizados
-- `frontend/src/pages/GerenciarUsuarios.jsx` — `listarEscolas` → `listarInstituicoes`, `schoolId` → `institutionId`
-- `frontend/src/pages/Turmas.jsx` — `listarEscolas` → `listarInstituicoes`, `schoolId` → `institutionId`
-- `frontend/src/components/layout/Sidebar.jsx` — "Escolas" → "Instituições", rota `/admin/escolas` → `/admin/instituicoes`
+- `authController.js` — `schoolId` -> `institutionId` em registro, login, perfil e atualizarPerfil
+- `usersController.js` — `schoolId` -> `institutionId` em listar e atualizar
+- `unityController.js` — `School` -> `Institution`, `schoolId` -> `institutionId`
+- `unity.js` (routes) — parametro `:schoolId` -> `:institutionId`
+- `frontend/src/services/api.js` — funcoes `listarEscolas`, `criarEscola`, etc. -> `listarInstituicoes`, `criarInstituicao`, etc.; URL `/schools` -> `/institutions`
+- `frontend/src/pages/GerenciarEscolas.jsx` -> `GerenciarInstituicoes.jsx` — todos os labels e variaveis atualizados
+- `frontend/src/pages/GerenciarUsuarios.jsx` — `listarEscolas` -> `listarInstituicoes`, `schoolId` -> `institutionId`
+- `frontend/src/pages/Turmas.jsx` — `listarEscolas` -> `listarInstituicoes`, `schoolId` -> `institutionId`
+- `frontend/src/components/layout/Sidebar.jsx` — "Escolas" -> "Instituicoes", rota `/admin/escolas` -> `/admin/instituicoes`
 - `frontend/src/App.jsx` — import e rota atualizados
 
 ---
 
-## [1.3.0] — 2026-04-28 — Área Admin completa + tela de perfil do usuário
+## [1.3.0] — 2026-04-28 — Area Admin completa + tela de perfil do usuario
 
 ### Adicionado
 
-- `frontend/src/components/shared/RotaAdmin.jsx` — proteção de rotas exclusivas para admin
+- `frontend/src/components/shared/RotaAdmin.jsx` — protecao de rotas exclusivas para admin
 - `frontend/src/pages/GerenciarEscolas.jsx` — CRUD completo de escolas (listar, criar, editar, remover)
-- `frontend/src/pages/GerenciarUsuarios.jsx` — CRUD completo de usuários (listar, criar, editar, remover)
-    - Campo senha oculto no modo edição — troca de senha apenas pelo próprio usuário
-    - Vínculo de instituição ao criar/editar professor
-- `frontend/src/pages/Perfil.jsx` — tela de perfil acessível por qualquer usuário logado
-    - Edição de nome e email
-    - Troca de senha com validação de senha atual e confirmação
-    - Atualização reflete na sidebar sem precisar relogar
-- `backend/src/controllers/usersController.js` — listar, atualizar e deletar usuários
-- `backend/src/routes/users.js` — rotas protegidas por autenticação + admin
-- `PUT /api/users/:id` — admin edita qualquer usuário
-- `PUT /api/auth/perfil` — usuário edita o próprio perfil com mensagem dinâmica
-- Menu admin na sidebar visível apenas para `role === 'admin'`
-- Card de usuário na sidebar vira link clicável para `/perfil`
-- Classes globais adicionadas ao `index.css`: `btn-primario`, `btn-secundario`, `campo-input`, `campo-grupo`, `campo-label`, `badge`, `secao-titulo`, `estado-vazio`, `spinner`, etc.
+- `frontend/src/pages/GerenciarUsuarios.jsx` — CRUD completo de usuarios (listar, criar, editar, remover)
+- `frontend/src/pages/Perfil.jsx` — tela de perfil acessivel por qualquer usuario logado
+- `backend/src/controllers/usersController.js` — listar, atualizar e deletar usuarios
+- `backend/src/routes/users.js` — rotas protegidas por autenticacao + admin
+- `PUT /api/users/:id` — admin edita qualquer usuario
+- `PUT /api/auth/perfil` — usuario edita o proprio perfil com mensagem dinamica
+- Menu admin na sidebar visivel apenas para `role === 'admin'`
+- Card de usuario na sidebar vira link clicavel para `/perfil`
+- Classes globais adicionadas ao `index.css`
 
 ### Alterado
 
 - `frontend/src/contexts/AuthContext.jsx` — `setUsuario` exposto no Provider
-- `frontend/src/components/layout/Sidebar.jsx` — menu admin condicional + card de usuário como NavLink
-- `frontend/src/services/api.js` — funções `listarUsuarios`, `deletarUsuario`, `atualizarUsuario`, `atualizarPerfil`
+- `frontend/src/components/layout/Sidebar.jsx` — menu admin condicional + card de usuario como NavLink
+- `frontend/src/services/api.js` — funcoes `listarUsuarios`, `deletarUsuario`, `atualizarUsuario`, `atualizarPerfil`
 - `frontend/src/App.jsx` — rotas `/admin/escolas`, `/admin/usuarios`, `/perfil`
-- `backend/src/controllers/authController.js` — adicionado `atualizarPerfil` com mensagem dinâmica
+- `backend/src/controllers/authController.js` — adicionado `atualizarPerfil` com mensagem dinamica
 - `backend/src/routes/auth.js` — adicionado `PUT /api/auth/perfil`
 - `backend/src/app.js` — registrado `/api/users`
 
@@ -137,44 +174,44 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 - `frontend/src/pages/Home.jsx` — indicador visual de desempenho nos cards
     - Componente `CardAluno` com busca individual de resumo via `resumoJogador`
-    - 🟢 Bom desempenho — taxa ≥ 70%
-    - 🟡 Desempenho regular — taxa entre 50% e 70%
-    - 🔴 Atenção necessária — taxa < 50%
-    - Critério exibido explicitamente: "(taxa de acerto)"
+    - Bom desempenho — taxa >= 70%
+    - Desempenho regular — taxa entre 50% e 70%
+    - Atencao necessaria — taxa < 50%
+    - Criterio exibido explicitamente: "(taxa de acerto)"
 
 ---
 
-## [1.1.0] — 2026-04-26 — Geração de PDF formal
+## [1.1.0] — 2026-04-26 — Geracao de PDF formal
 
 ### Adicionado
 
 - `frontend/src/components/shared/RelatorioPDF.jsx`
-    - Template formal com linguagem acessível para pais/responsáveis
-    - Seções: dados do aluno, resumo de desempenho, categorias, alertas, histórico de sessões e anotações
-    - Tabela de sessões com categoria, acertos, erros, taxa, duração, avaliação em estrelas e pausas
-    - Alertas traduzidos para linguagem não técnica com explicações detalhadas
-    - Nome do professor que gerou o relatório no cabeçalho
-    - Aviso formal de que o documento não constitui diagnóstico
+    - Template formal com linguagem acessivel para pais/responsaveis
+    - Secoes: dados do aluno, resumo de desempenho, categorias, alertas, historico de sessoes e anotacoes
+    - Tabela de sessoes com categoria, acertos, erros, taxa, duracao, avaliacao em estrelas e pausas
+    - Alertas traduzidos para linguagem nao tecnica com explicacoes detalhadas
+    - Nome do professor que gerou o relatorio no cabecalho
+    - Aviso formal de que o documento nao constitui diagnostico
 - `frontend/src/pages/PerfilAluno.jsx`
-    - Botão "📄 Gerar Relatório PDF"
-    - Geração via `html2pdf.js` com nome do arquivo incluindo nome do aluno e data
-    - Template invisível na tela, renderizado apenas no PDF
+    - Botao "Gerar Relatorio PDF"
+    - Geracao via `html2pdf.js` com nome do arquivo incluindo nome do aluno e data
+    - Template invisivel na tela, renderizado apenas no PDF
 
 ---
 
 ## [1.0.0] — 2026-04-25
 
-### Adicionado — Alertas pedagógicos + refatoração
+### Adicionado — Alertas pedagogicos + refatoracao
 
-- Alertas automáticos no backend: taxa baixa, inatividade, sem jogar, categoria problemática, evolução positiva
+- Alertas automaticos no backend: taxa baixa, inatividade, sem jogar, categoria problematica, evolucao positiva
 - Alertas exibidos no perfil do aluno com cores por severidade
-- Fix: renomear aluno atualiza playerId em todas as sessões
+- Fix: renomear aluno atualiza playerId em todas as sessoes
 - Fix: criarAluno salva todos os campos corretamente
 - Home refatorada para buscar alunos cadastrados
 - Rota GET /api/sessions/player/:playerId
 - Categorias traduzidas no perfil do aluno
-- Gráfico de evolução adicionado ao PerfilAluno
-- Remoção da collection players legada
+- Grafico de evolucao adicionado ao PerfilAluno
+- Remocao da collection players legada
 
 ---
 
@@ -183,7 +220,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado — CRUD de turmas e alunos
 
 - Turmas, DetalheTurma, PerfilAluno
-- Student model com campos clínicos e histórico de anotações
+- Student model com campos clinicos e historico de anotacoes
 
 ---
 
@@ -192,7 +229,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado — Login no dashboard
 
 - AuthContext, RotaProtegida, Login.jsx
-- Sidebar com usuário logado e botão sair
+- Sidebar com usuario logado e botao sair
 
 ---
 
@@ -201,13 +238,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado — CRUD completo + rotas Unity
 
 - PUT e DELETE em schools, groups e students
-- Rotas públicas /api/unity para o Unity
+- Rotas publicas /api/unity para o Unity
 
 ---
 
 ## [0.6.0] — 2026-04-19
 
-### Adicionado — Autenticação + Hierarquia
+### Adicionado — Autenticacao + Hierarquia
 
 - Models: User, School, Group, Student
 - Auth JWT, middleware, script criarAdmin
@@ -254,9 +291,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## Próximas versões planejadas
+## Proximas versoes planejadas
 
-- `[1.7.0]` — Edição de turmas no dashboard
-- `[1.8.0]` — Responsividade + design final da designer
-- `[1.9.0]` — Sistema publicado e testado nas instituições parceiras
-- `[2.0.0]` — ML: K-Means + Árvore de Decisão
+- `[1.9.0]` — Tutorial WebGL e ajustes de compatibilidade do jogo
+- `[2.0.0]` — Preparacao para primeiros testadores programadores
+- `[2.1.0]` — Responsividade + design final da designer
+- `[2.2.0]` — Sistema publicado e testado nas instituicoes parceiras
+- `[3.0.0]` — ML: K-Means + Arvore de Decisao

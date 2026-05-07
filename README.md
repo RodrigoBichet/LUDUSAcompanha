@@ -1,30 +1,30 @@
 ﻿# LUDUS Acompanha
 
-> Projeto de Mestrado em Ciência da Computação — UFPel (2026)  
+> Projeto de Mestrado em Ciencia da Computacao — UFPel (2026)  
 > Autor: Rodrigo Leitzke Bichet  
-> Orientador: Prof. Dr. Leomar Soares da Rosa Júnior
+> Orientador: Prof. Dr. Leomar Soares da Rosa Junior
 
 ---
 
-## O que é
+## O que e
 
-O **LUDUS Acompanha** é uma ferramenta computacional de monitoramento e análise de dados de interação em jogos educacionais, desenvolvida para auxiliar professores e tutores no acompanhamento do desempenho de crianças com necessidades educacionais específicas (TEA).
+O **LUDUS Acompanha** e uma ferramenta computacional de monitoramento e analise de dados de interacao em jogos educacionais, desenvolvida para auxiliar professores e tutores no acompanhamento pedagogico de criancas com necessidades educacionais especificas, incluindo TEA.
 
-> ⚠️ **Princípio fundamental:** O LUDUS Acompanha é uma ferramenta de apoio pedagógico. Fornece dados e indicadores para auxiliar professores e tutores nas suas observações. **Nunca substitui avaliação profissional e nunca emite diagnósticos.**
+> **Principio fundamental:** O LUDUS Acompanha e uma ferramenta de apoio pedagogico. Fornece dados e indicadores para auxiliar professores e tutores nas suas observacoes. **Nunca substitui avaliacao profissional e nunca emite diagnosticos.**
 
 ---
 
 ## Arquitetura geral
 
-```
-Unity (C# SDK) → JSON → Node.js + Express → MongoDB → API REST → Dashboard React
+```txt
+Unity (C# SDK) -> JSON -> Node.js + Express -> MongoDB -> API REST -> Dashboard React
 ```
 
 ---
 
-## Estrutura do repositório
+## Estrutura do repositorio
 
-```
+```txt
 LUDUSAcompanha/
 ├── backend/
 │   ├── src/
@@ -112,7 +112,7 @@ npm install
 npm run dev
 ```
 
-Acesse em `http://localhost:5173` — será redirecionado para a tela de login.
+Acesse em `http://localhost:5173` — sera redirecionado para a tela de login.
 
 ### Criar primeiro administrador
 
@@ -124,212 +124,232 @@ node src/scripts/criarAdmin.js
 
 ---
 
-## Variáveis de ambiente (backend)
+## Variaveis de ambiente (backend)
 
-| Variável      | Descrição                          |
+| Variavel      | Descricao                          |
 | ------------- | ---------------------------------- |
-| `PORT`        | Porta do servidor (padrão: 3000)   |
+| `PORT`        | Porta do servidor (padrao: 3000)   |
 | `MONGODB_URI` | Connection string do MongoDB Atlas |
 | `JWT_SECRET`  | Chave secreta para tokens JWT      |
 
 ---
 
-## Autenticação
+## Autenticacao
 
 | Papel       | Acesso                                                 |
 | ----------- | ------------------------------------------------------ |
-| `admin`     | Acesso total — todas as instituições e funcionalidades |
-| `professor` | Acesso restrito à sua instituição e turmas             |
+| `admin`     | Acesso total — todas as instituicoes e funcionalidades |
+| `professor` | Acesso restrito a sua instituicao e turmas             |
 
 ---
 
-## API REST — Referência completa
+## API REST — Referencia completa
 
-### Rotas públicas (Unity)
+### Rotas publicas (Unity)
 
-| Método | Rota                               | Descrição          |
-| ------ | ---------------------------------- | ------------------ |
-| GET    | `/api/unity/schools`               | Lista instituições |
-| GET    | `/api/unity/groups/:institutionId` | Lista turmas       |
-| GET    | `/api/unity/students/:groupId`               | Lista alunos       |
-| POST   | `/api/unity/students/:id/solicitar-captura` | Liga/desliga imagens para a próxima sessão no jogo |
+| Metodo | Rota                                        | Descricao                                          |
+| ------ | ------------------------------------------- | -------------------------------------------------- |
+| GET    | `/api/unity/schools`                        | Lista instituicoes                                 |
+| GET    | `/api/unity/groups/:institutionId`          | Lista turmas                                       |
+| GET    | `/api/unity/students/:groupId`              | Lista alunos                                       |
+| POST   | `/api/unity/students/:id/solicitar-captura` | Liga/desliga imagens para a proxima sessao no jogo |
 
 ### Auth
 
-| Método | Rota                 | Auth |
+| Metodo | Rota                 | Auth |
 | ------ | -------------------- | ---- |
 | POST   | `/api/auth/register` | —    |
 | POST   | `/api/auth/login`    | —    |
-| GET    | `/api/auth/me`       | ✅   |
-| PUT    | `/api/auth/perfil`   | ✅   |
+| GET    | `/api/auth/me`       | sim  |
+| PUT    | `/api/auth/perfil`   | sim  |
 
 ### Users
 
-| Método | Rota             | Auth     |
-| ------ | ---------------- | -------- |
-| GET    | `/api/users`     | ✅ Admin |
-| PUT    | `/api/users/:id` | ✅ Admin |
-| DELETE | `/api/users/:id` | ✅ Admin |
+| Metodo | Rota             | Auth  |
+| ------ | ---------------- | ----- |
+| GET    | `/api/users`     | Admin |
+| PUT    | `/api/users/:id` | Admin |
+| DELETE | `/api/users/:id` | Admin |
 
 ### Institutions
 
-| Método              | Rota                    | Auth     |
-| ------------------- | ----------------------- | -------- |
-| POST/GET/PUT/DELETE | `/api/institutions`     | ✅ Admin |
-| GET                 | `/api/institutions/:id` | ✅       |
+| Metodo              | Rota                    | Auth  |
+| ------------------- | ----------------------- | ----- |
+| POST/GET/PUT/DELETE | `/api/institutions`     | Admin |
+| GET                 | `/api/institutions/:id` | sim   |
 
 ### Groups / Students
 
-| Método              | Rotas                                     | Auth |
+| Metodo              | Rotas                                     | Auth |
 | ------------------- | ----------------------------------------- | ---- |
-| POST/GET/PUT/DELETE | `/api/groups`                             | ✅   |
-| POST/GET/PUT/DELETE | `/api/students`                           | ✅   |
-| POST                | `/api/students/:id/anotacoes`             | ✅   |
-| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | ✅   |
-| PATCH               | `/api/students/:id/solicitar-captura`     | ✅   |
+| POST/GET/PUT/DELETE | `/api/groups`                             | sim  |
+| POST/GET/PUT/DELETE | `/api/students`                           | sim  |
+| POST                | `/api/students/:id/anotacoes`             | sim  |
+| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | sim  |
+| PATCH               | `/api/students/:id/solicitar-captura`     | sim  |
 
 ### Sessions
 
-| Método | Rota                             | Auth |
-| ------ | -------------------------------- | ---- |
-| POST   | `/api/sessions`                  | —    |
-| GET    | `/api/sessions`                  | —    |
-| GET    | `/api/sessions/:sessionId`       | —    |
-| GET    | `/api/sessions/player/:playerId` | —    |
+| Metodo | Rota                             | Auth | Observacao                  |
+| ------ | -------------------------------- | ---- | --------------------------- |
+| POST   | `/api/sessions`                  | —    | Recebe sessoes do SDK Unity |
+| GET    | `/api/sessions`                  | —    | Lista sessoes recentes      |
+| GET    | `/api/sessions/:sessionId`       | —    | Busca uma sessao especifica |
+| GET    | `/api/sessions/player/:playerId` | —    | Aceita `?gameId=...`        |
 
 ### Dashboard
 
-| Método | Rota                                | Auth |
-| ------ | ----------------------------------- | ---- |
-| GET    | `/api/dashboard/summary/:playerId`  | —    |
-| GET    | `/api/dashboard/heatmap/:sessionId` | —    |
-| GET    | `/api/dashboard/alerts/:playerId`   | —    |
+| Metodo | Rota                                | Auth | Observacao           |
+| ------ | ----------------------------------- | ---- | -------------------- |
+| GET    | `/api/dashboard/summary/:playerId`  | —    | Aceita `?gameId=...` |
+| GET    | `/api/dashboard/heatmap/:sessionId` | —    | Dados do heatmap     |
+| GET    | `/api/dashboard/alerts/:playerId`   | —    | Aceita `?gameId=...` |
 
 ---
 
 ## Dashboard — Telas implementadas
 
-| Tela                   | Rota                  | Descrição                                      |
-| ---------------------- | --------------------- | ---------------------------------------------- |
-| Login                  | `/login`              | Autenticação JWT                               |
-| Home                   | `/`                   | Lista de alunos com indicador de desempenho    |
-| Detalhes Sessão        | `/sessao/:sessionId`  | Heatmap geral e por fase, com imagens quando disponíveis |
-| Turmas                 | `/turmas`             | Gerenciamento de turmas                        |
-| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos                     |
-| Perfil Aluno           | `/aluno/:id`          | Dados, anotações, alertas, monitoramento, PDF e solicitação de imagens |
-| Gerenciar Instituições | `/admin/instituicoes` | CRUD de instituições (apenas admin)            |
-| Gerenciar Usuários     | `/admin/usuarios`     | CRUD de usuários (apenas admin)                |
-| Meu Perfil             | `/perfil`             | Edição de dados e senha do usuário logado      |
+| Tela                   | Rota                  | Descricao                                                                |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------ |
+| Login                  | `/login`              | Autenticacao JWT                                                         |
+| Home                   | `/`                   | Selecao de jogo e listagem de instituicoes                               |
+| Detalhes Sessao        | `/sessao/:sessionId`  | Heatmap geral e por fase, com imagens quando disponiveis                 |
+| Turmas                 | `/turmas`             | Gerenciamento de turmas, com filtro por instituicao quando vindo da Home |
+| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos, preservando o contexto do jogo selecionado   |
+| Perfil Aluno           | `/aluno/:id`          | Dados, anotacoes, alertas, monitoramento, PDF e solicitacao de imagens   |
+| Gerenciar Instituicoes | `/admin/instituicoes` | CRUD de instituicoes (apenas admin)                                      |
+| Gerenciar Usuarios     | `/admin/usuarios`     | CRUD de usuarios (apenas admin)                                          |
+| Meu Perfil             | `/perfil`             | Edicao de dados e senha do usuario logado                                |
+
+---
+
+## Fluxo por jogo, instituicao, turma e aluno
+
+A Home do dashboard funciona como entrada do acompanhamento pedagogico. O professor primeiro seleciona o jogo acompanhado e, em seguida, visualiza as instituicoes cadastradas.
+
+Fluxo atual:
+
+```txt
+Jogo acompanhado -> Instituicao -> Turma -> Aluno -> Sessao
+```
+
+O jogo atual ativo e **Para Que Serve?** (`gameId: para-que-serve`). A interface ja exibe **Historietas Divertidas** como integracao futura, ainda bloqueada.
+
+Ao selecionar um jogo, o dashboard preserva o `gameId` nas URLs:
+
+```txt
+/?gameId=para-que-serve
+/turmas?institutionId=...&gameId=para-que-serve
+/turmas/:id?gameId=para-que-serve
+/aluno/:id?gameId=para-que-serve
+/sessao/:sessionId?gameId=para-que-serve
+```
+
+Com isso, o perfil do aluno filtra resumo, historico e alertas pelo jogo selecionado. Quando nenhuma selecao de jogo e informada, as chamadas seguem funcionando no modo geral.
 
 ---
 
 ## Funcionalidades do Perfil do Aluno
 
-- Dados cadastrais completos com edição
-- Indicador automático de desempenho (🟢 🟡 🔴)
-- Resumo de monitoramento com métricas consolidadas
-- Gráfico de evolução temporal
-- Categorias jogadas com nomes amigáveis
-- Alertas pedagógicos automáticos com linguagem acessível
-- Histórico de sessões clicável com nome da categoria em destaque
-- Histórico de anotações do professor com autor e data
-- Geração de PDF formal para apresentação aos pais
-- Solicitação de imagens da próxima sessão para compor o mapa de calor por fase
-- Controle de origem da solicitação de imagens entre dashboard e jogo Unity
+- Dados cadastrais completos com edicao
+- Indicador automatico de desempenho
+- Resumo de monitoramento com metricas consolidadas
+- Grafico de evolucao temporal
+- Categorias jogadas com nomes amigaveis
+- Alertas pedagogicos automaticos com linguagem acessivel
+- Historico de sessoes clicavel com nome da categoria em destaque
+- Historico de anotacoes do professor com autor e data
+- Geracao de PDF formal para apresentacao aos pais
+- Solicitacao de imagens da proxima sessao para compor o mapa de calor por fase
+- Controle de origem da solicitacao de imagens entre dashboard e jogo Unity
 - Modal visual para avisos de captura, sem uso de alerta nativo do navegador
+- Filtro por `gameId` quando o perfil e acessado a partir da Home com jogo selecionado
 
 ---
 
 ## Imagens para mapa de calor
 
-O professor pode ativar, no perfil do aluno, a opção **Imagens no mapa de calor**. Quando ativada, a próxima sessão/categoria desse aluno salva imagens das fases para serem usadas como fundo na visualização do mapa de calor.
+O professor pode ativar, no perfil do aluno, a opcao **Imagens no mapa de calor**. Quando ativada, a proxima sessao/categoria desse aluno salva imagens das fases para serem usadas como fundo na visualizacao do mapa de calor.
 
-A solicitação pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. Para evitar conflitos, o backend registra também a origem da solicitação em `capturaSolicitadaOrigem` (`dashboard` ou `unity`). Se uma origem já ativou a captura, a outra interface exibe aviso e bloqueia a alteração até a sessão ser registrada ou a própria origem cancelar.
+A solicitacao pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. Para evitar conflitos, o backend registra tambem a origem da solicitacao em `capturaSolicitadaOrigem` (`dashboard` ou `unity`). Se uma origem ja ativou a captura, a outra interface exibe aviso e bloqueia a alteracao ate a sessao ser registrada ou a propria origem cancelar.
 
-Após o backend receber uma sessão com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime são salvas em `backend/uploads/screenshots/` e não devem ser versionadas no Git.
+Apos o backend receber uma sessao com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime sao salvas em `backend/uploads/screenshots/` e nao devem ser versionadas no Git.
 
-Na tela de detalhes da sessão, o mapa de interações possui aba **Geral** e abas por fase. Quando há imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando não há imagens, o sistema mantém o mapa geral de interações.
+Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes.
 
-O relatório PDF do aluno também resume quais sessões possuem imagens por fase e quais possuem apenas o mapa geral.
-
-## Alertas pedagógicos automáticos
-
-| Alerta                   | Condição                             | Severidade  |
-| ------------------------ | ------------------------------------ | ----------- |
-| Taxa de acerto baixa     | Taxa < 50% nas últimas 3 sessões     | 🔴 Alta     |
-| Taxa de acerto regular   | Taxa entre 50% e 70%                 | 🟡 Média    |
-| Inatividade frequente    | Média ≥ 3 por sessão                 | 🔴 Alta     |
-| Inatividade detectada    | Média ≥ 1.5 por sessão               | 🟡 Média    |
-| Sem jogar há muito tempo | Última sessão há +14 dias            | 🔴 Alta     |
-| Sem jogar há uma semana  | Última sessão há +7 dias             | 🔵 Info     |
-| Dificuldade em categoria | Taxa de erro ≥ 50% com 3+ tentativas | 🟡 Média    |
-| Evolução positiva        | Melhora de 20%+ nas últimas sessões  | 🟢 Positivo |
+O relatorio PDF do aluno tambem resume quais sessoes possuem imagens por fase e quais possuem apenas o mapa geral.
 
 ---
 
-## Indicador de desempenho na Home
+## Alertas pedagogicos automaticos
 
-| Indicador             | Critério             |
-| --------------------- | -------------------- |
-| 🟢 Bom desempenho     | Taxa de acerto ≥ 70% |
-| 🟡 Desempenho regular | Taxa entre 50% e 70% |
-| 🔴 Atenção necessária | Taxa < 50%           |
+| Alerta                   | Condicao                              | Severidade |
+| ------------------------ | ------------------------------------- | ---------- |
+| Taxa de acerto baixa     | Taxa < 50% nas ultimas 3 sessoes      | Alta       |
+| Taxa de acerto regular   | Taxa entre 50% e 70%                  | Media      |
+| Inatividade frequente    | Media >= 3 por sessao                 | Alta       |
+| Inatividade detectada    | Media >= 1.5 por sessao               | Media      |
+| Sem jogar ha muito tempo | Ultima sessao ha +14 dias             | Alta       |
+| Sem jogar ha uma semana  | Ultima sessao ha +7 dias              | Info       |
+| Dificuldade em categoria | Taxa de erro >= 50% com 3+ tentativas | Media      |
+| Evolucao positiva        | Melhora de 20%+ nas ultimas sessoes   | Positivo   |
 
 ---
 
-## Categorias do jogo
+## Categorias do jogo Para Que Serve?
 
 | Cena Unity | Nome exibido |
 | ---------- | ------------ |
-| Fase01     | Ações        |
+| Fase01     | Acoes        |
 | Fase02     | Alimentos    |
 | Fase03     | Cotidiano    |
-| Fase04     | Diversão     |
+| Fase04     | Diversao     |
 | Fase05     | Higiene      |
 
 ---
 
 ## Status do desenvolvimento
 
-| Etapa | Descrição                             | Status               |
-| ----- | ------------------------------------- | -------------------- |
-| 1     | SDK Unity (C#)                        | ✅                   |
-| 1.5   | Integração no Para Que Serve?         | ✅                   |
-| 2     | Backend Node.js + MongoDB             | ✅                   |
-| 3     | Dashboard React                       | 🔧 Design provisório |
-| 4     | Autenticação JWT + Hierarquia         | ✅                   |
-| 5     | CRUD completo + rotas Unity           | ✅                   |
-| 6     | Refatorar tela Unity                  | ✅                   |
-| 7     | Login no dashboard                    | ✅                   |
-| 8     | CRUD turmas e alunos                  | ✅                   |
-| 9     | Alertas pedagógicos                   | ✅                   |
-| 10    | Geração de PDF formal                 | ✅                   |
-| 11    | Indicador de desempenho na Home       | ✅                   |
-| 12    | Área Admin no dashboard               | ✅                   |
-| 13    | Tela de perfil do usuário             | ✅                   |
-| 14    | Refactor Escolas → Instituições       | ✅                   |
-| 15    | Fix bug sessão múltipla por categoria | ✅                   |
-| 16    | Histórico de sessões com categoria    | ✅                   |
-| 17    | Solicitação de imagens para mapa de calor | ✅                   |
-| 18    | Controle de origem dashboard/Unity para captura | ✅                   |
-| 19    | Heatmap com abas Geral e por fase     | ✅                   |
-| 20    | Edição de turmas no dashboard         | 🔜                   |
-| 21    | Responsividade                        | 🔜                   |
-| 22    | Design final da designer              | 🔜                   |
-| 23    | Publicar backend                      | 🔜                   |
-| 24    | Coleta nas escolas parceiras          | 🔜                   |
-| 25    | ML (K-Means + Árvore de Decisão)      | 🔜                   |
+| Etapa | Descricao                                   | Status                          |
+| ----- | ------------------------------------------- | ------------------------------- |
+| 1     | SDK Unity (C#)                              | Concluido                       |
+| 1.5   | Integracao no Para Que Serve?               | Concluido                       |
+| 2     | Backend Node.js + MongoDB                   | Concluido                       |
+| 3     | Dashboard React                             | Design provisorio               |
+| 4     | Autenticacao JWT + Hierarquia               | Concluido                       |
+| 5     | CRUD completo + rotas Unity                 | Concluido                       |
+| 6     | Refatorar tela Unity                        | Concluido                       |
+| 7     | Login no dashboard                          | Concluido                       |
+| 8     | CRUD turmas e alunos                        | Concluido                       |
+| 9     | Alertas pedagogicos                         | Concluido                       |
+| 10    | Geracao de PDF formal                       | Concluido                       |
+| 11    | Indicador de desempenho na Home             | Substituido pelo fluxo por jogo |
+| 12    | Area Admin no dashboard                     | Concluido                       |
+| 13    | Tela de perfil do usuario                   | Concluido                       |
+| 14    | Refactor Escolas -> Instituicoes            | Concluido                       |
+| 15    | Fix bug sessao multipla por categoria       | Concluido                       |
+| 16    | Historico de sessoes com categoria          | Concluido                       |
+| 17    | Solicitacao de imagens para mapa de calor   | Concluido                       |
+| 18    | Controle de origem dashboard/Unity          | Concluido                       |
+| 19    | Heatmap com abas Geral e por fase           | Concluido                       |
+| 20    | Home com selecao de jogo                    | Concluido                       |
+| 21    | Fluxo jogo -> instituicao -> turma -> aluno | Concluido                       |
+| 22    | Responsividade                              | Planejado                       |
+| 23    | Design final da designer                    | Planejado                       |
+| 24    | Publicar backend                            | Planejado                       |
+| 25    | Coleta nas escolas parceiras                | Planejado                       |
+| 26    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
 
 ---
 
-## Instituições parceiras
+## Instituicoes parceiras
 
-- E. M. Silveira Martins — Bagé/RS
-- UNIPAMPA — Caçapava do Sul/RS
+- E. M. Silveira Martins — Bage/RS
+- UNIPAMPA — Cacapava do Sul/RS
 - APAE — Pelotas/RS
 
 ---
 
-## Contexto acadêmico
+## Contexto academico
 
-Este projeto é parte da dissertação de mestrado **"LUDUS Acompanha — Uma Ferramenta para Monitoramento e Análise de Dados de Interação em Jogos Educacionais para Auxílio a Professores e Tutores"**, desenvolvida no Programa de Pós-Graduação em Ciência da Computação da UFPel.
+Este projeto e parte da dissertacao de mestrado **"LUDUS Acompanha — Uma Ferramenta para Monitoramento e Analise de Dados de Interacao em Jogos Educacionais para Auxilio a Professores e Tutores"**, desenvolvida no Programa de Pos-Graduacao em Ciencia da Computacao da UFPel.
