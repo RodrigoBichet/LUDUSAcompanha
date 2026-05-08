@@ -165,20 +165,6 @@ export default function GerenciarUsuarios() {
                         <h3 className="form-titulo">
                             {editando ? "Editar Usuário" : "Novo Usuário"}
                         </h3>
-                        {/* Campo senha — apenas na criação */}
-                        {!editando && (
-                            <div className="campo-grupo">
-                                <label className="campo-label">Senha *</label>
-                                <input
-                                    className="campo-input"
-                                    type="password"
-                                    placeholder="Mínimo 6 caracteres"
-                                    value={senha}
-                                    onChange={(e) => setSenha(e.target.value)}
-                                />
-                            </div>
-                        )}
-
                         <div className="form-campos form-campos-3">
                             <div className="campo-grupo">
                                 <label className="campo-label">Nome *</label>
@@ -293,7 +279,10 @@ export default function GerenciarUsuarios() {
                         <span className="badge">{usuarios.length}</span>
                     </div>
                     {!formAberto && (
-                        <button className="btn-primario" onClick={abrirForm}>
+                        <button
+                            className="btn-primario"
+                            onClick={() => abrirForm()}
+                        >
                             + Novo usuário
                         </button>
                     )}

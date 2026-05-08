@@ -7,6 +7,7 @@
 // =============================================================================
 
 const Institution = require("../models/Institution");
+const User = require("../models/User");
 
 // -------------------------------------------------------------------------
 // criarInstituicao — POST /api/institutions
@@ -46,7 +47,19 @@ const criarInstituicao = async (req, res) => {
 // -------------------------------------------------------------------------
 const listarInstituicoes = async (req, res) => {
     try {
-        const instituicoes = await Institution.find().sort({ name: 1 });
+        const usuario = await User.findById(req.usuarioId);
+
+        if (!usuario) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Usuário não encontrado",
+            });
+        }
+
+        const filtro =
+            usuario.role === "professor" ? { _id: usuario.institutionId } : {};
+
+        const instituicoes = await Institution.find(filtro).sort({ name: 1 });
 
         return res.json({
             sucesso: true,
