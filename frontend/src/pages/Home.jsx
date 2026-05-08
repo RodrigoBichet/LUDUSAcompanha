@@ -46,22 +46,26 @@ function CardInstituicao({ instituicao, turmas, jogoSelecionado, navegar }) {
 
     return (
         <div
-            className="card card-instituicao"
+            className="card home-instituicao-card"
             onClick={() => navegar(montarUrlTurmas())}
         >
-            <div className="instituicao-icone">🏫</div>
+            <div className="home-instituicao-icone">🏫</div>
 
-            <div className="instituicao-info">
+            <div className="home-instituicao-info">
                 <h3>{instituicao.name}</h3>
-                <p className="texto-leve">
-                    {instituicao.city || "Cidade não informada"}
-                </p>
-                <span className="instituicao-meta">
-                    {totalTurmas} {totalTurmas === 1 ? "turma" : "turmas"}
-                </span>
+
+                <div className="home-instituicao-detalhes">
+                    <span className="texto-leve">
+                        {instituicao.city || "Cidade não informada"}
+                    </span>
+
+                    <span className="home-instituicao-meta">
+                        {totalTurmas} {totalTurmas === 1 ? "turma" : "turmas"}
+                    </span>
+                </div>
             </div>
 
-            <span className="jogador-seta">→</span>
+            <span className="home-instituicao-seta">→</span>
         </div>
     );
 }
