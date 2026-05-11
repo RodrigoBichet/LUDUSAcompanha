@@ -5,6 +5,37 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.9.0] — 2026-05-11 — Mapa de interacoes com arraste
+
+### Adicionado
+
+- `Session.js` — campo `dragPath[]` para armazenar pontos de inicio, movimento e fim do arraste
+- `dashboardController.js` — retorno de `dragPath` no endpoint de heatmap da sessao
+- `DetalhesSessao.jsx` — desenho de trajetos de arraste no mapa de interacoes
+- `DetalhesSessao.jsx` — cores por fase no mapa geral para diferenciar as interacoes
+- `DetalhesSessao.jsx` — linhas continuas para movimento e linhas tracejadas para arraste
+- `DetalhesSessao.jsx` — marcadores menores para cliques, com destaque branco/vermelho
+- `DetalhesSessao.jsx` — hover interativo em trajetos e cliques do mapa
+- `DetalhesSessao.jsx` — clique no mapa geral para abrir diretamente a fase correspondente
+- `DetalhesSessao.css` — legenda visual e indicadores coloridos nas abas de fase
+
+### Alterado
+
+- `DetalhesSessao.jsx` — mapa geral passa a combinar movimento, arraste e cliques por fase
+- `DetalhesSessao.jsx` — sessoes sem imagem usam escala fixa de referencia para evitar zoom artificial
+- `DetalhesSessao.jsx` — visualizacao por fase agora destaca o trajeto correspondente com maior intensidade no hover
+- `DetalhesSessao.jsx` — legenda do mapa foi atualizada para explicar cores, linhas e cliques
+
+### Comportamento
+
+- O professor consegue diferenciar visualmente movimento livre, cliques e momentos em que o aluno segurou/arrastou um item.
+- Cada fase possui uma cor propria no mapa geral.
+- O arraste aparece tracejado para nao ser confundido com o caminho normal do mouse.
+- Ao clicar em um trajeto ou clique no mapa geral, o dashboard abre a fase relacionada.
+- Sessoes antigas sem `dragPath` continuam funcionando normalmente, exibindo apenas movimento, cliques e imagens quando existirem.
+
+---
+
 ## [1.8.0] — 2026-05-07 — Home com selecao de jogo e fluxo por instituicao
 
 ### Adicionado

@@ -275,11 +275,35 @@ A solicitacao pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. P
 
 Apos o backend receber uma sessao com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime sao salvas em `backend/uploads/screenshots/` e nao devem ser versionadas no Git.
 
-Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes.
+Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes em uma area neutra, usando uma escala de referencia fixa.
+
+A visualizacao tambem diferencia os tipos de interacao:
+
+- Movimento do mouse: linha continua
+- Arraste/segurar item: linha tracejada
+- Cliques: marcadores branco/vermelho
+- Fases: cores diferentes para facilitar a leitura no mapa geral
+
+Na aba **Geral**, o professor pode clicar em um trajeto ou clique para abrir diretamente a fase correspondente. Nas abas por fase, o mapa ajuda a interpretar onde a crianca moveu o cursor, onde clicou e quais caminhos realizou enquanto segurava um item.
 
 O relatorio PDF do aluno tambem resume quais sessoes possuem imagens por fase e quais possuem apenas o mapa geral.
 
 ---
+
+## Dados registrados por sessao
+
+Cada sessao recebida do jogo pode armazenar dados brutos e eventos pedagogicos para analise posterior:
+
+| Campo           | Descricao                                                                    |
+| --------------- | ---------------------------------------------------------------------------- |
+| `mousePath[]`   | Pontos do movimento do mouse/cursor durante a sessao                         |
+| `dragPath[]`    | Pontos de inicio, movimento e fim do arraste dos itens                       |
+| `clicks[]`      | Cliques realizados pelo aluno                                                |
+| `gameEvents[]`  | Eventos semanticos do jogo, como fase iniciada, acerto, erro e fim de sessao |
+| `screenshots[]` | Imagens das fases, quando a captura foi solicitada                           |
+| `metrics`       | Resumo numerico da sessao, incluindo acertos, erros e duracao                |
+
+Esses dados sao usados pelo dashboard para montar historico, alertas, relatorios e mapas de interacao. O objetivo e apoiar a observacao pedagogica, nao classificar ou diagnosticar a crianca.
 
 ## Alertas pedagogicos automaticos
 
@@ -334,11 +358,12 @@ O relatorio PDF do aluno tambem resume quais sessoes possuem imagens por fase e 
 | 19    | Heatmap com abas Geral e por fase           | Concluido                       |
 | 20    | Home com selecao de jogo                    | Concluido                       |
 | 21    | Fluxo jogo -> instituicao -> turma -> aluno | Concluido                       |
-| 22    | Responsividade                              | Planejado                       |
-| 23    | Design final da designer                    | Planejado                       |
-| 24    | Publicar backend                            | Planejado                       |
-| 25    | Coleta nas escolas parceiras                | Planejado                       |
-| 26    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
+| 22    | Registro e visualizacao de arraste          | Concluido                       |
+| 23    | Responsividade                              | Planejado                       |
+| 24    | Design final da designer                    | Planejado                       |
+| 25    | Publicar backend                            | Planejado                       |
+| 26    | Coleta nas escolas parceiras                | Planejado                       |
+| 27    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
 
 ---
 
