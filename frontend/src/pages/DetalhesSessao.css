@@ -243,3 +243,34 @@
     font-size: 0.78rem;
     line-height: 1.4;
 }
+
+.heatmap-legenda {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.7rem;
+    color: var(--cor-texto-leve);
+    font-size: 0.82rem;
+}
+
+.heatmap-legenda-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.heatmap-legenda-cor,
+.heatmap-tab-cor {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.heatmap-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}

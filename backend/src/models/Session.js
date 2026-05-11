@@ -45,6 +45,17 @@ const PathPointSchema = new mongoose.Schema(
     { _id: false },
 );
 
+const DragPathPointSchema = new mongoose.Schema(
+    {
+        element: { type: String },
+        x: { type: Number },
+        y: { type: Number },
+        t: { type: Number },
+        state: { type: String },
+    },
+    { _id: false },
+);
+
 const GameEventSchema = new mongoose.Schema(
     {
         eventType: { type: String },
@@ -83,6 +94,7 @@ const SessionSchema = new mongoose.Schema(
         metrics: { type: MetricasSchema, default: () => ({}) },
         clicks: { type: [CliqueSchema], default: [] },
         mousePath: { type: [PathPointSchema], default: [] },
+        dragPath: { type: [DragPathPointSchema], default: [] },
         gameEvents: { type: [GameEventSchema], default: [] },
 
         // Screenshots capturados pelo SDK Unity a cada início de fase.

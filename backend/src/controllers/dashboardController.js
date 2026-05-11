@@ -119,7 +119,9 @@ const heatmapSessao = async (req, res) => {
     try {
         const sessao = await Session.findOne({
             sessionId: req.params.sessionId,
-        }).select("sessionId playerId mousePath clicks screenshots gameEvents");
+        }).select(
+            "sessionId playerId mousePath dragPath clicks screenshots gameEvents",
+        );
 
         if (!sessao) {
             return res.status(404).json({
@@ -143,6 +145,7 @@ const heatmapSessao = async (req, res) => {
             sessionId: sessao.sessionId,
             playerId: sessao.playerId,
             mousePath: sessao.mousePath,
+            dragPath: sessao.dragPath || [],
             clicks: sessao.clicks,
             // Screenshots capturados pelo SDK (null se captura não estava ativa)
             screenshots: sessao.screenshots || [],
