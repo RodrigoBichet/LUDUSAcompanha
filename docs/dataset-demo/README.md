@@ -15,7 +15,35 @@ cd C:\UNITY\ProjetosGithub\LUDUSAcompanha\backend
 npm run seed:demo
 ```
 
-O comando recria apenas os dados com prefixo `Demo` e sessoes com prefixo `demo-`. Dados reais ou cadastros normais nao devem ser removidos pelo script.
+O comando recria apenas os dados do dataset fixo, com alunos `Clara Demo`, `Nilo Demo` e `Lia Demo`. Dados reais ou cadastros normais nao devem ser removidos pelo script.
+
+### Dataset aleatorio
+
+Para testar a plataforma com mais volume e variacao, tambem existe um gerador aleatorio controlado por parametros:
+
+```powershell
+cd C:\UNITY\ProjetosGithub\LUDUSAcompanha\backend
+npm run seed:demo:random -- --alunos=12 --sessoes=40 --turmas=2 --seed=2026
+```
+
+Parametros disponiveis:
+
+| Parametro | Padrao | Limite | Descricao |
+| --------- | ------ | ------ | --------- |
+| `--alunos` | `12` | 3 a 60 | Quantidade de alunos ficticios. O minimo e 3 para sempre gerar um aluno de bom desempenho, um intermediario e um que necessita acompanhamento |
+| `--sessoes` | `alunos * 4` | alunos a 240 | Quantidade de sessoes sinteticas. O minimo de 1 sessao por aluno |
+| `--turmas` | `2` | 1 a 8 | Quantidade de turmas demonstrativas |
+| `--seed` | data/hora atual | livre | Valor para reproduzir o mesmo conjunto gerado |
+
+O comando aleatorio recria apenas dados com prefixo `Demo Random`, sessoes com prefixo `demo-random-` e screenshots sinteticos correspondentes. Ele nao depende de bibliotecas externas de geracao de dados.
+
+Mesmo que seja informado `--alunos=1`, o script ajusta automaticamente para `3` alunos. Isso e intencional: a demonstracao precisa cobrir os tres cenarios pedagogicos usados nos prints e no artigo:
+
+- um aluno com bom desempenho;
+- um aluno com desempenho intermediario;
+- um aluno que necessita acompanhamento pedagogico.
+
+Da mesma forma, se `--sessoes` for menor que a quantidade final de alunos, o script aumenta o total de sessoes para que todos tenham ao menos uma sessao demonstrativa.
 
 ---
 
@@ -29,6 +57,15 @@ O comando recria apenas os dados com prefixo `Demo` e sessoes com prefixo `demo-
 | Senha  | `Demo@2026`                        |
 
 Esse usuario fica vinculado apenas a instituicao demonstrativa, permitindo testar a visao de professor sem expor instituicoes reais.
+
+O dataset aleatorio cria outro usuario, separado do conjunto fixo:
+
+| Campo  | Valor                                  |
+| ------ | -------------------------------------- |
+| Perfil | Professor                              |
+| Nome   | Professor Demo Random                  |
+| Email  | `professor.random.demo@ludus.local`    |
+| Senha  | `Demo@2026`                            |
 
 ---
 

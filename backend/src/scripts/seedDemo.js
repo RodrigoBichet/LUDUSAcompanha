@@ -320,7 +320,7 @@ const limparDatasetDemo = async () => {
 
     await Session.deleteMany({
         $or: [
-            { sessionId: { $regex: "^demo-" } },
+            { sessionId: { $regex: "^demo-(clara|nilo|lia)-" } },
             { playerId: { $in: alunosDemo } },
             { gameVersion: GAME_VERSION },
         ],
