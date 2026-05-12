@@ -73,7 +73,7 @@ export default function DetalheTurma() {
         const institutionIdTurma =
             turma?.institutionId?._id || turma?.institutionId;
 
-        if (institutionIdTurma) {
+        if (usuario?.role !== "admin" && institutionIdTurma) {
             params.set("institutionId", institutionIdTurma);
         }
 
