@@ -1,0 +1,84 @@
+{
+    "sessionId": "demo-clara-higiene-001",
+    "playerId": "Clara Demo",
+    "gameId": "para-que-serve",
+    "gameVersion": "demo-2026",
+    "platform": "WebGL-demo",
+    "durationMs": 21000,
+    "metrics": {
+        "totalClicks": 4,
+        "totalCorrect": 4,
+        "totalWrong": 0,
+        "firstActionMs": 300,
+        "avgTimeBetweenActionsMs": 1800,
+        "inactivityCount": 0,
+        "totalInactivityMs": 0
+    },
+    "clicks": [
+        {
+            "element": "area_resposta",
+            "x": 1280,
+            "y": 445,
+            "timestamp": 2600
+        }
+    ],
+    "mousePath": [
+        {
+            "x": 210,
+            "y": 560,
+            "t": 300
+        },
+        {
+            "x": 450,
+            "y": 640,
+            "t": 900
+        }
+    ],
+    "dragPath": [
+        {
+            "element": "escova",
+            "x": 225,
+            "y": 505,
+            "t": 1100,
+            "state": "start"
+        },
+        {
+            "element": "escova",
+            "x": 830,
+            "y": 400,
+            "t": 2000,
+            "state": "move"
+        },
+        {
+            "element": "escova",
+            "x": 1285,
+            "y": 445,
+            "t": 2550,
+            "state": "end"
+        }
+    ],
+    "gameEvents": [
+        {
+            "eventType": "CategorySelected",
+            "timestamp": 0,
+            "payload": "{\"category\":\"Higiene\"}"
+        },
+        {
+            "eventType": "PhaseStarted",
+            "timestamp": 0,
+            "payload": "{\"target\":\"escova\",\"options\":[\"escova\",\"copo\",\"livro\",\"bola\"],\"faseIndex\":0}"
+        },
+        {
+            "eventType": "CorrectMatch",
+            "timestamp": 2800,
+            "payload": "{\"item\":\"escova\",\"timeSeconds\":2.8}"
+        }
+    ],
+    "screenshots": [
+        {
+            "faseIndex": 0,
+            "timestamp": 0,
+            "caminho": "/uploads/screenshots/demo-clara-higiene-001_fase0.svg"
+        }
+    ]
+}

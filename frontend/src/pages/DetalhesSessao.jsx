@@ -681,6 +681,10 @@ export default function DetalhesSessao() {
     };
 
     // Tradução das chaves do payload
+    const sessaoDemonstrativa =
+        sessao?.gameVersion?.startsWith("demo") ||
+        sessao?.sessionId?.startsWith("demo-");
+
     const nomeCampo = (chave) => {
         const mapa = {
             category: "Categoria",
@@ -787,6 +791,11 @@ export default function DetalhesSessao() {
                             {/* Info geral */}
                             <div className="card secao-card">
                                 <h3>Informações Gerais</h3>
+                                {sessaoDemonstrativa && (
+                                    <span className="badge-demo">
+                                        Dados demonstrativos
+                                    </span>
+                                )}
                                 <div className="info-lista">
                                     <div className="info-item">
                                         <span className="texto-leve">
