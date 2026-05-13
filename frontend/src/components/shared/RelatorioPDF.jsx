@@ -63,21 +63,27 @@ export default function RelatorioPDF({
     const traduzirAlerta = (alerta) => {
         const descricoes = {
             taxa_baixa:
-                "Nas últimas sessões, o aluno acertou menos da metade das atividades. Esse resultado pode sugerir que o conteúdo precisa ser retomado com mais apoio.",
+                "Nas últimas sessões, o aluno acertou menos da metade das atividades. Esse resultado pode sugerir necessidade de retomar alguns itens com mediação adicional.",
+
             taxa_regular:
-                "O aluno acertou entre metade e a maioria das atividades. Esse resultado indica um desempenho em desenvolvimento, que pode evoluir com novas práticas.",
+                "Nas últimas sessões, o aluno acertou entre metade e a maioria das atividades. Esse resultado sugere desempenho em desenvolvimento e pode orientar novas práticas.",
+
             inatividade_alta:
-                "O aluno permaneceu sem interagir por períodos mais longos durante o jogo. Esse comportamento pode estar relacionado a pausa, dúvida, cansaço ou necessidade de mediação.",
+                "Foram registrados períodos mais longos sem interação durante o jogo. Esse dado pode estar relacionado a pausa, reflexão, cansaço, espera por ajuda ou necessidade de mediação.",
+
             inatividade_media:
-                "O aluno apresentou alguns momentos de pausa durante o jogo. Vale observar se esses momentos ocorreram por reflexão, distração ou necessidade de apoio.",
+                "Foram registrados alguns momentos de pausa durante o jogo. Vale observar o contexto dessas pausas para compreender se ocorreram por reflexão, espera, cansaço ou necessidade de apoio.",
+
             sem_jogar_longo:
-                "Já se passaram mais de duas semanas desde a última sessão registrada. A regularidade pode ajudar no acompanhamento da evolução do aluno.",
+                "Já se passaram mais de duas semanas desde a última sessão registrada. A regularidade pode apoiar a continuidade do acompanhamento pedagógico.",
+
             sem_jogar:
                 "Já se passou uma semana desde a última sessão registrada. Pode ser interessante retomar as atividades para manter o acompanhamento.",
             categoria_problematica:
-                "Uma das categorias apresentou maior número de erros. Esse dado pode ajudar o professor a identificar conteúdos que merecem nova mediação.",
+                "Uma das categorias apresentou maior ocorrência de erros. Esse dado pode apoiar o professor na escolha de itens que merecem nova mediação.",
+
             evolucao_positiva:
-                "O aluno apresentou melhora nas últimas sessões. Esse avanço pode indicar adaptação ao jogo, maior familiaridade com as atividades ou evolução no conteúdo trabalhado.",
+                "As sessões recentes apresentaram aumento de acertos. Esse dado pode estar relacionado à familiaridade com o jogo, ao contexto da atividade ou às estratégias de mediação utilizadas.",
         };
         return descricoes[alerta.tipo] || alerta.descricao;
     };

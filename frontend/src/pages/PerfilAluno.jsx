@@ -146,10 +146,14 @@ export default function PerfilAluno() {
         if (!resumo) return null;
         const taxa = parseFloat(resumo.taxaAcerto);
         if (taxa >= 75)
-            return { cor: "#4ECBA0", icone: "🟢", label: "Bom desempenho" };
+            return {
+                cor: "#4ECBA0",
+                icone: "🟢",
+                label: "Indicadores positivos",
+            };
         if (taxa >= 50)
-            return { cor: "#F6AD55", icone: "🟡", label: "Desempenho regular" };
-        return { cor: "#FC8181", icone: "🔴", label: "Requer atenção" };
+            return { cor: "#F6AD55", icone: "🟡", label: "Em desenvolvimento" };
+        return { cor: "#FC8181", icone: "🔴", label: "Sugere atenção" };
     };
 
     const handleSalvarDados = async (e) => {
@@ -631,8 +635,9 @@ export default function PerfilAluno() {
                                 <div className="card secao-card alerta-ok">
                                     <span>🟢</span>
                                     <p>
-                                        Nenhum alerta no momento — aluno com bom
-                                        desempenho!
+                                        Nenhum alerta pedagógico no momento —
+                                        indicadores recentes sem pontos de
+                                        atenção.
                                     </p>
                                 </div>
                             )}

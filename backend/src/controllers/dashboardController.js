@@ -191,7 +191,7 @@ const alertasAluno = async (req, res) => {
 
         const alertas = [];
 
-        // Alerta 1 — Taxa de acerto baixa nas últimas 3 sessões
+        // Indicador 1 — Taxa de acerto baixa nas últimas 3 sessões
         const ultimas3 = sessoes.slice(0, 3);
         if (ultimas3.length >= 2) {
             const totalAcertos = ultimas3.reduce(
@@ -213,20 +213,20 @@ const alertasAluno = async (req, res) => {
                         tipo: "taxa_baixa",
                         severidade: "alta",
                         icone: "🔴",
-                        titulo: "Taxa de acerto baixa",
+                        titulo: "Taxa de acerto abaixo do esperado",
                         descricao: `Taxa de acerto de ${taxa.toFixed(1)}% nas últimas ${ultimas3.length} sessões.`,
                         sugestao:
-                            "Considere revisar as atividades com o aluno e verificar se há dificuldades específicas.",
+                            "Considere retomar os itens trabalhados e observar se o aluno precisa de mediação adicional.",
                     });
                 } else if (taxa < 70) {
                     alertas.push({
                         tipo: "taxa_regular",
                         severidade: "media",
                         icone: "🟡",
-                        titulo: "Taxa de acerto regular",
+                        titulo: "Taxa de acerto em desenvolvimento",
                         descricao: `Taxa de acerto de ${taxa.toFixed(1)}% nas últimas ${ultimas3.length} sessões.`,
                         sugestao:
-                            "O aluno está progredindo, mas pode se beneficiar de mais prática.",
+                            "O aluno pode se beneficiar de novas práticas e acompanhamento nas próximas atividades.",
                     });
                 }
             }
@@ -244,20 +244,20 @@ const alertasAluno = async (req, res) => {
                 tipo: "inatividade_alta",
                 severidade: "alta",
                 icone: "🔴",
-                titulo: "Inatividade frequente",
+                titulo: "Pausas frequentes durante o jogo",
                 descricao: `Média de ${mediaInatividade.toFixed(1)} períodos de inatividade por sessão.`,
                 sugestao:
-                    "Verifique se o aluno está com dificuldades de concentração ou se o ambiente está adequado.",
+                    "Observe o contexto da atividade para compreender se as pausas indicam espera por ajuda, reflexão, cansaço ou necessidade de ajuste na mediação.",
             });
         } else if (mediaInatividade >= 1.5) {
             alertas.push({
                 tipo: "inatividade_media",
                 severidade: "media",
                 icone: "🟡",
-                titulo: "Períodos de inatividade detectados",
+                titulo: "Pausas durante o jogo",
                 descricao: `Média de ${mediaInatividade.toFixed(1)} períodos de inatividade por sessão.`,
                 sugestao:
-                    "Observe se o aluno precisa de pausas ou incentivos durante o jogo.",
+                    "Observe se o aluno se beneficia de pausas planejadas, incentivo ou orientação durante a atividade.",
             });
         }
 
@@ -273,17 +273,17 @@ const alertasAluno = async (req, res) => {
                 tipo: "sem_jogar_longo",
                 severidade: "alta",
                 icone: "🔴",
-                titulo: "Sem jogar há muito tempo",
+                titulo: "Intervalo longo sem sessões registradas",
                 descricao: `Última sessão há ${diasSemJogar} dias.`,
                 sugestao:
-                    "Retome as sessões com o aluno o quanto antes para manter a continuidade do aprendizado.",
+                    "Considere retomar as sessões para manter continuidade no acompanhamento pedagógico.",
             });
         } else if (diasSemJogar >= 7) {
             alertas.push({
                 tipo: "sem_jogar",
                 severidade: "informativo",
                 icone: "🔵",
-                titulo: "Sem jogar há uma semana",
+                titulo: "Intervalo sem sessões recentes",
                 descricao: `Última sessão há ${diasSemJogar} dias.`,
                 sugestao: "Considere agendar uma nova sessão em breve.",
             });
@@ -323,9 +323,9 @@ const alertasAluno = async (req, res) => {
                         tipo: "categoria_problematica",
                         severidade: "media",
                         icone: "🟡",
-                        titulo: `Dificuldade na categoria ${categoria}`,
+                        titulo: `Maior ocorrência de erros em ${categoria}`,
                         descricao: `${taxaErro.toFixed(0)}% de erros na categoria ${categoria}.`,
-                        sugestao: `Dedique atenção especial aos itens da categoria ${categoria} nas próximas sessões.`,
+                        sugestao: `Observe os itens da categoria ${categoria} nas próximas mediações e considere retomar exemplos semelhantes.`,
                     });
                 }
             }
@@ -352,11 +352,11 @@ const alertasAluno = async (req, res) => {
                     tipo: "evolucao_positiva",
                     severidade: "positivo",
                     icone: "🟢",
-                    titulo: "Evolução positiva detectada!",
+                    titulo: "Aumento de acertos nas sessões recentes",
                     descricao:
-                        "O aluno melhorou significativamente nas últimas sessões.",
+                        "As sessões recentes apresentaram mais acertos do que as sessões anteriores.",
                     sugestao:
-                        "Continue com as atividades atuais — o aluno está respondendo bem!",
+                        "Registre o contexto dessa evolução e considere manter estratégias de mediação semelhantes.",
                 });
             }
         }
