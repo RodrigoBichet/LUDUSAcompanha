@@ -472,6 +472,20 @@ const main = async () => {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log("[Demo] MongoDB conectado.");
 
+        const sessoesExistentes = await Session.countDocuments({
+            gameVersion: GAME_VERSION,
+        });
+
+        const professorExistente = await User.exists({
+            email: PROFESSOR_DEMO.email,
+        });
+
+        if (sessoesExistentes > 0 || professorExistente) {
+            console.log(
+                "[Demo] Dataset demonstrativo existente encontrado. Ele sera recriado.",
+            );
+        }
+
         const resultado = await criarDataset();
 
         console.log("[Demo] Dataset sintetico recriado com sucesso.");

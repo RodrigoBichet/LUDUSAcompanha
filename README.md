@@ -146,7 +146,7 @@ npm run seed:demo
 Login gerado:
 
 ```txt
-Email: professor.demo@ludus.local
+Email: professora.demo@ludus.local
 Senha: Demo@2026
 ```
 

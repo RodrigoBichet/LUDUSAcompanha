@@ -5,9 +5,11 @@
 // Uso:
 //   npm run seed:demo:random
 //   npm run seed:demo:random -- --alunos=12 --sessoes=40 --turmas=2 --seed=2026
+//   npm run seed:demo:random -- --alunos=20 --sessoes=60 --turmas=3 --append --no-screenshots
 //
 // Este script cria dados ficticios para testar o fluxo demonstrativo com mais
-// variacao. Ele remove apenas dados do proprio dataset "Demo Random".
+// variacao. Por padrao, ele remove apenas dados do proprio dataset "Demo Random".
+// Use --append para adicionar novos dados sem apagar o dataset random anterior.
 // =============================================================================
 
 require("dotenv").config();
@@ -139,6 +141,17 @@ const inteiro = (rng, minimo, maximo) =>
     Math.floor(rng() * (maximo - minimo + 1)) + minimo;
 
 const escolher = (rng, lista) => lista[inteiro(rng, 0, lista.length - 1)];
+
+const embaralhar = (rng, lista) => {
+    const itens = [...lista];
+
+    for (let i = itens.length - 1; i > 0; i -= 1) {
+        const j = inteiro(rng, 0, i);
+        [itens[i], itens[j]] = [itens[j], itens[i]];
+    }
+
+    return itens;
+};
 
 const formatarNumero = (numero) => String(numero).padStart(2, "0");
 
@@ -493,15 +506,18 @@ const limparDatasetRandom = async () => {
     limparScreenshotsRandom();
 };
 
-const criarAlunos = async ({ rng, totalAlunos, turmas, professor }) => {
+const criarAlunos = async ({ rng, totalAlunos, turmas, professor, lote }) => {
     const alunos = [];
     const perfis = ["bom", "medio", "atencao"];
 
+    const nomesEmbaralhados = embaralhar(rng, NOMES);
+
     for (let i = 0; i < totalAlunos; i += 1) {
         const perfil = perfis[i % perfis.length];
-        const nomeBase = NOMES[i % NOMES.length];
+        const nomeBase = nomesEmbaralhados[i % nomesEmbaralhados.length];
         const numero = formatarNumero(i + 1);
-        const nome = `${nomeBase} Demo Random ${numero}`;
+        const sufixoLote = lote ? ` ${lote}` : "";
+        const nome = `${nomeBase} Demo Random ${numero}${sufixoLote}`;
         const turma = turmas[i % turmas.length];
         const ano = inteiro(rng, 2015, 2019);
         const mes = formatarNumero(inteiro(rng, 1, 12));
@@ -532,7 +548,9 @@ const criarAlunos = async ({ rng, totalAlunos, turmas, professor }) => {
         alunos.push({
             _id: aluno._id,
             name: aluno.name,
-            slug: `aluno-${numero}`,
+            slug: lote
+                ? `aluno-${numero}-${lote.replace("#", "lote-")}`
+                : `aluno-${numero}`,
             perfil,
         });
     }
@@ -545,26 +563,53 @@ const criarDataset = async ({
     totalSessoes,
     totalTurmas,
     seed,
+    append,
+    semScreenshots,
+    lote,
 }) => {
     const rng = criarRng(seed);
 
-    await limparDatasetRandom();
+    if (!append) {
+        await limparDatasetRandom();
+    }
 
-    const instituicao = await Institution.create({
-        name: `${DEMO_PREFIX} - Instituicao Gerada`,
-        city: "Cidade Ficticia",
+    const sufixoLote = lote ? ` ${lote}` : "";
+
+    let instituicao = null;
+
+    if (append) {
+        instituicao = await Institution.findOne({
+            name: `${DEMO_PREFIX} - Instituicao Gerada`,
+        });
+    }
+
+    if (!instituicao) {
+        instituicao = await Institution.create({
+            name: `${DEMO_PREFIX} - Instituicao Gerada`,
+            city: "Cidade Ficticia",
+        });
+    }
+
+    const professorExistente = await User.findOne({
+        email: PROFESSOR_RANDOM.email,
     });
 
-    const professor = await User.create({
-        ...PROFESSOR_RANDOM,
-        institutionId: instituicao._id,
-    });
+    const professor = professorExistente
+        ? await User.findByIdAndUpdate(
+              professorExistente._id,
+              { institutionId: instituicao._id },
+              { returnDocument: "after" },
+          )
+        : await User.create({
+              ...PROFESSOR_RANDOM,
+              institutionId: instituicao._id,
+          });
 
     const turmas = [];
     for (let i = 0; i < totalTurmas; i += 1) {
         turmas.push(
             await Group.create({
-                name: `${DEMO_PREFIX} - Turma ${i + 1}`,
+                name: `${DEMO_PREFIX} - Turma ${i + 1}${sufixoLote}`,
                 institutionId: instituicao._id,
                 professorId: professor._id,
             }),
@@ -576,6 +621,7 @@ const criarDataset = async ({
         totalAlunos,
         turmas,
         professor,
+        lote,
     });
 
     const sessoes = [];
@@ -596,7 +642,7 @@ const criarDataset = async ({
                 categoria,
                 startedAt,
                 perfil: aluno.perfil,
-                comScreenshots: i % 3 === 0,
+                comScreenshots: !semScreenshots && i % 3 === 0,
             }),
         );
     }
@@ -614,6 +660,8 @@ const criarDataset = async ({
 
 const main = async () => {
     const args = parseArgs();
+    const append = Boolean(args.append);
+    const semScreenshots = Boolean(args["no-screenshots"]);
     const alunosSolicitados = Number(args.alunos || 12);
     const turmasSolicitadas = Number(args.turmas || 2);
     const sessoesSolicitadas = Number(args.sessoes || alunosSolicitados * 4);
@@ -621,6 +669,7 @@ const main = async () => {
     const totalTurmas = limitar(turmasSolicitadas, 1, 8);
     const totalSessoes = limitar(sessoesSolicitadas, totalAlunos, 240);
     const seed = Number(args.seed || Date.now());
+    const lote = append ? `#${seed}` : "";
 
     try {
         if (!process.env.MONGODB_URI) {
@@ -647,10 +696,25 @@ const main = async () => {
             totalSessoes,
             totalTurmas,
             seed,
+            append,
+            semScreenshots,
+            lote,
         });
 
-        console.log("[Demo Random] Dataset sintetico aleatorio recriado.");
+        console.log(
+            append
+                ? "[Demo Random] Dataset sintetico aleatorio adicionado ao banco."
+                : "[Demo Random] Dataset sintetico aleatorio recriado.",
+        );
         console.log(`[Demo Random] Seed: ${seed}`);
+        console.log(`[Demo Random] Modo append: ${append ? "sim" : "nao"}`);
+        console.log(
+            `[Demo Random] Screenshots demo: ${semScreenshots ? "nao" : "sim"}`,
+        );
+        if (lote) {
+            console.log(`[Demo Random] Lote: ${lote}`);
+        }
+
         console.log("[Demo Random] Login professor:");
         console.log(`  Email: ${PROFESSOR_RANDOM.email}`);
         console.log(`  Senha: ${PROFESSOR_RANDOM.password}`);
