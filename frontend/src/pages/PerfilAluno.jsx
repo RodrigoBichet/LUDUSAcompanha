@@ -26,9 +26,9 @@ import {
     atualizarAluno,
     adicionarAnotacao,
     deletarAnotacao,
-    resumoJogador,
+    resumoAluno,
     buscarSessao,
-    historicoJogador,
+    historicoAluno,
     alertasAluno,
     solicitarCaptura,
 } from "../services/api";
@@ -91,12 +91,12 @@ export default function PerfilAluno() {
                 guardianContact: aluno.guardianContact || "",
             });
 
-            // Busca dados de monitoramento pelo nome do aluno
+            // Busca dados de monitoramento pelo ID do aluno
             try {
                 const [resResumo, resSessoes, resAlertas] = await Promise.all([
-                    resumoJogador(aluno.name, gameIdSelecionado),
-                    historicoJogador(aluno.name, gameIdSelecionado),
-                    alertasAluno(aluno.name, gameIdSelecionado),
+                    resumoAluno(aluno._id, gameIdSelecionado),
+                    historicoAluno(aluno._id, gameIdSelecionado),
+                    alertasAluno(aluno._id, gameIdSelecionado),
                 ]);
 
                 console.log("RESUMO:", resResumo.data);

@@ -21,10 +21,11 @@ const montarQueryJogo = (gameId) => {
 // -------------------------------------------------------------------------
 // Dashboard
 // -------------------------------------------------------------------------
-export const resumoJogador = (playerId, gameId) =>
+export const resumoAluno = (studentId, gameId) =>
     api.get(
-        `/dashboard/summary/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+        `/dashboard/summary/${encodeURIComponent(studentId)}${montarQueryJogo(gameId)}`,
     );
+
 export const heatmapSessao = (sessionId) =>
     api.get(`/dashboard/heatmap/${sessionId}`);
 
@@ -68,17 +69,17 @@ export const deletarAnotacao = (id, anotacaoId) =>
 export const solicitarCaptura = (id, ativo = true) =>
     api.patch(`/students/${id}/solicitar-captura`, { ativo });
 
-export const historicoJogador = (playerId, gameId) =>
+export const historicoAluno = (studentId, gameId) =>
     api.get(
-        `/sessions/player/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+        `/sessions/student/${encodeURIComponent(studentId)}${montarQueryJogo(gameId)}`,
     );
 
 // -------------------------------------------------------------------------
 // Alertas
 // -------------------------------------------------------------------------
-export const alertasAluno = (playerId, gameId) =>
+export const alertasAluno = (studentId, gameId) =>
     api.get(
-        `/dashboard/alerts/${encodeURIComponent(playerId)}${montarQueryJogo(gameId)}`,
+        `/dashboard/alerts/${encodeURIComponent(studentId)}${montarQueryJogo(gameId)}`,
     );
 
 // -------------------------------------------------------------------------

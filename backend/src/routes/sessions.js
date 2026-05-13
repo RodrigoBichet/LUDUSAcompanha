@@ -16,7 +16,7 @@ router.post("/", controller.criarSessao);
 // GET  /api/sessions       — lista sessões (debug)
 router.get("/", controller.listarSessoes);
 
-router.get("/player/:playerId", controller.sessoesPorJogador);
+router.get("/student/:studentId", controller.sessoesPorAluno);
 
 // GET  /api/sessions/:id   — busca sessão completa
 router.get("/:sessionId", controller.buscarSessao);

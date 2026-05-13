@@ -106,8 +106,8 @@ const buscarAluno = async (req, res) => {
             });
         }
 
-        // Busca sessões do aluno pelo nome
-        const sessoes = await Session.find({ playerId: aluno.name })
+        // Busca sessões vinculadas ao ID do aluno
+        const sessoes = await Session.find({ studentId: aluno._id })
             .select("sessionId startedAt durationMs metrics")
             .sort({ startedAt: -1 });
 
@@ -151,9 +151,6 @@ const atualizarAluno = async (req, res) => {
             });
         }
 
-        const nomeAntigo = alunoAtual.name;
-        const nomeMudou = name && name !== nomeAntigo;
-
         const aluno = await Student.findByIdAndUpdate(
             req.params.id,
             {
@@ -168,17 +165,6 @@ const atualizarAluno = async (req, res) => {
             },
             { returnDocument: "after", runValidators: true },
         );
-
-        // Se o nome mudou, atualiza o playerId em todas as sessões vinculadas
-        if (nomeMudou) {
-            const resultado = await Session.updateMany(
-                { playerId: nomeAntigo },
-                { playerId: name },
-            );
-            console.log(
-                `[LUDUS] Sessões atualizadas: ${resultado.modifiedCount} sessão(ões) com playerId "${nomeAntigo}" → "${name}"`,
-            );
-        }
 
         console.log(`[LUDUS] Aluno atualizado: ${aluno.name}`);
 
@@ -211,7 +197,13 @@ const deletarAluno = async (req, res) => {
             });
         }
 
-        console.log(`[LUDUS] Aluno deletado: ${aluno.name}`);
+        const sessoesRemovidas = await Session.deleteMany({
+            studentId: aluno._id,
+        });
+
+        console.log(
+            `[LUDUS] Aluno deletado: ${aluno.name} | Sessões removidas: ${sessoesRemovidas.deletedCount}`,
+        );
 
         return res.json({
             sucesso: true,

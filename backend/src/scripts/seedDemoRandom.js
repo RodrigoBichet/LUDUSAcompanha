@@ -209,12 +209,17 @@ const criarMousePathFase = (rng, faseIndex, perfil, duracaoFase) => {
 
     const pontos = [
         { x: origemX, y: origemY, t: baseT + 300 },
-        { x: origemX + inteiro(rng, 90, 240), y: origemY + inteiro(rng, -120, 100), t: baseT + 900 },
+        {
+            x: origemX + inteiro(rng, 90, 240),
+            y: origemY + inteiro(rng, -120, 100),
+            t: baseT + 900,
+        },
         { x: meioX, y: meioY, t: baseT + 1700 },
         { x: destinoX, y: destinoY, t: baseT + 2600 },
     ];
 
-    const quantidadeExtra = perfil === "atencao" ? 3 : perfil === "medio" ? 2 : 1;
+    const quantidadeExtra =
+        perfil === "atencao" ? 3 : perfil === "medio" ? 2 : 1;
 
     for (let i = 0; i < quantidadeExtra; i += 1) {
         pontos.splice(2, 0, {
@@ -285,9 +290,21 @@ const criarSessao = ({
     comScreenshots,
 }) => {
     const config = PERFIS[perfil];
-    const totalCorrect = limitar(inteiro(rng, config.acertos[0], config.acertos[1]), 0, 4);
-    const totalWrong = limitar(inteiro(rng, config.erros[0], config.erros[1]), 0, 4);
-    const inactivityCount = inteiro(rng, config.inatividade[0], config.inatividade[1]);
+    const totalCorrect = limitar(
+        inteiro(rng, config.acertos[0], config.acertos[1]),
+        0,
+        4,
+    );
+    const totalWrong = limitar(
+        inteiro(rng, config.erros[0], config.erros[1]),
+        0,
+        4,
+    );
+    const inactivityCount = inteiro(
+        rng,
+        config.inatividade[0],
+        config.inatividade[1],
+    );
     const durationMs = inteiro(rng, config.duracao[0], config.duracao[1]);
     const duracaoFase = Math.max(5000, Math.floor(durationMs / 4));
     const sessionId = `demo-random-${formatarNumero(indice + 1)}-${aluno.slug}`;
@@ -300,7 +317,9 @@ const criarSessao = ({
     const mousePath = [];
     const dragPath = [];
     const clicks = [];
-    const gameEvents = [evento("CategorySelected", 0, { category: categoria.nome })];
+    const gameEvents = [
+        evento("CategorySelected", 0, { category: categoria.nome }),
+    ];
 
     for (let faseIndex = 0; faseIndex < 4; faseIndex += 1) {
         const inicio = faseIndex * duracaoFase;
@@ -317,9 +336,17 @@ const criarSessao = ({
             }),
         );
 
-        mousePath.push(...criarMousePathFase(rng, faseIndex, perfil, duracaoFase));
+        mousePath.push(
+            ...criarMousePathFase(rng, faseIndex, perfil, duracaoFase),
+        );
         dragPath.push(
-            ...criarArrasteFase(rng, faseIndex, itemArrastado, perfil, duracaoFase),
+            ...criarArrasteFase(
+                rng,
+                faseIndex,
+                itemArrastado,
+                perfil,
+                duracaoFase,
+            ),
         );
 
         clicks.push({
@@ -375,6 +402,7 @@ const criarSessao = ({
 
     return {
         sessionId,
+        studentId: aluno._id,
         playerId: aluno.name,
         gameId: GAME_ID,
         gameVersion: GAME_VERSION,
@@ -395,7 +423,9 @@ const criarSessao = ({
         mousePath,
         dragPath,
         gameEvents: gameEvents.sort((a, b) => a.timestamp - b.timestamp),
-        screenshots: comScreenshots ? salvarScreenshotsDemo(sessionId, categoria) : [],
+        screenshots: comScreenshots
+            ? salvarScreenshotsDemo(sessionId, categoria)
+            : [],
     };
 };
 
@@ -406,7 +436,8 @@ const limparScreenshotsRandom = () => {
         if (!arquivo.startsWith("demo-random-")) continue;
 
         const caminhoCompleto = path.resolve(PASTA_SCREENSHOTS, arquivo);
-        if (!caminhoCompleto.startsWith(path.resolve(PASTA_SCREENSHOTS))) continue;
+        if (!caminhoCompleto.startsWith(path.resolve(PASTA_SCREENSHOTS)))
+            continue;
 
         fs.unlinkSync(caminhoCompleto);
     }
@@ -490,7 +521,12 @@ const criarAlunos = async ({ rng, totalAlunos, turmas, professor }) => {
     return alunos;
 };
 
-const criarDataset = async ({ totalAlunos, totalSessoes, totalTurmas, seed }) => {
+const criarDataset = async ({
+    totalAlunos,
+    totalSessoes,
+    totalTurmas,
+    seed,
+}) => {
     const rng = criarRng(seed);
 
     await limparDatasetRandom();
@@ -564,11 +600,7 @@ const main = async () => {
     const sessoesSolicitadas = Number(args.sessoes || alunosSolicitados * 4);
     const totalAlunos = limitar(alunosSolicitados, 3, 60);
     const totalTurmas = limitar(turmasSolicitadas, 1, 8);
-    const totalSessoes = limitar(
-        sessoesSolicitadas,
-        totalAlunos,
-        240,
-    );
+    const totalSessoes = limitar(sessoesSolicitadas, totalAlunos, 240);
     const seed = Number(args.seed || Date.now());
 
     try {

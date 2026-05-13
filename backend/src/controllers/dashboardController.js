@@ -10,8 +10,8 @@
 
 const Session = require("../models/Session");
 
-const montarFiltroSessao = (playerId, gameId) => {
-    const filtro = { playerId };
+const montarFiltroSessao = (studentId, gameId) => {
+    const filtro = { studentId };
 
     if (gameId && gameId !== "todos") {
         filtro.gameId = gameId;
@@ -21,22 +21,23 @@ const montarFiltroSessao = (playerId, gameId) => {
 };
 
 // -------------------------------------------------------------------------
-// resumoJogador — GET /api/dashboard/summary/:playerId
+// resumoJogador — GET /api/dashboard/summary/:studentId
 // -------------------------------------------------------------------------
 
 const resumoJogador = async (req, res) => {
     try {
-        const { playerId } = req.params;
+        const { studentId } = req.params;
+
         const { gameId } = req.query;
 
         const sessoes = await Session.find(
-            montarFiltroSessao(playerId, gameId),
+            montarFiltroSessao(studentId, gameId),
         ).sort({ startedAt: 1 });
 
         if (sessoes.length === 0) {
             return res.status(404).json({
                 sucesso: false,
-                mensagem: `Nenhuma sessão encontrada para: ${playerId}`,
+                mensagem: `Nenhuma sessão encontrada para: ${studentId}`,
             });
         }
 
@@ -84,7 +85,7 @@ const resumoJogador = async (req, res) => {
 
         return res.json({
             sucesso: true,
-            playerId,
+            studentId,
             gameId: gameId || "todos",
             totalSessoes: sessoes.length,
             totalClicks,
@@ -120,7 +121,7 @@ const heatmapSessao = async (req, res) => {
         const sessao = await Session.findOne({
             sessionId: req.params.sessionId,
         }).select(
-            "sessionId playerId mousePath dragPath clicks screenshots gameEvents",
+            "sessionId studentId playerId mousePath dragPath clicks screenshots gameEvents",
         );
 
         if (!sessao) {
@@ -143,6 +144,7 @@ const heatmapSessao = async (req, res) => {
         return res.json({
             sucesso: true,
             sessionId: sessao.sessionId,
+            studentId: sessao.studentId,
             playerId: sessao.playerId,
             mousePath: sessao.mousePath,
             dragPath: sessao.dragPath || [],
@@ -162,22 +164,25 @@ const heatmapSessao = async (req, res) => {
 };
 
 // -------------------------------------------------------------------------
-// alertasAluno — GET /api/dashboard/alerts/:playerId
+// alertasAluno — GET /api/dashboard/alerts/:studentId
 // -------------------------------------------------------------------------
 
 const alertasAluno = async (req, res) => {
     try {
-        const { playerId } = req.params;
+        const { studentId } = req.params;
+
         const { gameId } = req.query;
 
-        const sessoes = await Session.find(montarFiltroSessao(playerId, gameId))
+        const sessoes = await Session.find(
+            montarFiltroSessao(studentId, gameId),
+        )
             .sort({ startedAt: -1 })
             .limit(10);
 
         if (sessoes.length === 0) {
             return res.json({
                 sucesso: true,
-                playerId,
+                studentId,
                 gameId: gameId || "todos",
                 alertas: [],
                 mensagem: "Nenhuma sessão encontrada para análise.",
@@ -358,7 +363,7 @@ const alertasAluno = async (req, res) => {
 
         return res.json({
             sucesso: true,
-            playerId,
+            studentId,
             gameId: gameId || "todos",
             totalAlertas: alertas.length,
             alertas,

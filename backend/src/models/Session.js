@@ -84,8 +84,15 @@ const FaseScreenshotSchema = new mongoose.Schema(
 const SessionSchema = new mongoose.Schema(
     {
         sessionId: { type: String, required: true, unique: true },
+        studentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Student",
+            required: true,
+            index: true,
+        },
         playerId: { type: String, required: true },
         gameId: { type: String, required: true },
+
         gameVersion: { type: String },
         platform: { type: String },
         startedAt: { type: String },

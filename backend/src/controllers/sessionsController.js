@@ -71,13 +71,24 @@ const criarSessao = async (req, res) => {
         const dados = req.body;
 
         // Validação básica — campos obrigatórios
-        if (!dados.sessionId || !dados.playerId || !dados.gameId) {
+        if (!dados.sessionId || !dados.studentId || !dados.gameId) {
             return res.status(400).json({
                 sucesso: false,
                 mensagem:
-                    "Campos obrigatórios ausentes: sessionId, playerId, gameId",
+                    "Campos obrigatórios ausentes: sessionId, studentId, gameId",
             });
         }
+
+        const aluno = await Student.findById(dados.studentId);
+
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado para esta sessão",
+            });
+        }
+
+        dados.playerId = aluno.name;
 
         // Verifica duplicata
         const sessaoExistente = await Session.findOne({
@@ -111,12 +122,13 @@ const criarSessao = async (req, res) => {
         );
 
         // Se a sessão veio com screenshots, reseta o flag capturaSolicitada do aluno.
-        // O flag é buscado pelo nome do jogador (playerId = nome do aluno no sistema).
+        // O flag é resetado pelo ID do aluno, evitando colisões por nomes repetidos.
         // Usamos findOneAndUpdate para não travar o fluxo caso o aluno não seja encontrado.
         if (temScreenshots) {
             try {
                 await Student.findOneAndUpdate(
-                    { name: dados.playerId, capturaSolicitada: true },
+                    { _id: dados.studentId, capturaSolicitada: true },
+
                     {
                         capturaSolicitada: false,
                         capturaSolicitadaOrigem: null,
@@ -206,15 +218,15 @@ const buscarSessao = async (req, res) => {
 };
 
 // -------------------------------------------------------------------------
-// sessoesPorJogador — GET /api/sessions/player/:playerId
+// sessoesPorAluno — GET /api/sessions/student/:studentId
 // -------------------------------------------------------------------------
 
-const sessoesPorJogador = async (req, res) => {
+const sessoesPorAluno = async (req, res) => {
     try {
-        const { playerId } = req.params;
+        const { studentId } = req.params;
         const { gameId } = req.query;
 
-        const filtro = { playerId };
+        const filtro = { studentId };
 
         if (gameId && gameId !== "todos") {
             filtro.gameId = gameId;
@@ -249,5 +261,5 @@ module.exports = {
     criarSessao,
     listarSessoes,
     buscarSessao,
-    sessoesPorJogador,
+    sessoesPorAluno,
 };

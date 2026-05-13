@@ -196,6 +196,7 @@ const evento = (eventType, timestamp, payload = {}) => ({
 
 const criarSessao = ({
     sessionId,
+    studentId,
     playerId,
     categoria,
     startedAt,
@@ -287,6 +288,7 @@ const criarSessao = ({
 
     return {
         sessionId,
+        studentId,
         playerId,
         gameId: GAME_ID,
         gameVersion: GAME_VERSION,
@@ -368,9 +370,14 @@ const criarDataset = async () => {
         alunosCriados.push(alunoCriado);
     }
 
+    const alunosPorNome = Object.fromEntries(
+        alunosCriados.map((aluno) => [aluno.name, aluno]),
+    );
+
     const sessoes = [
         criarSessao({
             sessionId: "demo-clara-higiene-001",
+            studentId: alunosPorNome["Clara Demo"]._id,
             playerId: "Clara Demo",
             categoria: "Higiene",
             startedAt: "2026-05-10T13:00:00.000Z",
@@ -382,6 +389,7 @@ const criarDataset = async () => {
         }),
         criarSessao({
             sessionId: "demo-clara-alimentos-002",
+            studentId: alunosPorNome["Clara Demo"]._id,
             playerId: "Clara Demo",
             categoria: "Alimentos",
             startedAt: "2026-05-10T13:25:00.000Z",
@@ -392,6 +400,7 @@ const criarDataset = async () => {
         }),
         criarSessao({
             sessionId: "demo-nilo-higiene-001",
+            studentId: alunosPorNome["Nilo Demo"]._id,
             playerId: "Nilo Demo",
             categoria: "Higiene",
             startedAt: "2026-05-09T14:10:00.000Z",
@@ -403,6 +412,7 @@ const criarDataset = async () => {
         }),
         criarSessao({
             sessionId: "demo-nilo-cotidiano-002",
+            studentId: alunosPorNome["Nilo Demo"]._id,
             playerId: "Nilo Demo",
             categoria: "Cotidiano",
             startedAt: "2026-05-10T14:10:00.000Z",
@@ -413,6 +423,7 @@ const criarDataset = async () => {
         }),
         criarSessao({
             sessionId: "demo-lia-acoes-001",
+            studentId: alunosPorNome["Lia Demo"]._id,
             playerId: "Lia Demo",
             categoria: "Acoes",
             startedAt: "2026-05-08T15:00:00.000Z",

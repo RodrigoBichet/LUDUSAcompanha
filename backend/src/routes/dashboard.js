@@ -7,8 +7,8 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/dashboardController");
 
-router.get("/summary/:playerId", controller.resumoJogador);
+router.get("/summary/:studentId", controller.resumoJogador);
+router.get("/alerts/:studentId", controller.alertasAluno);
 router.get("/heatmap/:sessionId", controller.heatmapSessao);
-router.get("/alerts/:playerId", controller.alertasAluno);
 
 module.exports = router;
