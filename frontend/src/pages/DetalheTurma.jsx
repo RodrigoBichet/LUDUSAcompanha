@@ -143,7 +143,11 @@ export default function DetalheTurma() {
     };
 
     const handleDeletar = async (alunoId, nome) => {
-        if (!window.confirm(`Tem certeza que deseja excluir "${nome}"?`))
+        if (
+            !window.confirm(
+                `Tem certeza que deseja excluir "${nome}"? As sessões e imagens vinculadas a este aluno também serão removidas.`,
+            )
+        )
             return;
         try {
             await deletarAluno(alunoId);

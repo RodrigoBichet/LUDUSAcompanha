@@ -10,6 +10,8 @@
 
 const Group = require("../models/Group");
 const User = require("../models/User");
+const Student = require("../models/Student");
+const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
 
 const criarTurma = async (req, res) => {
     try {
@@ -128,7 +130,7 @@ const atualizarTurma = async (req, res) => {
 
 const deletarTurma = async (req, res) => {
     try {
-        const turma = await Group.findByIdAndDelete(req.params.id);
+        const turma = await Group.findById(req.params.id);
 
         if (!turma) {
             return res.status(404).json({
@@ -137,11 +139,30 @@ const deletarTurma = async (req, res) => {
             });
         }
 
-        console.log(`[LUDUS] Turma deletada: ${turma.name}`);
+        const alunos = await Student.find({ groupId: turma._id }).select("_id");
+        const idsAlunos = alunos.map((aluno) => aluno._id);
+
+        const limpeza =
+            idsAlunos.length > 0
+                ? await removerSessoesPorFiltro({
+                      studentId: { $in: idsAlunos },
+                  })
+                : { sessoesRemovidas: 0, arquivosRemovidos: 0 };
+
+        const alunosRemovidos = await Student.deleteMany({
+            groupId: turma._id,
+        });
+
+        await Group.findByIdAndDelete(turma._id);
+
+        console.log(
+            `[LUDUS] Turma deletada: ${turma.name} | Alunos removidos: ${alunosRemovidos.deletedCount} | Sessões removidas: ${limpeza.sessoesRemovidas} | Arquivos removidos: ${limpeza.arquivosRemovidos}`,
+        );
 
         return res.json({
             sucesso: true,
-            mensagem: "Turma deletada com sucesso!",
+            mensagem:
+                "Turma, alunos, sessões e imagens vinculadas deletados com sucesso!",
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao deletar turma:", erro.message);

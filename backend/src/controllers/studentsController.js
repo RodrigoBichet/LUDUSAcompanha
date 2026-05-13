@@ -8,6 +8,7 @@
 
 const Student = require("../models/Student");
 const Session = require("../models/Session");
+const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
 
 // -------------------------------------------------------------------------
 // criarAluno — POST /api/students
@@ -188,7 +189,7 @@ const atualizarAluno = async (req, res) => {
 
 const deletarAluno = async (req, res) => {
     try {
-        const aluno = await Student.findByIdAndDelete(req.params.id);
+        const aluno = await Student.findById(req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -197,17 +198,20 @@ const deletarAluno = async (req, res) => {
             });
         }
 
-        const sessoesRemovidas = await Session.deleteMany({
+        const limpeza = await removerSessoesPorFiltro({
             studentId: aluno._id,
         });
 
+        await Student.findByIdAndDelete(aluno._id);
+
         console.log(
-            `[LUDUS] Aluno deletado: ${aluno.name} | Sessões removidas: ${sessoesRemovidas.deletedCount}`,
+            `[LUDUS] Aluno deletado: ${aluno.name} | Sessões removidas: ${limpeza.sessoesRemovidas} | Arquivos removidos: ${limpeza.arquivosRemovidos}`,
         );
 
         return res.json({
             sucesso: true,
-            mensagem: "Aluno deletado com sucesso!",
+            mensagem:
+                "Aluno, sessões e imagens vinculadas deletados com sucesso!",
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao deletar aluno:", erro.message);

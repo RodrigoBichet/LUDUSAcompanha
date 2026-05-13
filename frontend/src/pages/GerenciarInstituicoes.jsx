@@ -122,7 +122,7 @@ export default function GerenciarInstituicoes() {
     const removerInstituicao = async (instituicao) => {
         if (
             !window.confirm(
-                `Deseja remover a instituição "${instituicao.name}"? Esta ação não pode ser desfeita.`,
+                `Deseja remover a instituição "${instituicao.name}"? Turmas, alunos, sessões e imagens vinculadas também serão removidos. Esta ação não pode ser desfeita.`,
             )
         )
             return;

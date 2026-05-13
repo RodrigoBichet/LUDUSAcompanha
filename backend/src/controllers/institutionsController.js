@@ -8,6 +8,9 @@
 
 const Institution = require("../models/Institution");
 const User = require("../models/User");
+const Group = require("../models/Group");
+const Student = require("../models/Student");
+const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
 
 // -------------------------------------------------------------------------
 // criarInstituicao — POST /api/institutions
@@ -140,7 +143,7 @@ const atualizarInstituicao = async (req, res) => {
 // -------------------------------------------------------------------------
 const deletarInstituicao = async (req, res) => {
     try {
-        const instituicao = await Institution.findByIdAndDelete(req.params.id);
+        const instituicao = await Institution.findById(req.params.id);
 
         if (!instituicao) {
             return res.status(404).json({
@@ -149,11 +152,48 @@ const deletarInstituicao = async (req, res) => {
             });
         }
 
-        console.log(`[LUDUS] Instituição deletada: ${instituicao.name}`);
+        const turmas = await Group.find({
+            institutionId: instituicao._id,
+        }).select("_id");
+
+        const idsTurmas = turmas.map((turma) => turma._id);
+
+        const alunos = await Student.find({
+            groupId: { $in: idsTurmas },
+        }).select("_id");
+
+        const idsAlunos = alunos.map((aluno) => aluno._id);
+
+        const limpeza =
+            idsAlunos.length > 0
+                ? await removerSessoesPorFiltro({
+                      studentId: { $in: idsAlunos },
+                  })
+                : { sessoesRemovidas: 0, arquivosRemovidos: 0 };
+
+        const alunosRemovidos = await Student.deleteMany({
+            groupId: { $in: idsTurmas },
+        });
+
+        const turmasRemovidas = await Group.deleteMany({
+            institutionId: instituicao._id,
+        });
+
+        await User.updateMany(
+            { institutionId: instituicao._id },
+            { $set: { institutionId: null } },
+        );
+
+        await Institution.findByIdAndDelete(instituicao._id);
+
+        console.log(
+            `[LUDUS] Instituição deletada: ${instituicao.name} | Turmas removidas: ${turmasRemovidas.deletedCount} | Alunos removidos: ${alunosRemovidos.deletedCount} | Sessões removidas: ${limpeza.sessoesRemovidas} | Arquivos removidos: ${limpeza.arquivosRemovidos}`,
+        );
 
         return res.json({
             sucesso: true,
-            mensagem: "Instituição deletada com sucesso!",
+            mensagem:
+                "Instituição, turmas, alunos, sessões e imagens vinculadas deletados com sucesso!",
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao deletar instituição:", erro.message);

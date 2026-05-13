@@ -142,7 +142,9 @@ export default function Turmas() {
 
     const handleDeletar = async (id, nome) => {
         if (
-            !window.confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)
+            !window.confirm(
+                `Tem certeza que deseja excluir a turma "${nome}"? Todos os alunos, sessões e imagens vinculadas também serão removidos.`,
+            )
         )
             return;
         try {
