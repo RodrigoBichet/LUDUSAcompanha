@@ -417,10 +417,20 @@ export default function PerfilAluno() {
                                 )}
 
                                 {!editando && (
-                                    <div className="captura-card">
-                                        <div>
+                                    <div
+                                        className={
+                                            aluno.capturaSolicitada
+                                                ? "captura-card captura-card-ativo"
+                                                : "captura-card"
+                                        }
+                                    >
+                                        <div className="captura-card-icone">
+                                            🖼️
+                                        </div>
+
+                                        <div className="captura-card-texto">
                                             <strong>
-                                                Imagem no mapa de calor
+                                                Salvar imagem da próxima sessão
                                             </strong>
                                             <p className="texto-leve">
                                                 {textoCaptura}

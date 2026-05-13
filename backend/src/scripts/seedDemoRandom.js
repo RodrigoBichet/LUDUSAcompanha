@@ -356,15 +356,14 @@ const criarSessao = ({
             timestamp: inicio + 2600,
         });
 
-        gameEvents.push(
-            evento("DragAttempt", inicio + 2500, {
-                item: itemArrastado,
-                target,
-                correct: itemArrastado === target,
-            }),
-        );
-
         if (itemArrastado === target) {
+            gameEvents.push(
+                evento("DragAttempt", inicio + 2500, {
+                    item: target,
+                    target,
+                    correct: true,
+                }),
+            );
             gameEvents.push(
                 evento("CorrectMatch", inicio + 2800, {
                     item: target,
@@ -373,9 +372,29 @@ const criarSessao = ({
             );
         } else {
             gameEvents.push(
-                evento("WrongMatch", inicio + 2800, {
+                evento("DragAttempt", inicio + 2400, {
+                    item: itemArrastado,
+                    target,
+                    correct: false,
+                }),
+            );
+            gameEvents.push(
+                evento("WrongMatch", inicio + 2600, {
                     item: itemArrastado,
                     expected: target,
+                }),
+            );
+            gameEvents.push(
+                evento("DragAttempt", inicio + 3300, {
+                    item: target,
+                    target,
+                    correct: true,
+                }),
+            );
+            gameEvents.push(
+                evento("CorrectMatch", inicio + 3600, {
+                    item: target,
+                    timeSeconds: Number(((inicio + 3600) / 1000).toFixed(1)),
                 }),
             );
         }

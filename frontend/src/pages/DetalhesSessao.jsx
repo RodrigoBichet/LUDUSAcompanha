@@ -36,6 +36,7 @@ export default function DetalhesSessao() {
     const [erro, setErro] = useState(null);
 
     const [faseSelecionada, setFaseSelecionada] = useState(0);
+    const [faseEventosSelecionada, setFaseEventosSelecionada] = useState(0);
 
     useEffect(() => {
         Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
@@ -89,6 +90,7 @@ export default function DetalhesSessao() {
 
     useEffect(() => {
         setFaseSelecionada(0);
+        setFaseEventosSelecionada(0);
     }, [sessionId]);
 
     // Desenha o heatmap no canvas após carregar os dados
@@ -689,8 +691,10 @@ export default function DetalhesSessao() {
         const mapa = {
             category: "Categoria",
             targetItem: "Item alvo",
+            target: "Item alvo",
             draggedItem: "Item arrastado",
             expectedItem: "Item esperado",
+            expected: "Item esperado",
             item: "Item",
             options: "Opções",
             timeSeconds: "Tempo (s)",
@@ -702,7 +706,7 @@ export default function DetalhesSessao() {
     };
 
     // Chaves a esconder na exibição
-    const chavesOcultas = new Set(["correct"]);
+    const chavesOcultas = new Set(["correct", "target"]);
 
     // Agrupa eventos em fases
     const agruparEventosPorFase = (eventos) => {
@@ -724,7 +728,7 @@ export default function DetalhesSessao() {
                 if (faseAtual) fases.push(faseAtual);
                 faseAtual = {
                     categoria: categoriaAtual,
-                    targetItem: payload.targetItem || "",
+                    targetItem: payload.targetItem || payload.target || "",
                     options: payload.options || [],
                     timestamp: evento.timestamp,
                     eventos: [],
@@ -760,8 +764,15 @@ export default function DetalhesSessao() {
                         } catch {}
                     }
                 }
+                const subtituloSessao = sessao
+                    ? `${sessao.playerId || "Aluno"} • ${formatarData(sessao.startedAt)} • ${formatarDuracao(sessao.durationMs)}`
+                    : "";
+
                 return (
-                    <Header titulo={categoriaSessao} subtitulo={sessionId} />
+                    <Header
+                        titulo={categoriaSessao}
+                        subtitulo={subtituloSessao}
+                    />
                 );
             })()}
 
@@ -980,127 +991,156 @@ export default function DetalhesSessao() {
                         {/* Coluna direita — eventos agrupados por fase */}
                         <div className="detalhes-coluna">
                             <div className="card secao-card">
-                                <h3>Linha do Tempo de Eventos</h3>
+                                <h3>Sequência da Sessão</h3>
 
                                 {(() => {
-                                    const fases = agruparEventosPorFase(
-                                        sessao.gameEvents || [],
-                                    );
-                                    return fases.map((fase, faseIdx) => {
-                                        if (fase.preJogo) {
-                                            return (
-                                                <div
-                                                    key="pre"
-                                                    className="fase-bloco"
-                                                >
-                                                    {fase.eventos.map(
-                                                        (evento, i) => {
-                                                            let payload = {};
-                                                            try {
-                                                                payload =
-                                                                    JSON.parse(
-                                                                        evento.payload,
-                                                                    );
-                                                            } catch (_) {}
-                                                            return (
-                                                                <div
-                                                                    key={i}
-                                                                    className="timeline-item"
-                                                                >
-                                                                    <div className="timeline-conteudo">
-                                                                        <div className="timeline-tipo">
-                                                                            {nomeEvento(
-                                                                                evento.eventType,
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="timeline-tempo texto-leve">
-                                                                            {(
-                                                                                evento.timestamp /
-                                                                                1000
-                                                                            ).toFixed(
-                                                                                1,
-                                                                            )}
-                                                                            s
-                                                                        </div>
-                                                                        <div className="timeline-payload">
-                                                                            {Object.entries(
-                                                                                payload,
-                                                                            )
-                                                                                .filter(
-                                                                                    ([
-                                                                                        k,
-                                                                                    ]) =>
-                                                                                        !chavesOcultas.has(
-                                                                                            k,
-                                                                                        ),
-                                                                                )
-                                                                                .map(
-                                                                                    ([
-                                                                                        k,
-                                                                                        v,
-                                                                                    ]) => (
-                                                                                        <span
-                                                                                            key={
-                                                                                                k
-                                                                                            }
-                                                                                            className="payload-chip"
-                                                                                        >
-                                                                                            {nomeCampo(
-                                                                                                k,
-                                                                                            )}
+                                    const fasesAgrupadas =
+                                        agruparEventosPorFase(
+                                            sessao.gameEvents || [],
+                                        );
 
-                                                                                            :{" "}
-                                                                                            <strong>
-                                                                                                {String(
-                                                                                                    v,
-                                                                                                )}
-                                                                                            </strong>
-                                                                                        </span>
-                                                                                    ),
-                                                                                )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        },
-                                                    )}
-                                                </div>
+                                    const preJogo = fasesAgrupadas.find(
+                                        (fase) => fase.preJogo,
+                                    );
+                                    const fasesJogadas = fasesAgrupadas.filter(
+                                        (fase) => !fase.preJogo,
+                                    );
+                                    const faseAtual =
+                                        fasesJogadas[faseEventosSelecionada] ||
+                                        fasesJogadas[0];
+
+                                    const renderizarEvento = (evento, i) => {
+                                        let payload = {};
+                                        try {
+                                            payload = JSON.parse(
+                                                evento.payload,
                                             );
-                                        }
+                                        } catch (_) {}
+
+                                        const isAcerto =
+                                            evento.eventType === "CorrectMatch";
+                                        const isErro =
+                                            evento.eventType === "WrongMatch";
+                                        const isFim =
+                                            evento.eventType ===
+                                                "PhaseCompleted" ||
+                                            evento.eventType === "SessionEnded";
 
                                         return (
                                             <div
-                                                key={faseIdx}
-                                                className="fase-bloco"
+                                                key={`${evento.eventType}-${evento.timestamp}-${i}`}
+                                                className={`timeline-item ${isAcerto ? "item-acerto" : ""} ${isErro ? "item-erro" : ""} ${isFim ? "item-fim" : ""}`}
                                             >
-                                                {/* Cabeçalho da fase */}
-                                                <div className="fase-cabecalho">
-                                                    <span className="fase-numero">
-                                                        Fase {faseIdx}
-                                                    </span>
-                                                    <span className="fase-alvo">
-                                                        🎯 Item alvo:{" "}
-                                                        <strong>
-                                                            {fase.targetItem}
-                                                        </strong>
-                                                    </span>
-                                                    <span
-                                                        className="texto-leve"
-                                                        style={{
-                                                            fontSize: "0.75rem",
-                                                        }}
-                                                    >
-                                                        {(
-                                                            fase.timestamp /
-                                                            1000
-                                                        ).toFixed(1)}
-                                                        s
-                                                    </span>
-                                                </div>
+                                                <div className="timeline-conteudo">
+                                                    <div className="timeline-topo">
+                                                        <div className="timeline-tipo">
+                                                            {nomeEvento(
+                                                                evento.eventType,
+                                                            )}
+                                                        </div>
+                                                        <div className="timeline-tempo texto-leve">
+                                                            {(
+                                                                evento.timestamp /
+                                                                1000
+                                                            ).toFixed(1)}
+                                                            s
+                                                        </div>
+                                                    </div>
 
-                                                {/* Opções da fase */}
-                                                {fase.options.length > 0 && (
-                                                    <div className="fase-opcoes">
+                                                    <div className="timeline-payload">
+                                                        {Object.entries(payload)
+                                                            .filter(
+                                                                ([k]) =>
+                                                                    !chavesOcultas.has(
+                                                                        k,
+                                                                    ) &&
+                                                                    k !==
+                                                                        "options",
+                                                            )
+                                                            .map(([k, v]) => (
+                                                                <span
+                                                                    key={k}
+                                                                    className="payload-chip"
+                                                                >
+                                                                    {nomeCampo(
+                                                                        k,
+                                                                    )}
+                                                                    :{" "}
+                                                                    <strong>
+                                                                        {String(
+                                                                            v,
+                                                                        )}
+                                                                    </strong>
+                                                                </span>
+                                                            ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    };
+
+                                    return (
+                                        <>
+                                            {preJogo?.eventos?.length > 0 && (
+                                                <div className="fase-bloco fase-bloco-pre">
+                                                    {preJogo.eventos.map(
+                                                        renderizarEvento,
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {fasesJogadas.length > 0 && (
+                                                <div className="eventos-fase-tabs">
+                                                    {fasesJogadas.map(
+                                                        (fase, index) => (
+                                                            <button
+                                                                key={`${fase.targetItem}-${fase.timestamp}-${index}`}
+                                                                type="button"
+                                                                className={
+                                                                    faseEventosSelecionada ===
+                                                                    index
+                                                                        ? "eventos-fase-tab ativo"
+                                                                        : "eventos-fase-tab"
+                                                                }
+                                                                onClick={() =>
+                                                                    setFaseEventosSelecionada(
+                                                                        index,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span
+                                                                    className="eventos-fase-cor"
+                                                                    style={{
+                                                                        background:
+                                                                            obterCorFase(
+                                                                                index,
+                                                                            )
+                                                                                .linha,
+                                                                    }}
+                                                                />
+                                                                Fase {index + 1}
+                                                            </button>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {faseAtual && (
+                                                <div className="fase-bloco">
+                                                    <div className="fase-cabecalho">
+                                                        <span className="fase-numero">
+                                                            Fase{" "}
+                                                            {faseEventosSelecionada +
+                                                                1}
+                                                        </span>
+                                                        <span className="fase-alvo">
+                                                            🎯 Item alvo:{" "}
+                                                            <strong>
+                                                                {
+                                                                    faseAtual.targetItem
+                                                                }
+                                                            </strong>
+                                                        </span>
                                                         <span
                                                             className="texto-leve"
                                                             style={{
@@ -1108,111 +1148,46 @@ export default function DetalhesSessao() {
                                                                     "0.75rem",
                                                             }}
                                                         >
-                                                            Opções:
+                                                            {(
+                                                                faseAtual.timestamp /
+                                                                1000
+                                                            ).toFixed(1)}
+                                                            s
                                                         </span>
-                                                        {fase.options.map(
-                                                            (op, i) => (
-                                                                <span
-                                                                    key={i}
-                                                                    className={`opcao-chip ${op === fase.targetItem ? "opcao-correta" : ""}`}
-                                                                >
-                                                                    {op}
-                                                                </span>
-                                                            ),
-                                                        )}
                                                     </div>
-                                                )}
 
-                                                {/* Eventos da fase */}
-                                                {fase.eventos.map(
-                                                    (evento, i) => {
-                                                        let payload = {};
-                                                        try {
-                                                            payload =
-                                                                JSON.parse(
-                                                                    evento.payload,
-                                                                );
-                                                        } catch (_) {}
-
-                                                        const isAcerto =
-                                                            evento.eventType ===
-                                                            "CorrectMatch";
-                                                        const isErro =
-                                                            evento.eventType ===
-                                                            "WrongMatch";
-                                                        const isFim =
-                                                            evento.eventType ===
-                                                                "PhaseCompleted" ||
-                                                            evento.eventType ===
-                                                                "SessionEnded";
-
-                                                        return (
-                                                            <div
-                                                                key={i}
-                                                                className={`timeline-item ${isAcerto ? "item-acerto" : ""} ${isErro ? "item-erro" : ""} ${isFim ? "item-fim" : ""}`}
+                                                    {faseAtual.options.length >
+                                                        0 && (
+                                                        <div className="fase-opcoes">
+                                                            <span
+                                                                className="texto-leve"
+                                                                style={{
+                                                                    fontSize:
+                                                                        "0.75rem",
+                                                                }}
                                                             >
-                                                                <div className="timeline-conteudo">
-                                                                    <div className="timeline-tipo">
-                                                                        {nomeEvento(
-                                                                            evento.eventType,
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="timeline-tempo texto-leve">
-                                                                        {(
-                                                                            evento.timestamp /
-                                                                            1000
-                                                                        ).toFixed(
-                                                                            1,
-                                                                        )}
-                                                                        s
-                                                                    </div>
-                                                                    <div className="timeline-payload">
-                                                                        {Object.entries(
-                                                                            payload,
-                                                                        )
-                                                                            .filter(
-                                                                                ([
-                                                                                    k,
-                                                                                ]) =>
-                                                                                    !chavesOcultas.has(
-                                                                                        k,
-                                                                                    ) &&
-                                                                                    k !==
-                                                                                        "options",
-                                                                            )
-                                                                            .map(
-                                                                                ([
-                                                                                    k,
-                                                                                    v,
-                                                                                ]) => (
-                                                                                    <span
-                                                                                        key={
-                                                                                            k
-                                                                                        }
-                                                                                        className="payload-chip"
-                                                                                    >
-                                                                                        {nomeCampo(
-                                                                                            k,
-                                                                                        )}
+                                                                Opções:
+                                                            </span>
+                                                            {faseAtual.options.map(
+                                                                (op, i) => (
+                                                                    <span
+                                                                        key={i}
+                                                                        className={`opcao-chip ${op === faseAtual.targetItem ? "opcao-correta" : ""}`}
+                                                                    >
+                                                                        {op}
+                                                                    </span>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
 
-                                                                                        :{" "}
-                                                                                        <strong>
-                                                                                            {String(
-                                                                                                v,
-                                                                                            )}
-                                                                                        </strong>
-                                                                                    </span>
-                                                                                ),
-                                                                            )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    },
-                                                )}
-                                            </div>
-                                        );
-                                    });
+                                                    {faseAtual.eventos.map(
+                                                        renderizarEvento,
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    );
                                 })()}
                             </div>
                         </div>

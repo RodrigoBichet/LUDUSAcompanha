@@ -237,17 +237,32 @@ const criarSessao = ({
         });
 
         if (faseIndex < totalWrong) {
+            const itemErrado = itens[(faseIndex + 1) % itens.length];
+
             phaseEvents.push(
-                evento("DragAttempt", inicio + 2600, {
-                    item: itens[(faseIndex + 1) % itens.length],
+                evento("DragAttempt", inicio + 2400, {
+                    item: itemErrado,
                     target,
                     correct: false,
                 }),
             );
             phaseEvents.push(
-                evento("WrongMatch", inicio + 2700, {
-                    item: itens[(faseIndex + 1) % itens.length],
+                evento("WrongMatch", inicio + 2500, {
+                    item: itemErrado,
                     expected: target,
+                }),
+            );
+            phaseEvents.push(
+                evento("DragAttempt", inicio + 3100, {
+                    item: target,
+                    target,
+                    correct: true,
+                }),
+            );
+            phaseEvents.push(
+                evento("CorrectMatch", inicio + 3300, {
+                    item: target,
+                    timeSeconds: Number(((inicio + 3300) / 1000).toFixed(1)),
                 }),
             );
         } else {
@@ -397,7 +412,9 @@ const criarDataset = async () => {
             totalWrong: 1,
             inactivityCount: 1,
             durationMs: 26000,
+            comScreenshots: true,
         }),
+
         criarSessao({
             sessionId: "demo-nilo-higiene-001",
             studentId: alunosPorNome["Nilo Demo"]._id,
