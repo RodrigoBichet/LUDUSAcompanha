@@ -54,8 +54,14 @@ LUDUSAcompanha/
 │   │   │   ├── sessionsController.js
 │   │   │   ├── dashboardController.js
 │   │   │   └── usersController.js
-│   │   ├── scripts/criarAdmin.js
+│   │   ├── scripts/
+│   │   │   ├── criarAdmin.js
+│   │   │   ├── seedDemo.js
+│   │   │   └── seedDemoRandom.js
+│   │   ├── utils/
+│   │   │   └── removerSessoes.js
 │   │   └── app.js
+│   ├── uploads/screenshots/
 │   ├── .env.example
 │   ├── .gitignore
 │   ├── package.json
@@ -86,6 +92,8 @@ LUDUSAcompanha/
 │   │   └── App.jsx
 │   └── package.json
 └── docs/
+    ├── dataset-demo/
+    ├── indicadores-pedagogicos.md
     ├── LUDUS_API.postman_collection.json
     └── SETUP.md
 ```
@@ -124,6 +132,44 @@ node src/scripts/criarAdmin.js
 
 ---
 
+## Dataset demonstrativo
+
+O projeto possui dois scripts para gerar dados sinteticos e anonimos de demonstracao.
+
+### Demo fixo
+
+```bash
+cd backend
+npm run seed:demo
+```
+
+Login gerado:
+
+```txt
+Email: professor.demo@ludus.local
+Senha: Demo@2026
+```
+
+O demo fixo cria uma instituicao, uma turma, alunos ficticios e sessoes com diferentes comportamentos pedagogicos. A sessao recente da Clara Demo possui screenshots para demonstrar o mapa de interacoes com imagem por fase.
+
+### Demo random
+
+```bash
+cd backend
+npm run seed:demo:random -- --alunos=3 --sessoes=3 --turmas=1 --seed=2026
+```
+
+Login gerado:
+
+```txt
+Email: professor.random.demo@ludus.local
+Senha: Demo@2026
+```
+
+Mesmo quando uma quantidade menor e informada, o script random garante pelo menos 3 alunos para representar tres cenarios pedagogicos: indicadores positivos, desenvolvimento intermediario e necessidade de maior observacao docente.
+
+---
+
 ## Variaveis de ambiente (backend)
 
 | Variavel      | Descricao                          |
@@ -143,7 +189,7 @@ node src/scripts/criarAdmin.js
 
 ---
 
-## API REST — Referencia completa
+## API REST — Referencia resumida
 
 ### Rotas publicas (Unity)
 
@@ -154,72 +200,32 @@ node src/scripts/criarAdmin.js
 | GET    | `/api/unity/students/:groupId`              | Lista alunos                                       |
 | POST   | `/api/unity/students/:id/solicitar-captura` | Liga/desliga imagens para a proxima sessao no jogo |
 
-### Auth
+### Dashboard e sessoes
 
-| Metodo | Rota                 | Auth |
-| ------ | -------------------- | ---- |
-| POST   | `/api/auth/register` | —    |
-| POST   | `/api/auth/login`    | —    |
-| GET    | `/api/auth/me`       | sim  |
-| PUT    | `/api/auth/perfil`   | sim  |
-
-### Users
-
-| Metodo | Rota             | Auth  |
-| ------ | ---------------- | ----- |
-| GET    | `/api/users`     | Admin |
-| PUT    | `/api/users/:id` | Admin |
-| DELETE | `/api/users/:id` | Admin |
-
-### Institutions
-
-| Metodo              | Rota                    | Auth  |
-| ------------------- | ----------------------- | ----- |
-| POST/GET/PUT/DELETE | `/api/institutions`     | Admin |
-| GET                 | `/api/institutions/:id` | sim   |
-
-### Groups / Students
-
-| Metodo              | Rotas                                     | Auth |
-| ------------------- | ----------------------------------------- | ---- |
-| POST/GET/PUT/DELETE | `/api/groups`                             | sim  |
-| POST/GET/PUT/DELETE | `/api/students`                           | sim  |
-| POST                | `/api/students/:id/anotacoes`             | sim  |
-| DELETE              | `/api/students/:id/anotacoes/:anotacaoId` | sim  |
-| PATCH               | `/api/students/:id/solicitar-captura`     | sim  |
-
-### Sessions
-
-| Metodo | Rota                             | Auth | Observacao                  |
-| ------ | -------------------------------- | ---- | --------------------------- |
-| POST   | `/api/sessions`                  | —    | Recebe sessoes do SDK Unity |
-| GET    | `/api/sessions`                  | —    | Lista sessoes recentes      |
-| GET    | `/api/sessions/:sessionId`       | —    | Busca uma sessao especifica |
-| GET    | `/api/sessions/player/:playerId` | —    | Aceita `?gameId=...`        |
-
-### Dashboard
-
-| Metodo | Rota                                | Auth | Observacao           |
-| ------ | ----------------------------------- | ---- | -------------------- |
-| GET    | `/api/dashboard/summary/:playerId`  | —    | Aceita `?gameId=...` |
-| GET    | `/api/dashboard/heatmap/:sessionId` | —    | Dados do heatmap     |
-| GET    | `/api/dashboard/alerts/:playerId`   | —    | Aceita `?gameId=...` |
+| Metodo | Rota                                | Observacao                    |
+| ------ | ----------------------------------- | ----------------------------- |
+| POST   | `/api/sessions`                     | Recebe sessoes do SDK Unity   |
+| GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
+| GET    | `/api/sessions/player/:studentId`   | Historico por aluno real      |
+| GET    | `/api/dashboard/summary/:studentId` | Aceita `?gameId=...`          |
+| GET    | `/api/dashboard/heatmap/:sessionId` | Dados do mapa de interacoes   |
+| GET    | `/api/dashboard/alerts/:studentId`  | Alertas/indicadores por aluno |
 
 ---
 
 ## Dashboard — Telas implementadas
 
-| Tela                   | Rota                  | Descricao                                                                |
-| ---------------------- | --------------------- | ------------------------------------------------------------------------ |
-| Login                  | `/login`              | Autenticacao JWT                                                         |
-| Home                   | `/`                   | Selecao de jogo e listagem de instituicoes                               |
-| Detalhes Sessao        | `/sessao/:sessionId`  | Heatmap geral e por fase, com imagens quando disponiveis                 |
-| Turmas                 | `/turmas`             | Gerenciamento de turmas, com filtro por instituicao quando vindo da Home |
-| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos, preservando o contexto do jogo selecionado   |
-| Perfil Aluno           | `/aluno/:id`          | Dados, anotacoes, alertas, monitoramento, PDF e solicitacao de imagens   |
-| Gerenciar Instituicoes | `/admin/instituicoes` | CRUD de instituicoes (apenas admin)                                      |
-| Gerenciar Usuarios     | `/admin/usuarios`     | CRUD de usuarios (apenas admin)                                          |
-| Meu Perfil             | `/perfil`             | Edicao de dados e senha do usuario logado                                |
+| Tela                   | Rota                  | Descricao                                                                 |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------- |
+| Login                  | `/login`              | Autenticacao JWT                                                          |
+| Home                   | `/`                   | Selecao de jogo e listagem de instituicoes                                |
+| Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
+| Turmas                 | `/turmas`             | Gerenciamento de turmas, com filtro por instituicao quando vindo da Home  |
+| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos, preservando o contexto do jogo selecionado    |
+| Perfil Aluno           | `/aluno/:id`          | Dados, anotacoes, indicadores, monitoramento, PDF e solicitacao de imagem |
+| Gerenciar Instituicoes | `/admin/instituicoes` | CRUD de instituicoes (apenas admin)                                       |
+| Gerenciar Usuarios     | `/admin/usuarios`     | CRUD de usuarios (apenas admin)                                           |
+| Meu Perfil             | `/perfil`             | Edicao de dados e senha do usuario logado                                 |
 
 ---
 
@@ -245,22 +251,42 @@ Ao selecionar um jogo, o dashboard preserva o `gameId` nas URLs:
 /sessao/:sessionId?gameId=para-que-serve
 ```
 
-Com isso, o perfil do aluno filtra resumo, historico e alertas pelo jogo selecionado. Quando nenhuma selecao de jogo e informada, as chamadas seguem funcionando no modo geral.
+Com isso, o perfil do aluno filtra resumo, historico e indicadores pelo jogo selecionado. Quando nenhuma selecao de jogo e informada, as chamadas seguem funcionando no modo geral.
+
+---
+
+## Identificacao do aluno nas sessoes
+
+As sessoes recebidas do jogo sao vinculadas ao aluno por `studentId`, e nao apenas pelo nome exibido. O campo `playerId` continua existindo para exibicao nos relatorios, mas o relacionamento principal usa o identificador real do aluno cadastrado.
+
+Esse ajuste evita que alunos com nomes iguais ou reaproveitados herdem sessoes antigas indevidamente.
+
+---
+
+## Exclusao em cascata
+
+O backend remove dados vinculados ao excluir entidades principais:
+
+- Excluir aluno remove suas sessoes e imagens vinculadas.
+- Excluir turma remove seus alunos, sessoes e imagens vinculadas.
+- Excluir instituicao remove turmas, alunos, sessoes e imagens vinculadas, alem de desvincular usuarios associados.
+
+As imagens de sessoes sao removidas de `backend/uploads/screenshots/` por meio do helper `backend/src/utils/removerSessoes.js`.
 
 ---
 
 ## Funcionalidades do Perfil do Aluno
 
 - Dados cadastrais completos com edicao
-- Indicador automatico de desempenho
+- Indicadores automaticos com linguagem pedagogica nao diagnostica
 - Resumo de monitoramento com metricas consolidadas
 - Grafico de evolucao temporal
 - Categorias jogadas com nomes amigaveis
-- Alertas pedagogicos automaticos com linguagem acessivel
+- Alertas/indicadores pedagogicos automaticos com linguagem cuidadosa
 - Historico de sessoes clicavel com nome da categoria em destaque
 - Historico de anotacoes do professor com autor e data
 - Geracao de PDF formal para apresentacao aos pais
-- Solicitacao de imagens da proxima sessao para compor o mapa de calor por fase
+- Solicitacao destacada de imagem da proxima sessao para compor o mapa de calor por fase
 - Controle de origem da solicitacao de imagens entre dashboard e jogo Unity
 - Modal visual para avisos de captura, sem uso de alerta nativo do navegador
 - Filtro por `gameId` quando o perfil e acessado a partir da Home com jogo selecionado
@@ -269,24 +295,36 @@ Com isso, o perfil do aluno filtra resumo, historico e alertas pelo jogo selecio
 
 ## Imagens para mapa de calor
 
-O professor pode ativar, no perfil do aluno, a opcao **Imagens no mapa de calor**. Quando ativada, a proxima sessao/categoria desse aluno salva imagens das fases para serem usadas como fundo na visualizacao do mapa de calor.
+O professor pode ativar, no perfil do aluno, a opcao **Salvar imagem da proxima sessao**. Quando ativada, a proxima sessao/categoria desse aluno salva imagens das fases para serem usadas como fundo na visualizacao do mapa de interacoes.
 
 A solicitacao pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. Para evitar conflitos, o backend registra tambem a origem da solicitacao em `capturaSolicitadaOrigem` (`dashboard` ou `unity`). Se uma origem ja ativou a captura, a outra interface exibe aviso e bloqueia a alteracao ate a sessao ser registrada ou a propria origem cancelar.
 
 Apos o backend receber uma sessao com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime sao salvas em `backend/uploads/screenshots/` e nao devem ser versionadas no Git.
 
-Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse e os cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes em uma area neutra, usando uma escala de referencia fixa.
+Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse, arrastes e cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes em uma area neutra.
 
-A visualizacao tambem diferencia os tipos de interacao:
+A visualizacao diferencia:
 
 - Movimento do mouse: linha continua
 - Arraste/segurar item: linha tracejada
 - Cliques: marcadores branco/vermelho
 - Fases: cores diferentes para facilitar a leitura no mapa geral
 
-Na aba **Geral**, o professor pode clicar em um trajeto ou clique para abrir diretamente a fase correspondente. Nas abas por fase, o mapa ajuda a interpretar onde a crianca moveu o cursor, onde clicou e quais caminhos realizou enquanto segurava um item.
+Na aba **Geral**, o professor pode clicar em um trajeto ou clique para abrir diretamente a fase correspondente.
 
-O relatorio PDF do aluno tambem resume quais sessoes possuem imagens por fase e quais possuem apenas o mapa geral.
+---
+
+## Sequencia da sessao
+
+A tela de detalhes da sessao apresenta uma **Sequencia da Sessao** navegavel por fase. Em vez de uma lista longa com todos os eventos, o professor escolhe uma fase e visualiza apenas seus eventos principais:
+
+- fase iniciada;
+- tentativa de arraste;
+- erro, quando houver;
+- acerto;
+- fase concluida.
+
+Os dados demonstrativos tambem foram ajustados para registrar erro seguido de acerto final dentro da mesma fase, aproximando a demonstracao do comportamento real do jogo.
 
 ---
 
@@ -296,6 +334,8 @@ Cada sessao recebida do jogo pode armazenar dados brutos e eventos pedagogicos p
 
 | Campo           | Descricao                                                                    |
 | --------------- | ---------------------------------------------------------------------------- |
+| `studentId`     | Identificador real do aluno vinculado a sessao                               |
+| `playerId`      | Nome do aluno exibido nos relatorios                                         |
 | `mousePath[]`   | Pontos do movimento do mouse/cursor durante a sessao                         |
 | `dragPath[]`    | Pontos de inicio, movimento e fim do arraste dos itens                       |
 | `clicks[]`      | Cliques realizados pelo aluno                                                |
@@ -303,20 +343,22 @@ Cada sessao recebida do jogo pode armazenar dados brutos e eventos pedagogicos p
 | `screenshots[]` | Imagens das fases, quando a captura foi solicitada                           |
 | `metrics`       | Resumo numerico da sessao, incluindo acertos, erros e duracao                |
 
-Esses dados sao usados pelo dashboard para montar historico, alertas, relatorios e mapas de interacao. O objetivo e apoiar a observacao pedagogica, nao classificar ou diagnosticar a crianca.
+Esses dados sao usados pelo dashboard para montar historico, indicadores, relatorios e mapas de interacao. O objetivo e apoiar a observacao pedagogica, nao classificar ou diagnosticar a crianca.
 
-## Alertas pedagogicos automaticos
+---
 
-| Alerta                   | Condicao                              | Severidade |
-| ------------------------ | ------------------------------------- | ---------- |
-| Taxa de acerto baixa     | Taxa < 50% nas ultimas 3 sessoes      | Alta       |
-| Taxa de acerto regular   | Taxa entre 50% e 70%                  | Media      |
-| Inatividade frequente    | Media >= 3 por sessao                 | Alta       |
-| Inatividade detectada    | Media >= 1.5 por sessao               | Media      |
-| Sem jogar ha muito tempo | Ultima sessao ha +14 dias             | Alta       |
-| Sem jogar ha uma semana  | Ultima sessao ha +7 dias              | Info       |
-| Dificuldade em categoria | Taxa de erro >= 50% com 3+ tentativas | Media      |
-| Evolucao positiva        | Melhora de 20%+ nas ultimas sessoes   | Positivo   |
+## Indicadores pedagogicos automaticos
+
+| Indicador                                  | Condicao                              | Severidade |
+| ------------------------------------------ | ------------------------------------- | ---------- |
+| Taxa de acerto abaixo do esperado          | Taxa < 50% nas ultimas 3 sessoes      | Alta       |
+| Taxa de acerto em desenvolvimento          | Taxa entre 50% e 70%                  | Media      |
+| Pausas frequentes durante o jogo           | Media >= 3 por sessao                 | Alta       |
+| Pausas durante o jogo                      | Media >= 1.5 por sessao               | Media      |
+| Intervalo longo sem sessoes registradas    | Ultima sessao ha +14 dias             | Alta       |
+| Intervalo sem sessoes recentes             | Ultima sessao ha +7 dias              | Info       |
+| Maior ocorrencia de erros em uma categoria | Taxa de erro >= 50% com 3+ tentativas | Media      |
+| Aumento de acertos nas sessoes recentes    | Aumento de 20%+ nas sessoes recentes  | Positivo   |
 
 ---
 
@@ -345,7 +387,7 @@ Esses dados sao usados pelo dashboard para montar historico, alertas, relatorios
 | 6     | Refatorar tela Unity                        | Concluido                       |
 | 7     | Login no dashboard                          | Concluido                       |
 | 8     | CRUD turmas e alunos                        | Concluido                       |
-| 9     | Alertas pedagogicos                         | Concluido                       |
+| 9     | Indicadores pedagogicos                     | Concluido                       |
 | 10    | Geracao de PDF formal                       | Concluido                       |
 | 11    | Indicador de desempenho na Home             | Substituido pelo fluxo por jogo |
 | 12    | Area Admin no dashboard                     | Concluido                       |
@@ -359,11 +401,15 @@ Esses dados sao usados pelo dashboard para montar historico, alertas, relatorios
 | 20    | Home com selecao de jogo                    | Concluido                       |
 | 21    | Fluxo jogo -> instituicao -> turma -> aluno | Concluido                       |
 | 22    | Registro e visualizacao de arraste          | Concluido                       |
-| 23    | Responsividade                              | Planejado                       |
-| 24    | Design final da designer                    | Planejado                       |
-| 25    | Publicar backend                            | Planejado                       |
-| 26    | Coleta nas escolas parceiras                | Planejado                       |
-| 27    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
+| 23    | Dataset sintetico demonstravel              | Concluido                       |
+| 24    | Vinculo real por `studentId`                | Concluido                       |
+| 25    | Exclusao em cascata                         | Concluido                       |
+| 26    | Sequencia da sessao por fase                | Concluido                       |
+| 27    | Responsividade                              | Planejado                       |
+| 28    | Design final da designer                    | Planejado                       |
+| 29    | Publicar backend                            | Planejado                       |
+| 30    | Coleta nas escolas parceiras                | Planejado                       |
+| 31    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
 
 ---
 

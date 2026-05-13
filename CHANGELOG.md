@@ -5,6 +5,35 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.10.0] — 2026-05-13 — Fluxo demonstrativo e leitura das sessoes
+
+### Adicionado
+
+- `seedDemo.js` — sessoes demonstrativas com erro seguido de acerto final na mesma fase
+- `seedDemo.js` — screenshot ativado na sessao recente da Clara Demo para demonstrar o mapa com imagem
+- `seedDemoRandom.js` — sessoes aleatorias tambem registram tentativa errada, erro, tentativa correta e acerto
+- `DetalhesSessao.jsx` — compatibilidade com payloads `target` e `expected` dos dados demonstrativos
+- `DetalhesSessao.jsx` — sequencia da sessao navegavel por fase
+- `DetalhesSessao.css` — abas visuais para selecionar fases na sequencia da sessao
+- `PerfilAluno.jsx` — card de captura com icone e destaque visual
+- `PerfilAluno.css` — estilos do card destacado para salvar imagem da proxima sessao
+
+### Alterado
+
+- `DetalhesSessao.jsx` — cabeçalho da sessao deixa de exibir o ID tecnico e passa a mostrar aluno, data e duracao
+- `DetalhesSessao.jsx` — linha do tempo foi substituida por uma leitura por fases, reduzindo excesso de scroll
+- `DetalhesSessao.jsx` — campos tecnicos duplicados, como `target`, deixam de aparecer nos chips da sequencia
+- `PerfilAluno.jsx` — texto da captura passa a indicar claramente que a imagem sera salva na proxima sessao
+
+### Comportamento
+
+- A demonstracao fica mais realista para professores e avaliadores, pois fases com erro mostram a tentativa incorreta e o acerto posterior.
+- A sessao recente da Clara Demo ja apresenta imagens no mapa de interacoes, facilitando a demonstracao inicial.
+- A tela de detalhes da sessao fica mais legivel, com navegacao por fase em vez de lista longa de eventos.
+- O recurso de imagem no mapa de calor fica mais visivel no perfil do aluno.
+
+---
+
 ## [1.9.0] — 2026-05-11 — Mapa de interacoes com arraste
 
 ### Adicionado
@@ -324,7 +353,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## Proximas versoes planejadas
 
-- `[1.9.0]` — Tutorial WebGL e ajustes de compatibilidade do jogo
+- `[1.11.0]` — Tutorial WebGL e ajustes de compatibilidade do jogo
 - `[2.0.0]` — Preparacao para primeiros testadores programadores
 - `[2.1.0]` — Responsividade + design final da designer
 - `[2.2.0]` — Sistema publicado e testado nas instituicoes parceiras
