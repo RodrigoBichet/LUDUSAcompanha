@@ -213,7 +213,7 @@ const alertasAluno = async (req, res) => {
                         tipo: "taxa_baixa",
                         severidade: "alta",
                         icone: "🔴",
-                        titulo: "Taxa de acerto abaixo do esperado",
+                        titulo: "Taxa de acerto sugere atenção",
                         descricao: `Taxa de acerto de ${taxa.toFixed(1)}% nas últimas ${ultimas3.length} sessões.`,
                         sugestao:
                             "Considere retomar os itens trabalhados e observar se o aluno precisa de mediação adicional.",

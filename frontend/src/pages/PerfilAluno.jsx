@@ -613,7 +613,7 @@ export default function PerfilAluno() {
                             {/* Alertas pedagógicos */}
                             {alertas.length > 0 && (
                                 <div className="card secao-card">
-                                    <h3>⚠️ Alertas Pedagógicos</h3>
+                                    <h3>Indicadores Pedagógicos</h3>
                                     <div className="lista-alertas">
                                         {alertas.map((alerta, i) => (
                                             <div

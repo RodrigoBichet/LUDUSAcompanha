@@ -351,7 +351,7 @@ Esses dados sao usados pelo dashboard para montar historico, indicadores, relato
 
 | Indicador                                  | Condicao                              | Severidade |
 | ------------------------------------------ | ------------------------------------- | ---------- |
-| Taxa de acerto abaixo do esperado          | Taxa < 50% nas ultimas 3 sessoes      | Alta       |
+| Taxa de acerto sugere atenção              | Taxa < 50% nas ultimas 3 sessoes      | Alta       |
 | Taxa de acerto em desenvolvimento          | Taxa entre 50% e 70%                  | Media      |
 | Pausas frequentes durante o jogo           | Media >= 3 por sessao                 | Alta       |
 | Pausas durante o jogo                      | Media >= 1.5 por sessao               | Media      |
