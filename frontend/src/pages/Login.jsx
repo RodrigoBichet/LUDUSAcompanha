@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { textosAnonimos } from "../config/modoAnonimo";
 import "./Login.css";
 
 export default function Login() {
@@ -92,7 +93,7 @@ export default function Login() {
                 </form>
 
                 <p className="login-rodape texto-leve">
-                    UFPel — LUDUS Acompanha v1.0
+                    {textosAnonimos.loginRodape}
                 </p>
             </div>
         </div>

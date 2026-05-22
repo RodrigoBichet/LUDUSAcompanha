@@ -35,6 +35,7 @@ import {
 import "./PerfilAluno.css";
 import { useRef } from "react";
 import RelatorioPDF from "../components/shared/RelatorioPDF";
+import { MODO_ANONIMO } from "../config/modoAnonimo";
 
 export default function PerfilAluno() {
     const { id } = useParams();
@@ -298,9 +299,17 @@ export default function PerfilAluno() {
 
         const html2pdf = (await import("html2pdf.js")).default;
 
+        const dataRelatorio = new Date()
+            .toLocaleDateString("pt-BR")
+            .replace(/\//g, "-");
+
+        const sufixoAnonimo = MODO_ANONIMO ? "_anonimo" : "";
+
+        const nomeAlunoArquivo = aluno?.name || "Aluno";
+
         const opcoes = {
             margin: 10,
-            filename: `Relatorio_${aluno?.name}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`,
+            filename: `Relatorio_${nomeAlunoArquivo}_${dataRelatorio}${sufixoAnonimo}.pdf`,
             image: { type: "jpeg", quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },

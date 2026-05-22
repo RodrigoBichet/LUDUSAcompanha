@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { textosAnonimos } from "../../config/modoAnonimo";
 import "./Sidebar.css";
 
 export default function Sidebar() {
@@ -94,8 +95,10 @@ export default function Sidebar() {
                 <button className="btn-sair" onClick={logout}>
                     → Sair
                 </button>
-                <div className="texto-leve">UFPel — 2026</div>
-                <div className="texto-leve">LUDUS Acompanha v1.0</div>
+                <div className="texto-leve">
+                    {textosAnonimos.sidebarInstitucional}
+                </div>
+                <div className="texto-leve">{textosAnonimos.sidebarVersao}</div>
             </div>
         </aside>
     );

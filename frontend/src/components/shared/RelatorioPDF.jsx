@@ -7,6 +7,7 @@
 // Linguagem acessível — pensado para apresentação aos pais/responsáveis.
 // =============================================================================
 
+import { textosAnonimos } from "../../config/modoAnonimo";
 import "./RelatorioPDF.css";
 
 export default function RelatorioPDF({
@@ -16,6 +17,9 @@ export default function RelatorioPDF({
     alertas,
     professor,
 }) {
+    const nomeProfessorRelatorio =
+        textosAnonimos.pdfProfessor || professor?.name;
+
     const calcularIdade = (birthDate) => {
         if (!birthDate) return null;
         const diff = Date.now() - new Date(birthDate).getTime();
@@ -149,7 +153,7 @@ export default function RelatorioPDF({
                     <div>
                         <div className="pdf-logo-titulo">LUDUS Acompanha</div>
                         <div className="pdf-logo-subtitulo">
-                            Ferramenta de Monitoramento Educacional — UFPel
+                            {textosAnonimos.pdfSubtitulo}
                         </div>
                     </div>
                 </div>
@@ -160,9 +164,9 @@ export default function RelatorioPDF({
                     <div className="pdf-data-geracao">
                         Gerado em: {formatarDataHora(new Date().toISOString())}
                     </div>
-                    {professor && (
+                    {nomeProfessorRelatorio && (
                         <div className="pdf-data-geracao">
-                            Gerado por: {professor.name}
+                            Gerado por: {nomeProfessorRelatorio}
                         </div>
                     )}
                 </div>
@@ -532,10 +536,7 @@ export default function RelatorioPDF({
                         Este documento não constitui diagnóstico clínico.
                     </strong>
                 </p>
-                <p>
-                    UFPel — Universidade Federal de Pelotas |{" "}
-                    {new Date().getFullYear()}
-                </p>
+                <p>{textosAnonimos.pdfRodape}</p>
             </div>
         </div>
     );
