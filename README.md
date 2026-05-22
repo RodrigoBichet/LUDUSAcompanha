@@ -206,7 +206,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | ------ | ----------------------------------- | ----------------------------- |
 | POST   | `/api/sessions`                     | Recebe sessoes do SDK Unity   |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
-| GET    | `/api/sessions/player/:studentId`   | Historico por aluno real      |
+| GET    | `/api/sessions/student/:studentId`  | Historico por aluno real      |
 | GET    | `/api/dashboard/summary/:studentId` | Aceita `?gameId=...`          |
 | GET    | `/api/dashboard/heatmap/:sessionId` | Dados do mapa de interacoes   |
 | GET    | `/api/dashboard/alerts/:studentId`  | Alertas/indicadores por aluno |

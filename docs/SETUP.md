@@ -1,26 +1,34 @@
-# Documentação do Banco de Dados — LUDUS Acompanha
+# Documentacao tecnica - LUDUS Acompanha
 
-> Projeto de Mestrado em Ciência da Computação — UFPel (2026)  
+> Projeto de Mestrado em Ciencia da Computacao - UFPel (2026)  
 > Autor: Rodrigo Leitzke Bichet  
-> Orientador: Prof. Dr. Leomar Soares da Rosa Júnior
+> Orientador: Prof. Dr. Leomar Soares da Rosa Junior
 
 ---
 
-## Visão geral
+## Visao geral
 
-O LUDUS Acompanha utiliza **MongoDB** como banco de dados, hospedado no **MongoDB Atlas** (cloud). A escolha pelo MongoDB é justificada pela natureza dos dados coletados: os eventos do jogo chegam da Unity em formato JSON, e o MongoDB armazena documentos nesse mesmo formato sem necessidade de transformação.
+O LUDUS Acompanha utiliza **MongoDB** como banco de dados principal, acessado por um backend **Node.js + Express** por meio do **Mongoose**.
 
-O banco de dados de produção está na organização **Rodrigo's Org - 2026** no Atlas, projeto **LUDUS**, cluster **Cluster0**, banco **test**.
+A escolha pelo MongoDB combina com a natureza dos dados coletados pelo jogo: sessoes, eventos, caminhos do mouse, arrastes, cliques e screenshots chegam ao backend como documentos JSON.
+
+O sistema e composto por:
+
+- jogo Unity com SDK LUDUS;
+- backend Express;
+- banco MongoDB Atlas;
+- dashboard React;
+- pasta local de uploads para imagens de sessoes.
 
 ### Fluxo dos dados
 
-```
-Unity (C# SDK)
-    ↓  POST /api/sessions  (JSON)
-Node.js + Express
-    ↓  Mongoose
-MongoDB Atlas (banco: test)
-    ↓  GET /api/dashboard/*
+```txt
+Unity / WebGL
+    -> POST /api/sessions
+Backend Node.js + Express
+    -> Mongoose
+MongoDB Atlas
+    -> API REST
 Dashboard React
 ```
 
@@ -28,339 +36,302 @@ Dashboard React
 
 ## Collections
 
-O banco possui cinco collections:
+O banco possui cinco collections principais:
 
-| Collection     | Descrição                                   |
+| Collection     | Descricao                                   |
 | -------------- | ------------------------------------------- |
 | `users`        | Professores e administradores do sistema    |
-| `institutions` | Instituições de ensino parceiras            |
-| `groups`       | Turmas vinculadas a uma instituição         |
+| `institutions` | Instituicoes de ensino ou atendimento       |
+| `groups`       | Turmas vinculadas a uma instituicao         |
 | `students`     | Alunos vinculados a uma turma               |
-| `sessions`     | Sessões de jogo enviadas pela Unity via SDK |
+| `sessions`     | Sessoes de jogo enviadas pela Unity via SDK |
 
 ---
 
-### Collection: `users`
+## Collection: `users`
 
-Armazena os usuários do dashboard (professores e administradores). As senhas são armazenadas com hash bcrypt — nunca em texto puro.
+Armazena os usuarios do dashboard. As senhas sao armazenadas com hash bcrypt e nunca devem ser salvas em texto puro.
 
-**Campos:**
+### Campos
 
-| Campo       | Tipo     | Obrigatório | Descrição                                  |
-| ----------- | -------- | ----------- | ------------------------------------------ |
-| `_id`       | ObjectId | automático  | Identificador único gerado pelo MongoDB    |
-| `name`      | String   | sim         | Nome completo do usuário                   |
-| `email`     | String   | sim, único  | Email de login                             |
-| `password`  | String   | sim         | Senha com hash bcrypt                      |
-| `role`      | String   | sim         | `"admin"` ou `"professor"`                 |
-| `schoolId`  | ObjectId | não         | Referência à instituição (null para admin) |
-| `createdAt` | Date     | automático  | Data de criação (Mongoose timestamps)      |
-| `updatedAt` | Date     | automático  | Data da última atualização                 |
+| Campo           | Tipo     | Obrigatorio | Descricao                               |
+| --------------- | -------- | ----------- | --------------------------------------- |
+| `_id`           | ObjectId | automatico  | Identificador unico gerado pelo MongoDB |
+| `name`          | String   | sim         | Nome completo do usuario                |
+| `email`         | String   | sim         | Email usado no login                    |
+| `password`      | String   | sim         | Senha com hash bcrypt                   |
+| `role`          | String   | sim         | `"admin"` ou `"professor"`              |
+| `institutionId` | ObjectId | nao         | Instituicao vinculada ao professor      |
+| `createdAt`     | Date     | automatico  | Data de criacao                         |
+| `updatedAt`     | Date     | automatico  | Data da ultima atualizacao              |
 
-**Exemplo de documento:**
+### Regras
+
+- `email` e unico.
+- `admin` visualiza todas as instituicoes.
+- `professor` visualiza apenas a instituicao vinculada a `institutionId`.
+- `institutionId` pode ficar vazio para administradores.
+
+### Exemplo
 
 ```json
 {
-    "_id": "ObjectId('69e9684620d65d77b316bd0e')",
-    "name": "Admin",
-    "email": "rodrigobichet39@gmail.com",
+    "_id": "ObjectId('...')",
+    "name": "Professora Demo",
+    "email": "professora.demo@ludus.local",
     "password": "$2b$10$...",
-    "role": "admin",
-    "schoolId": null,
-    "createdAt": "2026-04-23T00:31:02.886Z",
-    "updatedAt": "2026-04-28T20:29:46.883Z",
-    "__v": 0
-}
-```
-
-**Regras:**
-
-- O campo `email` é único no banco (índice único criado automaticamente pelo Mongoose).
-- Usuários com `role: "admin"` têm acesso irrestrito a todas as instituições e funcionalidades.
-- Usuários com `role: "professor"` têm acesso apenas à sua instituição e turmas.
-
----
-
-### Collection: `institutions`
-
-Armazena as instituições de ensino parceiras do projeto.
-
-**Campos:**
-
-| Campo       | Tipo     | Obrigatório | Descrição                  |
-| ----------- | -------- | ----------- | -------------------------- |
-| `_id`       | ObjectId | automático  | Identificador único        |
-| `name`      | String   | sim         | Nome da instituição        |
-| `city`      | String   | não         | Cidade da instituição      |
-| `createdAt` | Date     | automático  | Data de criação            |
-| `updatedAt` | Date     | automático  | Data da última atualização |
-
-**Exemplo de documento:**
-
-```json
-{
-    "_id": "ObjectId('...')",
-    "name": "E. M. Silveira Martins",
-    "city": "Bagé",
-    "createdAt": "2026-04-23T00:00:00.000Z",
-    "updatedAt": "2026-04-23T00:00:00.000Z",
-    "__v": 0
-}
-```
-
-**Instituições parceiras do projeto:**
-
-- E. M. Silveira Martins — Bagé/RS
-- UNIPAMPA — Caçapava do Sul/RS
-- APAE — Pelotas/RS
-
----
-
-### Collection: `groups`
-
-Armazena as turmas. Cada turma pertence a uma instituição.
-
-**Campos:**
-
-| Campo           | Tipo     | Obrigatório | Descrição                              |
-| --------------- | -------- | ----------- | -------------------------------------- |
-| `_id`           | ObjectId | automático  | Identificador único                    |
-| `name`          | String   | sim         | Nome da turma (ex: "Turma A - 2026")   |
-| `institutionId` | ObjectId | sim         | Referência à collection `institutions` |
-| `createdAt`     | Date     | automático  | Data de criação                        |
-| `updatedAt`     | Date     | automático  | Data da última atualização             |
-
-**Exemplo de documento:**
-
-```json
-{
-    "_id": "ObjectId('...')",
-    "name": "Turma A - 2026",
+    "role": "professor",
     "institutionId": "ObjectId('...')",
-    "createdAt": "2026-04-23T00:00:00.000Z",
-    "updatedAt": "2026-04-23T00:00:00.000Z",
-    "__v": 0
+    "createdAt": "2026-05-01T10:00:00.000Z",
+    "updatedAt": "2026-05-01T10:00:00.000Z"
 }
 ```
 
 ---
 
-### Collection: `students`
+## Collection: `institutions`
 
-Armazena os alunos. Cada aluno pertence a uma turma. As anotações do professor são armazenadas como array **embutido** dentro do próprio documento do aluno, sem collection separada.
+Armazena instituicoes cadastradas no sistema.
 
-**Campos:**
+### Campos
 
-| Campo       | Tipo     | Obrigatório | Descrição                                   |
-| ----------- | -------- | ----------- | ------------------------------------------- |
-| `_id`       | ObjectId | automático  | Identificador único                         |
-| `name`      | String   | sim         | Nome do aluno                               |
-| `groupId`   | ObjectId | sim         | Referência à collection `groups`            |
-| `anotacoes` | Array    | não         | Lista de anotações do professor (embutidas) |
-| `createdAt` | Date     | automático  | Data de criação                             |
-| `updatedAt` | Date     | automático  | Data da última atualização                  |
+| Campo       | Tipo     | Obrigatorio | Descricao                  |
+| ----------- | -------- | ----------- | -------------------------- |
+| `_id`       | ObjectId | automatico  | Identificador unico        |
+| `name`      | String   | sim         | Nome da instituicao        |
+| `city`      | String   | nao         | Cidade da instituicao      |
+| `createdAt` | Date     | automatico  | Data de criacao            |
+| `updatedAt` | Date     | automatico  | Data da ultima atualizacao |
 
-**Estrutura de cada item em `anotacoes`:**
-
-| Campo       | Tipo     | Descrição                        |
-| ----------- | -------- | -------------------------------- |
-| `_id`       | ObjectId | Identificador da anotação        |
-| `texto`     | String   | Conteúdo da observação           |
-| `autorId`   | ObjectId | Referência ao usuário que anotou |
-| `autorNome` | String   | Nome do autor (desnormalizado)   |
-| `createdAt` | Date     | Data da anotação                 |
-
-**Exemplo de documento:**
+### Exemplo
 
 ```json
 {
     "_id": "ObjectId('...')",
-    "name": "Maria",
-    "groupId": "ObjectId('...')",
-    "anotacoes": [
-        {
-            "_id": "ObjectId('...')",
-            "texto": "Demonstrou dificuldade na categoria Higiene.",
-            "autorId": "ObjectId('...')",
-            "autorNome": "Prof. João",
-            "createdAt": "2026-04-25T14:00:00.000Z"
-        }
-    ],
-    "createdAt": "2026-04-23T00:00:00.000Z",
-    "updatedAt": "2026-04-25T14:00:00.000Z",
-    "__v": 0
+    "name": "Demo - Instituicao Demonstrativa",
+    "city": "Cidade Ficticia",
+    "createdAt": "2026-05-01T10:00:00.000Z",
+    "updatedAt": "2026-05-01T10:00:00.000Z"
 }
 ```
 
-**Por que as anotações são embutidas?**  
-As anotações sempre são lidas junto com o perfil do aluno e não são consultadas de forma independente. Embutir é a abordagem recomendada pelo MongoDB para este padrão de acesso.
-
 ---
 
-### Collection: `sessions`
+## Collection: `groups`
 
-É a collection central do sistema. Cada documento representa uma sessão de jogo enviada pelo SDK da Unity ao final de uma partida. Uma sessão corresponde a uma rodada em uma categoria específica do jogo.
+Armazena turmas. Cada turma pertence a uma instituicao e pode estar vinculada a um professor.
 
-**Campos de identificação:**
+### Campos
 
-| Campo      | Tipo     | Obrigatório | Descrição                                                  |
-| ---------- | -------- | ----------- | ---------------------------------------------------------- |
-| `_id`      | ObjectId | automático  | Identificador único da sessão                              |
-| `playerId` | String   | sim         | ID do aluno (referência ao `_id` da collection `students`) |
-| `gameId`   | String   | sim         | Identificador do jogo (ex: `"ParaQueServe"`)               |
-| `platform` | String   | sim         | Plataforma de execução (`"WebGL"` ou `"Android"`)          |
-| `scene`    | String   | não         | Cena Unity onde a sessão ocorreu                           |
+| Campo           | Tipo     | Obrigatorio | Descricao                   |
+| --------------- | -------- | ----------- | --------------------------- |
+| `_id`           | ObjectId | automatico  | Identificador unico         |
+| `name`          | String   | sim         | Nome da turma               |
+| `institutionId` | ObjectId | sim         | Referencia a `institutions` |
+| `professorId`   | ObjectId | nao         | Referencia a `users`        |
+| `createdAt`     | Date     | automatico  | Data de criacao             |
+| `updatedAt`     | Date     | automatico  | Data da ultima atualizacao  |
 
-**Campos de tempo:**
-
-| Campo        | Tipo   | Descrição                                |
-| ------------ | ------ | ---------------------------------------- |
-| `startedAt`  | Date   | Momento de início da sessão              |
-| `endedAt`    | Date   | Momento de encerramento da sessão        |
-| `durationMs` | Number | Duração total da sessão em milissegundos |
-
-**Campos de eventos semânticos (específicos do Para Que Serve?):**
-
-| Campo          | Tipo   | Descrição                                                |
-| -------------- | ------ | -------------------------------------------------------- |
-| `category`     | String | Categoria jogada (ex: `"Fase01"`, `"Fase02"`)            |
-| `totalPhases`  | Number | Número de fases completadas na sessão                    |
-| `totalAcertos` | Number | Total de acertos na sessão                               |
-| `totalErros`   | Number | Total de erros na sessão                                 |
-| `stars`        | Number | Estrelas recebidas ao final (1, 2 ou 3)                  |
-| `events`       | Array  | Lista de eventos semânticos registrados durante a sessão |
-
-**Estrutura de cada evento em `events`:**
-
-| Campo       | Tipo   | Descrição                                                |
-| ----------- | ------ | -------------------------------------------------------- |
-| `type`      | String | Tipo do evento (`"PhaseStarted"`, `"DragAttempt"`, etc.) |
-| `timestamp` | Number | Tempo relativo ao início da sessão em milissegundos      |
-| `data`      | Object | Dados específicos do evento (varia conforme o `type`)    |
-
-**Tipos de eventos registrados:**
-
-| Tipo do evento       | Descrição                                                  |
-| -------------------- | ---------------------------------------------------------- |
-| `CategorySelected`   | Categoria escolhida pelo aluno                             |
-| `PhaseStarted`       | Nova fase iniciada — item-alvo e 4 opções geradas          |
-| `DragAttempt`        | Tentativa de arrastar — item escolhido, destino, resultado |
-| `CorrectMatch`       | Pareamento correto — inclui tempo gasto na fase            |
-| `WrongMatch`         | Item errado escolhido                                      |
-| `PhaseCompleted`     | Fase encerrada — resumo de acertos, erros, tempo, estrelas |
-| `InactivityDetected` | Período de inatividade detectado automaticamente pelo SDK  |
-| `SessionEnded`       | Sessão encerrada — dispara o envio do JSON ao backend      |
-
-**Campos de métricas consolidadas:**
-
-| Campo                          | Tipo   | Descrição                                        |
-| ------------------------------ | ------ | ------------------------------------------------ |
-| `metrics.totalClicks`          | Number | Total de interações na sessão                    |
-| `metrics.firstActionMs`        | Number | Tempo até a primeira ação em milissegundos       |
-| `metrics.avgTimeBetweenClicks` | Number | Tempo médio entre interações                     |
-| `metrics.inactivityPeriods`    | Number | Quantidade de períodos de inatividade detectados |
-| `metrics.clicksByElement`      | Object | Contagem de cliques por elemento identificado    |
-
-**Campos de rastreamento de interação:**
-
-| Campo        | Tipo  | Descrição                                                  |
-| ------------ | ----- | ---------------------------------------------------------- |
-| `clicks`     | Array | Lista de cliques com elemento, coordenadas x/y e timestamp |
-| `mousePath`  | Array | Caminho do cursor/toque compactado para geração de heatmap |
-| `rawReports` | Array | JSON bruto completo para reprocessamento futuro            |
-
-**Exemplo de documento (simplificado):**
+### Exemplo
 
 ```json
 {
     "_id": "ObjectId('...')",
-    "playerId": "ObjectId('...')",
-    "gameId": "ParaQueServe",
-    "platform": "WebGL",
-    "category": "Fase01",
-    "startedAt": "2026-04-25T14:00:00.000Z",
-    "endedAt": "2026-04-25T14:05:30.000Z",
-    "durationMs": 330000,
-    "totalPhases": 4,
-    "totalAcertos": 3,
-    "totalErros": 1,
-    "stars": 2,
-    "metrics": {
-        "totalClicks": 12,
-        "firstActionMs": 4200,
-        "avgTimeBetweenClicks": 8500,
-        "inactivityPeriods": 1,
-        "clicksByElement": {
-            "opcao_1": 4,
-            "opcao_3": 3
-        }
-    },
-    "events": [
-        {
-            "type": "PhaseStarted",
-            "timestamp": 1200,
-            "data": {
-                "alvo": "escova_de_dentes",
-                "opcoes": ["tesoura", "escova_de_dentes", "bola", "colher"]
-            }
-        },
-        {
-            "type": "DragAttempt",
-            "timestamp": 5400,
-            "data": {
-                "itemArrastado": "tesoura",
-                "resultado": "errou"
-            }
-        },
-        {
-            "type": "CorrectMatch",
-            "timestamp": 9800,
-            "data": {
-                "item": "escova_de_dentes",
-                "tempoFaseMs": 8600
-            }
-        }
-    ],
-    "clicks": [{ "element": "opcao_1", "x": 210, "y": 380, "timestamp": 5400 }],
-    "mousePath": [
-        { "x": 200, "y": 350, "t": 5200 },
-        { "x": 210, "y": 380, "t": 5400 }
-    ],
-    "rawReports": [],
-    "__v": 0
+    "name": "Demo - Turma Demonstrativa A",
+    "institutionId": "ObjectId('...')",
+    "professorId": "ObjectId('...')",
+    "createdAt": "2026-05-01T10:00:00.000Z",
+    "updatedAt": "2026-05-01T10:00:00.000Z"
 }
 ```
 
 ---
 
-## Índices
+## Collection: `students`
 
-Os índices a seguir são recomendados para garantir bom desempenho nas queries do dashboard conforme o volume de dados crescer.
+Armazena alunos acompanhados pelo sistema. Cada aluno pertence a uma turma.
 
-### Índices existentes (criados automaticamente pelo Mongoose)
+As anotacoes do professor ficam embutidas dentro do documento do aluno, pois sao sempre lidas junto ao perfil.
 
-| Collection | Campo   | Tipo  | Motivo                               |
-| ---------- | ------- | ----- | ------------------------------------ |
-| Todas      | `_id`   | Único | Padrão do MongoDB                    |
-| `users`    | `email` | Único | Login e validação de email duplicado |
+### Campos
 
-### Índices recomendados para criar no Atlas
+| Campo                     | Tipo     | Obrigatorio | Descricao                                                  |
+| ------------------------- | -------- | ----------- | ---------------------------------------------------------- |
+| `_id`                     | ObjectId | automatico  | Identificador real do aluno                                |
+| `name`                    | String   | sim         | Nome do aluno                                              |
+| `birthDate`               | Date     | nao         | Data de nascimento                                         |
+| `groupId`                 | ObjectId | sim         | Referencia a `groups`                                      |
+| `supportLevel`            | String   | nao         | `"Nivel 1"`, `"Nivel 2"`, `"Nivel 3"` ou `"Nao informado"` |
+| `otherConditions`         | String   | nao         | Campo textual para outras informacoes relevantes           |
+| `guardianName`            | String   | nao         | Nome do responsavel                                        |
+| `guardianContact`         | String   | nao         | Contato do responsavel                                     |
+| `anotacoes`               | Array    | nao         | Observacoes registradas pelo professor                     |
+| `capturaSolicitada`       | Boolean  | nao         | Indica se a proxima sessao deve salvar imagens             |
+| `capturaSolicitadaOrigem` | String   | nao         | `"dashboard"`, `"unity"` ou `null`                         |
+| `createdAt`               | Date     | automatico  | Data de criacao                                            |
+| `updatedAt`               | Date     | automatico  | Data da ultima atualizacao                                 |
 
-| Collection | Campo(s)              | Tipo     | Query beneficiada                                  |
-| ---------- | --------------------- | -------- | -------------------------------------------------- |
-| `sessions` | `playerId`            | Simples  | Buscar todas as sessões de um aluno                |
-| `sessions` | `playerId, startedAt` | Composto | Histórico de sessões de um aluno ordenado por data |
-| `sessions` | `category`            | Simples  | Filtrar sessões por categoria                      |
-| `students` | `groupId`             | Simples  | Listar alunos de uma turma                         |
-| `groups`   | `institutionId`       | Simples  | Listar turmas de uma instituição                   |
+### Estrutura de `anotacoes`
 
-**Como criar um índice no Atlas:**
+| Campo       | Tipo     | Descricao                    |
+| ----------- | -------- | ---------------------------- |
+| `_id`       | ObjectId | Identificador da anotacao    |
+| `texto`     | String   | Conteudo da observacao       |
+| `autorId`   | ObjectId | Usuario que criou a anotacao |
+| `autorNome` | String   | Nome do autor                |
+| `createdAt` | Date     | Data de criacao da anotacao  |
+| `updatedAt` | Date     | Data da ultima atualizacao   |
 
-1. Acesse o cluster no MongoDB Atlas
-2. Vá em **Collections** → selecione a collection
-3. Clique na aba **Indexes**
-4. Clique em **Create Index**
-5. Informe os campos e o tipo (1 = crescente, -1 = decrescente)
+### Observacao sobre captura
+
+Quando `capturaSolicitada` esta `true`, o jogo Unity deve capturar screenshots por fase na proxima sessao desse aluno. Depois que o backend recebe uma sessao contendo imagens, ele reseta:
+
+```txt
+capturaSolicitada = false
+capturaSolicitadaOrigem = null
+```
+
+---
+
+## Collection: `sessions`
+
+Armazena sessoes de jogo enviadas pelo SDK Unity.
+
+Cada sessao pertence a um aluno por meio de `studentId`. O campo `playerId` continua existindo para exibicao e compatibilidade historica, mas o relacionamento real com o aluno deve usar `studentId`.
+
+### Campos principais
+
+| Campo         | Tipo     | Obrigatorio | Descricao                                       |
+| ------------- | -------- | ----------- | ----------------------------------------------- |
+| `_id`         | ObjectId | automatico  | Identificador interno do MongoDB                |
+| `sessionId`   | String   | sim         | Identificador unico da sessao enviado pelo jogo |
+| `studentId`   | ObjectId | sim         | Referencia real ao aluno em `students`          |
+| `playerId`    | String   | sim         | Nome/identificador exibivel do jogador          |
+| `gameId`      | String   | sim         | Identificador do jogo, ex: `para-que-serve`     |
+| `gameVersion` | String   | nao         | Versao do jogo ou dataset                       |
+| `platform`    | String   | nao         | Plataforma, ex: `WebGL`                         |
+| `startedAt`   | String   | nao         | Inicio da sessao                                |
+| `endedAt`     | String   | nao         | Fim da sessao                                   |
+| `durationMs`  | Number   | nao         | Duracao total em milissegundos                  |
+
+### `metrics`
+
+| Campo                     | Tipo   | Descricao                                   |
+| ------------------------- | ------ | ------------------------------------------- |
+| `totalClicks`             | Number | Total de interacoes/cliques                 |
+| `totalCorrect`            | Number | Total de acertos                            |
+| `totalWrong`              | Number | Total de erros                              |
+| `firstActionMs`           | Number | Tempo ate a primeira acao                   |
+| `avgTimeBetweenActionsMs` | Number | Tempo medio entre acoes                     |
+| `inactivityCount`         | Number | Quantidade de periodos de inatividade       |
+| `totalInactivityMs`       | Number | Tempo total de inatividade em milissegundos |
+
+### `clicks`
+
+Lista de cliques ou toques registrados durante a sessao.
+
+| Campo       | Tipo   | Descricao                |
+| ----------- | ------ | ------------------------ |
+| `element`   | String | Elemento clicado         |
+| `x`         | Number | Coordenada X normalizada |
+| `y`         | Number | Coordenada Y normalizada |
+| `timestamp` | Number | Tempo relativo da acao   |
+
+### `mousePath`
+
+Caminho do cursor/toque usado no mapa de interacoes.
+
+| Campo | Tipo   | Descricao                |
+| ----- | ------ | ------------------------ |
+| `x`   | Number | Coordenada X normalizada |
+| `y`   | Number | Coordenada Y normalizada |
+| `t`   | Number | Tempo relativo           |
+
+### `dragPath`
+
+Caminho registrado quando o aluno segura e arrasta um item.
+
+| Campo     | Tipo   | Descricao                                     |
+| --------- | ------ | --------------------------------------------- |
+| `element` | String | Elemento arrastado                            |
+| `x`       | Number | Coordenada X normalizada                      |
+| `y`       | Number | Coordenada Y normalizada                      |
+| `t`       | Number | Tempo relativo                                |
+| `state`   | String | Estado do arraste, ex: `start`, `move`, `end` |
+
+### `gameEvents`
+
+Eventos semanticos enviados pelo jogo.
+
+| Campo       | Tipo   | Descricao                              |
+| ----------- | ------ | -------------------------------------- |
+| `eventType` | String | Tipo do evento                         |
+| `timestamp` | Number | Tempo relativo ao inicio da sessao     |
+| `payload`   | String | JSON serializado com dados especificos |
+
+Tipos comuns:
+
+| Evento               | Descricao                         |
+| -------------------- | --------------------------------- |
+| `CategorySelected`   | Categoria escolhida               |
+| `PhaseStarted`       | Fase iniciada, item alvo e opcoes |
+| `DragAttempt`        | Tentativa de arraste              |
+| `WrongMatch`         | Item incorreto selecionado        |
+| `CorrectMatch`       | Item correto selecionado          |
+| `PhaseCompleted`     | Fase concluida                    |
+| `InactivityDetected` | Periodo de inatividade            |
+| `SessionEnded`       | Sessao encerrada                  |
+
+### `screenshots`
+
+Imagens capturadas por fase quando a captura estava ativa.
+
+| Campo       | Tipo   | Descricao                                            |
+| ----------- | ------ | ---------------------------------------------------- |
+| `faseIndex` | Number | Indice da fase, iniciando em 0                       |
+| `timestamp` | Number | Tempo relativo da captura                            |
+| `caminho`   | String | Caminho publico da imagem em `/uploads/screenshots/` |
+
+O backend nao salva `screenshotBase64` no banco. Ele recebe a imagem em base64, grava o arquivo em disco e armazena apenas o caminho publico.
+
+---
+
+## Identificacao do aluno
+
+O identificador correto para relacionar sessoes e alunos e:
+
+```txt
+studentId
+```
+
+`studentId` referencia o `_id` do documento em `students`.
+
+`playerId` continua existindo para exibicao, compatibilidade e leitura humana, mas nao deve ser usado como chave principal de relacionamento.
+
+Esse ajuste evita que alunos com nomes iguais ou reutilizados recebam sessoes antigas indevidamente.
+
+---
+
+## Indices recomendados
+
+### Ja existentes ou esperados
+
+| Collection | Campo       | Tipo  | Motivo                                    |
+| ---------- | ----------- | ----- | ----------------------------------------- |
+| Todas      | `_id`       | Unico | Padrao do MongoDB                         |
+| `users`    | `email`     | Unico | Login e validacao de email duplicado      |
+| `sessions` | `sessionId` | Unico | Evita registrar a mesma sessao duas vezes |
+
+### Recomendados para criar/confirmar no Atlas
+
+| Collection | Campo(s)               | Tipo     | Query beneficiada                |
+| ---------- | ---------------------- | -------- | -------------------------------- |
+| `sessions` | `studentId`            | Simples  | Buscar sessoes de um aluno       |
+| `sessions` | `studentId, startedAt` | Composto | Historico ordenado de sessoes    |
+| `sessions` | `gameId`               | Simples  | Filtro por jogo acompanhado      |
+| `students` | `groupId`              | Simples  | Listar alunos de uma turma       |
+| `groups`   | `institutionId`        | Simples  | Listar turmas de uma instituicao |
+| `groups`   | `professorId`          | Simples  | Buscar turmas de um professor    |
 
 ---
 
@@ -368,81 +339,113 @@ Os índices a seguir são recomendados para garantir bom desempenho nas queries 
 
 ### 1. Criar conta e cluster
 
-1. Acesse [cloud.mongodb.com](https://cloud.mongodb.com) e crie uma conta
-2. Crie um novo **Project** chamado `LUDUS`
-3. Crie um **Cluster** gratuito (M0 Sandbox é suficiente para desenvolvimento)
-4. Aguarde o cluster ser provisionado (alguns minutos)
+1. Acesse `https://cloud.mongodb.com`.
+2. Crie um projeto para o LUDUS.
+3. Crie um cluster MongoDB Atlas.
+4. Aguarde o provisionamento.
 
-### 2. Criar usuário do banco
+### 2. Criar usuario do banco
 
-1. No menu lateral, acesse **Database Access**
-2. Clique em **Add New Database User**
-3. Escolha **Password** como método de autenticação
-4. Defina um nome de usuário e uma senha forte — guarde essas credenciais
-5. Em **Database User Privileges**, selecione **Read and Write to any database**
-6. Clique em **Add User**
+1. Acesse **Database Access**.
+2. Clique em **Add New Database User**.
+3. Escolha autenticacao por senha.
+4. Defina usuario e senha fortes.
+5. Conceda permissao de leitura e escrita no banco usado pelo projeto.
 
 ### 3. Liberar acesso por IP
 
-1. No menu lateral, acesse **Network Access**
-2. Clique em **Add IP Address**
-3. Para desenvolvimento local: clique em **Add Current IP Address**
-4. Para produção: adicione o IP do servidor onde o backend estará hospedado
-5. Para liberar qualquer IP (não recomendado em produção): use `0.0.0.0/0`
+1. Acesse **Network Access**.
+2. Clique em **Add IP Address**.
+3. Para desenvolvimento local, adicione seu IP atual.
+4. Para producao, adicione o IP do servidor do backend.
+5. Evite `0.0.0.0/0` em producao.
 
-### 4. Obter a connection string
+### 4. Obter connection string
 
-1. No cluster, clique em **Connect**
-2. Selecione **Drivers**
-3. Escolha **Node.js** como driver
-4. Copie a connection string no formato:
-    ```
-    mongodb+srv://<usuario>:<senha>@cluster0.xxxxx.mongodb.net/<banco>?retryWrites=true&w=majority
-    ```
-5. Substitua `<usuario>` e `<senha>` pelas credenciais criadas no passo 2
-6. Substitua `<banco>` por `test` (nome do banco atual do projeto)
+No cluster, clique em **Connect** e copie a connection string do driver Node.js:
 
-### 5. Configurar o arquivo `.env`
-
-Na raiz do diretório `backend/`, copie o arquivo de exemplo e preencha:
-
-```bash
-cp .env.example .env
+```txt
+mongodb+srv://<usuario>:<senha>@cluster0.xxxxx.mongodb.net/<banco>?retryWrites=true&w=majority
 ```
 
-Edite o `.env` com os seus valores:
+Substitua:
+
+- `<usuario>` pelo usuario criado;
+- `<senha>` pela senha criada;
+- `<banco>` pelo nome do banco usado pelo projeto.
+
+---
+
+## Variaveis de ambiente do backend
+
+Na pasta `backend/`, crie o arquivo `.env` com base em `.env.example`.
+
+Exemplo:
 
 ```env
 PORT=3000
 MONGODB_URI=mongodb+srv://<usuario>:<senha>@cluster0.xxxxx.mongodb.net/test?retryWrites=true&w=majority
-JWT_SECRET=uma_chave_secreta_longa_e_aleatoria_aqui
+JWT_SECRET=uma_chave_secreta_longa_e_aleatoria
 ```
 
-> A `JWT_SECRET` pode ser qualquer string longa e aleatória. Em produção, use um gerador de strings seguras.
+| Variavel      | Descricao                                   | Exemplo             |
+| ------------- | ------------------------------------------- | ------------------- |
+| `PORT`        | Porta do servidor Express                   | `3000`              |
+| `MONGODB_URI` | Connection string completa do MongoDB Atlas | `mongodb+srv://...` |
+| `JWT_SECRET`  | Chave para assinar e verificar tokens JWT   | string longa        |
 
-### 6. Criar o primeiro administrador
-
-Com o backend rodando e o `.env` configurado, execute o script de seed:
-
-```bash
-cd backend
-# Edite o email e a senha em src/scripts/criarAdmin.js antes de rodar
-node src/scripts/criarAdmin.js
-```
-
-Esse script cria o usuário administrador inicial no banco. Após criá-lo, faça login no dashboard com as credenciais definidas.
+Nunca versione o arquivo `.env`.
 
 ---
 
-## Variáveis de ambiente (backend)
+## Uploads e persistencia de imagens
 
-| Variável      | Descrição                                         | Exemplo                         |
-| ------------- | ------------------------------------------------- | ------------------------------- |
-| `PORT`        | Porta em que o servidor Express será iniciado     | `3000`                          |
-| `MONGODB_URI` | Connection string completa do MongoDB Atlas       | `mongodb+srv://...`             |
-| `JWT_SECRET`  | Chave secreta para assinar e verificar tokens JWT | `minha_chave_super_secreta_123` |
+As imagens capturadas durante as sessoes do jogo sao salvas localmente pelo backend em:
 
-> Nunca versione o arquivo `.env` no repositório. Ele está listado no `.gitignore`.
+```txt
+backend/uploads/screenshots/
+```
+
+Essa pasta e servida pelo Express pela rota publica:
+
+```txt
+/uploads
+```
+
+Exemplo de caminho salvo em uma sessao:
+
+```txt
+/uploads/screenshots/<sessionId>_fase0.jpg
+```
+
+### Controle no Git
+
+A pasta `backend/uploads/` esta no `.gitignore` e nao deve ser versionada.
+
+Isso evita que screenshots geradas em desenvolvimento, testes ou demonstracoes sejam enviadas para o repositorio.
+
+### Cuidados em producao
+
+Em ambiente de producao, `backend/uploads/` deve ser tratado como armazenamento persistente. Se o backend for hospedado em VM, container ou servico com deploy automatizado, a pasta precisa permanecer fora do ciclo de recriacao da aplicacao.
+
+Recomendacoes:
+
+- configurar `backend/uploads/` como volume persistente quando usar Docker ou ambiente semelhante;
+- manter backup periodico se as imagens forem relevantes para acompanhamento;
+- evitar apagar a pasta em processos de deploy;
+- monitorar o crescimento do diretorio conforme o uso de screenshots aumentar;
+- considerar uma politica futura de limpeza ou arquivamento para sessoes antigas;
+- nunca publicar screenshots com dados reais em repositorios, artigos ou materiais sem anonimizar e validar o uso.
+
+### Relacao com exclusao em cascata
+
+Quando alunos, turmas ou instituicoes sao excluidos, o backend remove tambem as sessoes vinculadas e tenta apagar os arquivos de screenshots associados por meio do helper:
+
+```txt
+backend/src/utils/removerSessoes.js
+```
+
+Esse comportamento reduz acumulo de arquivos sem referencia no banco, mas nao substitui uma politica de backup ou limpeza em producao.
 
 ---
 
@@ -454,11 +457,14 @@ Esse script cria o usuário administrador inicial no banco. Após criá-lo, faç
 cd backend
 npm install
 cp .env.example .env
-# Preencha o .env com suas credenciais
 npm run dev
 ```
 
-O servidor iniciará em `http://localhost:3000`.
+O backend inicia em:
+
+```txt
+http://localhost:3000
+```
 
 ### Frontend
 
@@ -468,19 +474,187 @@ npm install
 npm run dev
 ```
 
-O dashboard estará disponível em `http://localhost:5173`.
+O dashboard inicia em:
+
+```txt
+http://localhost:5173
+```
 
 ---
 
-## Referência de rotas (resumo)
+## Criar o primeiro administrador
 
-| Método | Rota                                | Descrição                        |
+Com o `.env` configurado, execute o script de criacao do administrador inicial:
+
+```bash
+cd backend
+node src/scripts/criarAdmin.js
+```
+
+Antes de rodar, confira o email e a senha definidos no script.
+
+---
+
+## Datasets demonstrativos
+
+O projeto possui scripts para gerar dados sinteticos e anonimos de demonstracao.
+
+### Dataset fixo
+
+```bash
+cd backend
+npm run seed:demo
+```
+
+Login gerado:
+
+```txt
+Email: professora.demo@ludus.local
+Senha: Demo@2026
+```
+
+### Dataset random
+
+```bash
+cd backend
+npm run seed:demo:random -- --alunos=3 --sessoes=3 --turmas=1 --seed=2026
+```
+
+Login gerado:
+
+```txt
+Email: professor.random.demo@ludus.local
+Senha: Demo@2026
+```
+
+Modos uteis:
+
+```bash
+npm run seed:demo:random -- --alunos=6 --sessoes=12 --turmas=2
+npm run seed:demo:random -- --alunos=6 --sessoes=12 --turmas=2 --append
+npm run seed:demo:random -- --alunos=6 --sessoes=12 --turmas=2 --append --no-screenshots
+```
+
+Observacoes:
+
+- sem `--append`, o dataset random anterior e recriado;
+- com `--append`, novos lotes sao adicionados;
+- com `--no-screenshots`, as sessoes sao criadas sem imagens;
+- quando `--seed` nao e informado, o script usa a data/hora atual.
+
+---
+
+## Referencia de rotas
+
+### Health check
+
+| Metodo | Rota | Descricao                  |
+| ------ | ---- | -------------------------- |
+| GET    | `/`  | Verifica se a API responde |
+
+### Autenticacao
+
+| Metodo | Rota               | Descricao              |
+| ------ | ------------------ | ---------------------- |
+| POST   | `/api/auth/login`  | Login no dashboard     |
+| GET    | `/api/auth/me`     | Usuario autenticado    |
+| PUT    | `/api/auth/perfil` | Atualiza perfil logado |
+
+### Unity
+
+| Metodo | Rota                                        | Descricao                                |
+| ------ | ------------------------------------------- | ---------------------------------------- |
+| GET    | `/api/unity/schools`                        | Lista instituicoes para o jogo           |
+| GET    | `/api/unity/groups/:institutionId`          | Lista turmas da instituicao              |
+| GET    | `/api/unity/students/:groupId`              | Lista alunos da turma                    |
+| POST   | `/api/unity/students/:id/solicitar-captura` | Liga/desliga captura de imagem pelo jogo |
+
+### Instituicoes, turmas e alunos
+
+| Metodo | Rota                                  | Descricao                           |
+| ------ | ------------------------------------- | ----------------------------------- |
+| GET    | `/api/institutions`                   | Lista instituicoes                  |
+| POST   | `/api/institutions`                   | Cria instituicao                    |
+| GET    | `/api/institutions/:id`               | Busca instituicao                   |
+| PUT    | `/api/institutions/:id`               | Atualiza instituicao                |
+| DELETE | `/api/institutions/:id`               | Remove instituicao em cascata       |
+| GET    | `/api/groups`                         | Lista turmas                        |
+| POST   | `/api/groups`                         | Cria turma                          |
+| GET    | `/api/groups/:id`                     | Busca turma                         |
+| PUT    | `/api/groups/:id`                     | Atualiza turma                      |
+| DELETE | `/api/groups/:id`                     | Remove turma em cascata             |
+| GET    | `/api/students`                       | Lista alunos                        |
+| POST   | `/api/students`                       | Cria aluno                          |
+| GET    | `/api/students/:id`                   | Busca aluno                         |
+| PUT    | `/api/students/:id`                   | Atualiza aluno                      |
+| DELETE | `/api/students/:id`                   | Remove aluno e sessoes              |
+| POST   | `/api/students/:id/anotacoes`         | Adiciona anotacao                   |
+| PATCH  | `/api/students/:id/solicitar-captura` | Liga/desliga captura pelo dashboard |
+
+### Sessoes e dashboard
+
+| Metodo | Rota                                | Descricao                        |
 | ------ | ----------------------------------- | -------------------------------- |
-| POST   | `/api/sessions`                     | Recebe sessão enviada pela Unity |
-| GET    | `/api/sessions/player/:playerId`    | Histórico de sessões de um aluno |
-| GET    | `/api/dashboard/summary/:playerId`  | Métricas consolidadas do aluno   |
-| GET    | `/api/dashboard/heatmap/:sessionId` | Dados para heatmap de uma sessão |
-| GET    | `/api/dashboard/alerts/:playerId`   | Alertas pedagógicos do aluno     |
-| POST   | `/api/auth/login`                   | Login no dashboard               |
+| POST   | `/api/sessions`                     | Recebe sessao enviada pela Unity |
+| GET    | `/api/sessions`                     | Lista sessoes para debug         |
+| GET    | `/api/sessions/:sessionId`          | Busca sessao especifica          |
+| GET    | `/api/sessions/student/:studentId`  | Historico de sessoes de um aluno |
+| GET    | `/api/dashboard/summary/:studentId` | Resumo consolidado do aluno      |
+| GET    | `/api/dashboard/alerts/:studentId`  | Indicadores pedagogicos do aluno |
+| GET    | `/api/dashboard/heatmap/:sessionId` | Dados para o mapa de interacoes  |
 
-A coleção completa de rotas com exemplos de requisição está em `docs/LUDUS_API.postman_collection.json`.
+As rotas de resumo, historico e indicadores aceitam filtro opcional por jogo:
+
+```txt
+?gameId=para-que-serve
+```
+
+---
+
+## Exclusao em cascata
+
+O backend remove dados dependentes quando entidades principais sao excluidas:
+
+- excluir aluno remove suas sessoes e imagens vinculadas;
+- excluir turma remove alunos, sessoes e imagens vinculadas;
+- excluir instituicao remove turmas, alunos, sessoes e imagens vinculadas, alem de desvincular usuarios associados.
+
+As imagens sao removidas pelo helper:
+
+```txt
+backend/src/utils/removerSessoes.js
+```
+
+---
+
+## Cuidados eticos e de privacidade
+
+O LUDUS Acompanha e uma ferramenta de apoio pedagogico. Os indicadores apresentados pelo dashboard e pelo PDF nao devem ser interpretados como diagnostico clinico, classificacao definitiva do estudante ou medida isolada de aprendizagem.
+
+Recomendacoes:
+
+- usar linguagem pedagogica e nao diagnostica em relatorios e apresentacoes;
+- evitar publicar dados reais de alunos, professores ou instituicoes;
+- anonimizar prints usados em artigos, slides e documentos;
+- usar datasets demonstrativos para testes publicos e reproducao tecnica;
+- tratar screenshots reais como dados sensiveis do contexto educacional.
+
+---
+
+## Checklist tecnico rapido
+
+Antes de demonstrar ou entregar o ambiente, conferir:
+
+- backend inicia sem erro;
+- frontend inicia sem erro;
+- MongoDB conecta corretamente;
+- login admin funciona;
+- login professor funciona;
+- professor visualiza apenas sua instituicao;
+- `npm run seed:demo` funciona;
+- `npm run seed:demo:random` funciona;
+- sessoes sao vinculadas por `studentId`;
+- heatmap funciona com screenshots;
+- heatmap funciona sem screenshots;
+- exclusao em cascata remove sessoes e imagens;
+- `backend/uploads/` nao aparece como arquivo versionado no Git.
