@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "captureMode": "observational",
+  "source": "browser-extension",
+  "sourceVersion": "0.1.0",
+  "ingestionMethod": "file-import",
+  "capabilities": {
+    "clicks": true,
+    "mousePath": true,
+    "dragPath": true,
+    "screenshots": false,
+    "inactivity": true,
+    "focusEvents": true,
+    "phaseEvents": false,
+    "correctWrong": false,
+    "categoryEvents": false,
+    "customEvents": false
+  },
+  "sessionId": "obs-estacoes-20260720-001",
+  "studentId": "64f000000000000000000001",
+  "playerId": "Estudante Demonstrativo",
+  "gameId": "explorando-estacoes",
+  "gameVersion": "externo-desconhecido",
+  "platform": "browser",
+  "startedAt": "2026-07-20T22:00:00.000Z",
+  "endedAt": "2026-07-20T22:03:12.000Z",
+  "durationMs": 192000,
+  "viewport": {
+    "widthPx": 1366,
+    "heightPx": 768,
+    "coordinateUnit": "normalized",
+    "coordinateOrigin": "top-left"
+  },
+  "metrics": {
+    "totalClicks": 6,
+    "firstActionMs": 950,
+    "avgTimeBetweenActionsMs": 1840,
+    "inactivityCount": 2,
+    "totalInactivityMs": 26000
+  },
+  "clicks": [
+    { "element": "unknown", "x": 0.24, "y": 0.61, "timestamp": 950 },
+    { "element": "unknown", "x": 0.69, "y": 0.58, "timestamp": 4200 },
+    { "element": "unknown", "x": 0.51, "y": 0.74, "timestamp": 9700 }
+  ],
+  "mousePath": [
+    { "x": 0.13, "y": 0.52, "t": 450 },
+    { "x": 0.24, "y": 0.61, "t": 950 },
+    { "x": 0.42, "y": 0.59, "t": 2600 },
+    { "x": 0.69, "y": 0.58, "t": 4200 }
+  ],
+  "dragPath": [
+    { "element": "unknown", "x": 0.31, "y": 0.44, "t": 8100, "state": "start" },
+    { "element": "unknown", "x": 0.45, "y": 0.53, "t": 8600, "state": "move" },
+    { "element": "unknown", "x": 0.51, "y": 0.74, "t": 9100, "state": "end" }
+  ],
+  "gameEvents": [
+    { "eventType": "FocusLost", "timestamp": 58000, "payload": { "visibilityState": "hidden" } },
+    { "eventType": "FocusGained", "timestamp": 65000, "payload": { "visibilityState": "visible" } },
+    { "eventType": "InactivityDetected", "timestamp": 91000, "payload": { "durationMs": 19000 } }
+  ],
+  "screenshots": []
+}

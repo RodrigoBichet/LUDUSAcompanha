@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "captureMode": "sdk",
+  "source": "external-json-adapter",
+  "sourceVersion": "0.1.0",
+  "ingestionMethod": "file-import",
+  "capabilities": {
+    "clicks": true,
+    "mousePath": false,
+    "dragPath": false,
+    "screenshots": false,
+    "inactivity": true,
+    "focusEvents": false,
+    "phaseEvents": true,
+    "correctWrong": true,
+    "categoryEvents": true,
+    "customEvents": true
+  },
+  "sessionId": "externo-estacoes-20260720-042",
+  "studentId": "64f000000000000000000003",
+  "playerId": "Estudante Demonstrativo",
+  "gameId": "explorando-estacoes",
+  "gameVersion": "2.4.1",
+  "platform": "browser",
+  "startedAt": "2026-07-20T22:20:00.000Z",
+  "endedAt": "2026-07-20T22:22:18.000Z",
+  "durationMs": 138000,
+  "viewport": {
+    "widthPx": 1440,
+    "heightPx": 900,
+    "coordinateUnit": "normalized",
+    "coordinateOrigin": "top-left"
+  },
+  "metrics": {
+    "totalClicks": 8,
+    "totalCorrect": 3,
+    "totalWrong": 1,
+    "firstActionMs": 700,
+    "inactivityCount": 1,
+    "totalInactivityMs": 9200
+  },
+  "clicks": [
+    { "element": "season-card-summer", "x": 0.28, "y": 0.63, "timestamp": 700 },
+    { "element": "season-card-winter", "x": 0.74, "y": 0.63, "timestamp": 9400 }
+  ],
+  "mousePath": [],
+  "dragPath": [],
+  "gameEvents": [
+    { "eventType": "CategorySelected", "timestamp": 0, "payload": { "category": "Estações do ano" } },
+    { "eventType": "PhaseStarted", "timestamp": 150, "payload": { "phaseId": "season-1", "label": "Associe a imagem ao verão" } },
+    { "eventType": "QuestionAnswered", "timestamp": 11000, "payload": { "questionId": "season-1", "selectedOption": "summer", "expectedOption": "summer", "correct": true } },
+    { "eventType": "CorrectMatch", "timestamp": 11000, "payload": { "item": "summer", "timeSeconds": 11 } },
+    { "eventType": "PhaseCompleted", "timestamp": 11500, "payload": { "acertos": 1, "erros": 0, "timeSeconds": 11.5 } },
+    { "eventType": "SessionEnded", "timestamp": 138000, "payload": {} }
+  ],
+  "screenshots": []
+}

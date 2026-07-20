@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ludus-acompanha.ufpel.br/schema/ludus-session-1.0.0.schema.json",
+  "title": "Sessão canônica LUDUS",
+  "description": "Contrato interno versionado para telemetria de jogos educacionais no LUDUS Acompanha.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "captureMode", "source", "ingestionMethod", "capabilities", "sessionId", "studentId", "gameId", "startedAt", "durationMs", "viewport"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "captureMode": { "enum": ["observational", "sdk"] },
+    "source": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "ingestionMethod": { "enum": ["direct-api", "file-import"] },
+    "capabilities": { "$ref": "#/$defs/capabilities" },
+    "sessionId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "studentId": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
+    "playerId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "gameId": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "gameVersion": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "platform": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "durationMs": { "type": "integer", "minimum": 0 },
+    "viewport": { "$ref": "#/$defs/viewport" },
+    "metrics": { "$ref": "#/$defs/metrics" },
+    "clicks": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/click" } },
+    "mousePath": { "type": "array", "maxItems": 50000, "items": { "$ref": "#/$defs/pathPoint" } },
+    "dragPath": { "type": "array", "maxItems": 25000, "items": { "$ref": "#/$defs/dragPoint" } },
+    "gameEvents": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/gameEvent" } },
+    "screenshots": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/screenshot" } }
+  },
+  "$defs": {
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clicks", "mousePath", "dragPath", "screenshots", "inactivity", "focusEvents", "phaseEvents", "correctWrong", "categoryEvents", "customEvents"],
+      "properties": {
+        "clicks": { "type": "boolean" },
+        "mousePath": { "type": "boolean" },
+        "dragPath": { "type": "boolean" },
+        "screenshots": { "type": "boolean" },
+        "inactivity": { "type": "boolean" },
+        "focusEvents": { "type": "boolean" },
+        "phaseEvents": { "type": "boolean" },
+        "correctWrong": { "type": "boolean" },
+        "categoryEvents": { "type": "boolean" },
+        "customEvents": { "type": "boolean" }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthPx", "heightPx", "coordinateUnit", "coordinateOrigin"],
+      "properties": {
+        "widthPx": { "type": "integer", "minimum": 1 },
+        "heightPx": { "type": "integer", "minimum": 1 },
+        "coordinateUnit": { "enum": ["normalized", "pixel"] },
+        "coordinateOrigin": { "enum": ["top-left", "bottom-left"] }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "totalClicks": { "type": "integer", "minimum": 0 },
+        "totalCorrect": { "type": "integer", "minimum": 0 },
+        "totalWrong": { "type": "integer", "minimum": 0 },
+        "firstActionMs": { "type": "integer", "minimum": -1 },
+        "avgTimeBetweenActionsMs": { "type": "number", "minimum": 0 },
+        "inactivityCount": { "type": "integer", "minimum": 0 },
+        "totalInactivityMs": { "type": "number", "minimum": 0 }
+      }
+    },
+    "click": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "timestamp"],
+      "properties": {
+        "element": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "timestamp": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "pathPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "t"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "t": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "dragPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "t"],
+      "properties": {
+        "element": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "t": { "type": "integer", "minimum": 0 },
+        "state": { "enum": ["start", "move", "end", "unknown"] }
+      }
+    },
+    "gameEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventType", "timestamp", "payload"],
+      "properties": {
+        "eventType": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "timestamp": { "type": "integer", "minimum": 0 },
+        "payload": { "type": "object" }
+      }
+    },
+    "screenshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp", "caminho"],
+      "properties": {
+        "faseIndex": { "type": "integer", "minimum": 0 },
+        "phaseId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "timestamp": { "type": "integer", "minimum": 0 },
+        "caminho": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    }
+  }
+}

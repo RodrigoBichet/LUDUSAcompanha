@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "captureMode": "sdk",
+  "source": "unity-sdk",
+  "sourceVersion": "1.0.0",
+  "ingestionMethod": "direct-api",
+  "capabilities": {
+    "clicks": true,
+    "mousePath": true,
+    "dragPath": true,
+    "screenshots": true,
+    "inactivity": true,
+    "focusEvents": false,
+    "phaseEvents": true,
+    "correctWrong": true,
+    "categoryEvents": true,
+    "customEvents": false
+  },
+  "sessionId": "sdk-para-que-serve-20260720-001",
+  "studentId": "64f000000000000000000002",
+  "playerId": "Estudante Demonstrativo",
+  "gameId": "para-que-serve",
+  "gameVersion": "1.2.0",
+  "platform": "WebGL",
+  "startedAt": "2026-07-20T22:10:00.000Z",
+  "endedAt": "2026-07-20T22:11:05.000Z",
+  "durationMs": 65000,
+  "viewport": {
+    "widthPx": 1280,
+    "heightPx": 720,
+    "coordinateUnit": "pixel",
+    "coordinateOrigin": "bottom-left"
+  },
+  "metrics": {
+    "totalClicks": 5,
+    "totalCorrect": 2,
+    "totalWrong": 1,
+    "firstActionMs": 620,
+    "avgTimeBetweenActionsMs": 2250,
+    "inactivityCount": 1,
+    "totalInactivityMs": 10400
+  },
+  "clicks": [
+    { "element": "item_bola", "x": 218, "y": 166, "timestamp": 850 },
+    { "element": "area_resposta", "x": 1005, "y": 410, "timestamp": 3500 },
+    { "element": "item_escova", "x": 245, "y": 191, "timestamp": 12400 }
+  ],
+  "mousePath": [
+    { "x": 185, "y": 138, "t": 300 },
+    { "x": 218, "y": 166, "t": 850 },
+    { "x": 636, "y": 285, "t": 2150 },
+    { "x": 1005, "y": 410, "t": 3500 }
+  ],
+  "dragPath": [
+    { "element": "item_bola", "x": 218, "y": 166, "t": 900, "state": "start" },
+    { "element": "item_bola", "x": 636, "y": 285, "t": 2200, "state": "move" },
+    { "element": "item_bola", "x": 1005, "y": 410, "t": 3400, "state": "end" }
+  ],
+  "gameEvents": [
+    { "eventType": "CategorySelected", "timestamp": 0, "payload": { "category": "Higiene" } },
+    { "eventType": "PhaseStarted", "timestamp": 120, "payload": { "phaseId": "higiene-1", "targetItem": "escova", "options": ["escova", "bola", "livro", "copo"] } },
+    { "eventType": "DragAttempt", "timestamp": 3400, "payload": { "draggedItem": "bola", "targetItem": "escova", "correct": false } },
+    { "eventType": "WrongMatch", "timestamp": 3450, "payload": { "draggedItem": "bola", "expectedItem": "escova" } },
+    { "eventType": "CorrectMatch", "timestamp": 14300, "payload": { "item": "escova", "timeSeconds": 14.3 } },
+    { "eventType": "PhaseCompleted", "timestamp": 14800, "payload": { "acertos": 1, "erros": 1, "timeSeconds": 14.8, "stars": 2 } },
+    { "eventType": "SessionEnded", "timestamp": 65000, "payload": {} }
+  ],
+  "screenshots": [
+    { "faseIndex": 0, "phaseId": "higiene-1", "timestamp": 250, "caminho": "/uploads/screenshots/sdk-para-que-serve-20260720-001_fase0.jpg" }
+  ]
+}
