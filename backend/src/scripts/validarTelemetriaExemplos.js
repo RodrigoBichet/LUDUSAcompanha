@@ -11,6 +11,7 @@ const {
 const {
     normalizarSessaoTelemetria,
 } = require("../services/telemetryNormalizer");
+const Session = require("../models/Session");
 
 const PASTA_EXEMPLOS = path.join(
     __dirname,
@@ -53,7 +54,14 @@ const validarEExibir = (nome, dados) => {
         throw new Error(`${nome}: normalização sem metadados obrigatórios.`);
     }
 
-    console.log(`OK ${nome} (${resultado.tipo})`);
+    const sessao = new Session(normalizada);
+    const erroModelo = sessao.validateSync();
+
+    if (erroModelo) {
+        throw new Error(`${nome}: modelo Mongoose inválido: ${erroModelo.message}`);
+    }
+
+    console.log(`OK ${nome} (${resultado.tipo}, modelo válido)`);
 };
 
 try {

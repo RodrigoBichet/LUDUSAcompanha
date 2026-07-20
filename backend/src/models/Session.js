@@ -56,11 +56,38 @@ const DragPathPointSchema = new mongoose.Schema(
     { _id: false },
 );
 
+const CapacidadesSchema = new mongoose.Schema(
+    {
+        clicks: { type: Boolean },
+        mousePath: { type: Boolean },
+        dragPath: { type: Boolean },
+        screenshots: { type: Boolean },
+        inactivity: { type: Boolean },
+        focusEvents: { type: Boolean },
+        phaseEvents: { type: Boolean },
+        correctWrong: { type: Boolean },
+        categoryEvents: { type: Boolean },
+        customEvents: { type: Boolean },
+    },
+    { _id: false },
+);
+
+const ViewportSchema = new mongoose.Schema(
+    {
+        widthPx: { type: Number },
+        heightPx: { type: Number },
+        coordinateUnit: { type: String },
+        coordinateOrigin: { type: String },
+    },
+    { _id: false },
+);
+
 const GameEventSchema = new mongoose.Schema(
     {
         eventType: { type: String },
         timestamp: { type: Number },
         payload: { type: String, default: "" },
+        payloadData: { type: mongoose.Schema.Types.Mixed, default: null },
     },
     { _id: false },
 );
@@ -71,6 +98,7 @@ const GameEventSchema = new mongoose.Schema(
 const FaseScreenshotSchema = new mongoose.Schema(
     {
         faseIndex: { type: Number }, // Índice da fase (0, 1, 2, 3)
+        phaseId: { type: String },
         timestamp: { type: Number }, // Ms desde o início da sessão
         caminho: { type: String, default: null }, // Ex: /uploads/screenshots/abc_fase0.jpg
     },
@@ -92,6 +120,16 @@ const SessionSchema = new mongoose.Schema(
         },
         playerId: { type: String, required: true },
         gameId: { type: String, required: true },
+
+        // Metadados da telemetria multi-jogo. Sessões históricas podem não
+        // possuir esses campos e continuam legíveis pelo dashboard atual.
+        schemaVersion: { type: String },
+        captureMode: { type: String, enum: ["observational", "sdk"] },
+        source: { type: String },
+        sourceVersion: { type: String },
+        ingestionMethod: { type: String, enum: ["direct-api", "file-import"] },
+        capabilities: { type: CapacidadesSchema },
+        viewport: { type: ViewportSchema },
 
         gameVersion: { type: String },
         platform: { type: String },

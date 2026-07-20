@@ -1,6 +1,6 @@
 // =============================================================================
 // telemetryNormalizer.js
-// Normaliza payloads legados e canônicos sem alterar ainda a rota publicada.
+// Normaliza payloads legados e canônicos antes da persistência da sessão.
 // =============================================================================
 
 const tentarConverterJson = (valor) => {
@@ -33,7 +33,7 @@ const inferirCapacidadesLegadas = (dados) => ({
     clicks: Array.isArray(dados.clicks),
     mousePath: Array.isArray(dados.mousePath),
     dragPath: Array.isArray(dados.dragPath),
-    screenshots: Array.isArray(dados.screenshots) && dados.screenshots.length > 0,
+    screenshots: Array.isArray(dados.screenshots),
     inactivity: (dados.gameEvents || []).some(
         (evento) => evento.eventType === "InactivityDetected",
     ),

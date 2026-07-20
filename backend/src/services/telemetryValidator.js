@@ -122,9 +122,11 @@ const validarCoerenciaCanonica = (dados) => {
     };
 
     for (const [capacidade, colecao] of Object.entries(colecoesPorCapacidade)) {
+        const itens = Array.isArray(dados[colecao]) ? dados[colecao] : [];
+
         adicionarErro(
             erros,
-            capabilities[capacidade] === false && dados[colecao].length > 0,
+            capabilities[capacidade] === false && itens.length > 0,
             `${colecao} possui dados, mas a capacidade ${capacidade} está desativada.`,
         );
     }
@@ -133,7 +135,7 @@ const validarCoerenciaCanonica = (dados) => {
     validarPontos(erros, dados.mousePath, durationMs, viewport, "mousePath");
     validarPontos(erros, dados.dragPath, durationMs, viewport, "dragPath");
 
-    for (const evento of dados.gameEvents) {
+    for (const evento of dados.gameEvents || []) {
         adicionarErro(
             erros,
             evento.timestamp > durationMs,

@@ -121,7 +121,7 @@ const heatmapSessao = async (req, res) => {
         const sessao = await Session.findOne({
             sessionId: req.params.sessionId,
         }).select(
-            "sessionId studentId playerId mousePath dragPath clicks screenshots gameEvents",
+            "sessionId studentId playerId mousePath dragPath clicks screenshots gameEvents schemaVersion captureMode source capabilities viewport",
         );
 
         if (!sessao) {
@@ -146,6 +146,11 @@ const heatmapSessao = async (req, res) => {
             sessionId: sessao.sessionId,
             studentId: sessao.studentId,
             playerId: sessao.playerId,
+            schemaVersion: sessao.schemaVersion,
+            captureMode: sessao.captureMode,
+            source: sessao.source,
+            capabilities: sessao.capabilities,
+            viewport: sessao.viewport,
             mousePath: sessao.mousePath,
             dragPath: sessao.dragPath || [],
             clicks: sessao.clicks,

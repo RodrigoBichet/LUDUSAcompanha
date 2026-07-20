@@ -13,6 +13,13 @@ const fs = require("fs");
 const path = require("path");
 const Session = require("../models/Session");
 const Student = require("../models/Student");
+const {
+    ErroValidacaoTelemetria,
+    validarSessaoTelemetria,
+} = require("../services/telemetryValidator");
+const {
+    normalizarSessaoTelemetria,
+} = require("../services/telemetryNormalizer");
 
 // Pasta onde os screenshots das fases serão salvos
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
@@ -32,18 +39,22 @@ const processarScreenshots = (screenshots, sessionId) => {
         fs.mkdirSync(PASTA_SCREENSHOTS, { recursive: true });
     }
 
+    const sessionIdSeguro = String(sessionId).replace(/[^A-Za-z0-9._-]/g, "_");
+
     return screenshots.map((screenshot) => {
-        // Se por algum motivo o base64 vier vazio, ignora sem quebrar
+        // Referências já existentes são preservadas. O Unity legado envia
+        // screenshotBase64, que é convertido para um caminho local abaixo.
         if (!screenshot.screenshotBase64) {
             return {
                 faseIndex: screenshot.faseIndex,
+                phaseId: screenshot.phaseId,
                 timestamp: screenshot.timestamp,
-                caminho: null,
+                caminho: screenshot.caminho || null,
             };
         }
 
         // Nome do arquivo: sessionId_faseN.jpg — garante unicidade
-        const nomeArquivo = `${sessionId}_fase${screenshot.faseIndex}.jpg`;
+        const nomeArquivo = `${sessionIdSeguro}_fase${screenshot.faseIndex}.jpg`;
         const caminhoCompleto = path.join(PASTA_SCREENSHOTS, nomeArquivo);
 
         // Decodifica o base64 e salva como arquivo binário
@@ -55,6 +66,7 @@ const processarScreenshots = (screenshots, sessionId) => {
         // Retorna o objeto sem o base64 — só com o caminho público
         return {
             faseIndex: screenshot.faseIndex,
+            phaseId: screenshot.phaseId,
             timestamp: screenshot.timestamp,
             caminho: `/uploads/screenshots/${nomeArquivo}`,
         };
@@ -68,14 +80,23 @@ const processarScreenshots = (screenshots, sessionId) => {
 
 const criarSessao = async (req, res) => {
     try {
-        const dados = req.body;
+        let dados;
 
-        // Validação básica — campos obrigatórios
-        if (!dados.sessionId || !dados.studentId || !dados.gameId) {
+        try {
+            const resultadoValidacao = validarSessaoTelemetria(req.body);
+            dados = normalizarSessaoTelemetria(
+                resultadoValidacao.dados,
+                resultadoValidacao.tipo,
+            );
+        } catch (erroValidacao) {
+            if (!(erroValidacao instanceof ErroValidacaoTelemetria)) {
+                throw erroValidacao;
+            }
+
             return res.status(400).json({
                 sucesso: false,
-                mensagem:
-                    "Campos obrigatórios ausentes: sessionId, studentId, gameId",
+                mensagem: erroValidacao.message,
+                detalhes: erroValidacao.detalhes,
             });
         }
 
@@ -105,6 +126,9 @@ const criarSessao = async (req, res) => {
         // O base64 é extraído, salvo em disco e substituído pelo caminho
         const temScreenshots =
             Array.isArray(dados.screenshots) && dados.screenshots.length > 0;
+        const temCapturasBase64 = temScreenshots && dados.screenshots.some(
+            (screenshot) => Boolean(screenshot.screenshotBase64),
+        );
 
         if (temScreenshots) {
             dados.screenshots = processarScreenshots(
@@ -124,7 +148,7 @@ const criarSessao = async (req, res) => {
         // Se a sessão veio com screenshots, reseta o flag capturaSolicitada do aluno.
         // O flag é resetado pelo ID do aluno, evitando colisões por nomes repetidos.
         // Usamos findOneAndUpdate para não travar o fluxo caso o aluno não seja encontrado.
-        if (temScreenshots) {
+        if (temCapturasBase64) {
             try {
                 await Student.findOneAndUpdate(
                     { _id: dados.studentId, capturaSolicitada: true },
@@ -157,7 +181,6 @@ const criarSessao = async (req, res) => {
         return res.status(500).json({
             sucesso: false,
             mensagem: "Erro interno ao salvar sessão",
-            erro: erro.message,
         });
     }
 };
@@ -170,7 +193,7 @@ const listarSessoes = async (req, res) => {
     try {
         const sessoes = await Session.find()
             .select(
-                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots",
+                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots schemaVersion captureMode source sourceVersion ingestionMethod capabilities viewport",
             )
 
             .sort({ createdAt: -1 })
@@ -234,7 +257,7 @@ const sessoesPorAluno = async (req, res) => {
 
         const sessoes = await Session.find(filtro)
             .select(
-                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots",
+                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots schemaVersion captureMode source sourceVersion ingestionMethod capabilities viewport",
             )
 
             .sort({ startedAt: -1 });
