@@ -25,6 +25,24 @@
     border-bottom: none;
 }
 
+.telemetria-aviso {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0.2rem 0 0.9rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid rgba(77, 151, 255, 0.35);
+    border-radius: 8px;
+    background: rgba(77, 151, 255, 0.1);
+    color: var(--cor-texto);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.telemetria-aviso strong {
+    color: #3d7fd1;
+}
+
 /* Canvas do heatmap */
 .canvas-heatmap {
     width: 100%;

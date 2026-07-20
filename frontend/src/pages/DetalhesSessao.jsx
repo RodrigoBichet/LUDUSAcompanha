@@ -7,7 +7,7 @@
 // Mostra eventos, métricas e heatmap de interações.
 // =============================================================================
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import { buscarSessao, heatmapSessao } from "../services/api";
@@ -21,6 +21,30 @@ const CORES_FASES = [
 ];
 
 const obterCorFase = (faseIndex) => CORES_FASES[faseIndex % CORES_FASES.length];
+
+const BACKEND_ORIGIN =
+    import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+
+const montarUrlImagem = (caminho) => {
+    if (!caminho) return null;
+    if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
+        return caminho;
+    }
+    return `${BACKEND_ORIGIN}${caminho}`;
+};
+
+const CAPACIDADES_LEGADAS = {
+    clicks: true,
+    mousePath: true,
+    dragPath: true,
+    screenshots: true,
+    inactivity: true,
+    focusEvents: true,
+    phaseEvents: true,
+    correctWrong: true,
+    categoryEvents: true,
+    customEvents: true,
+};
 
 export default function DetalhesSessao() {
     const { sessionId } = useParams();
@@ -40,11 +64,28 @@ export default function DetalhesSessao() {
     const [faseSelecionada, setFaseSelecionada] = useState(0);
     const [faseEventosSelecionada, setFaseEventosSelecionada] = useState(0);
 
+    const capacidades =
+        sessao?.capabilities || heatmap?.capabilities || CAPACIDADES_LEGADAS;
+    const possuiCapacidade = useCallback(
+        (nome) => capacidades[nome] !== false,
+        [capacidades],
+    );
+    const temFasesConfiaveis = possuiCapacidade("phaseEvents");
+    const modoObservacional = sessao?.captureMode === "observational";
+
     useEffect(() => {
         Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
             .then(([resSessao, resHeatmap]) => {
-                setSessao(resSessao.data.sessao);
+                const sessaoCarregada = resSessao.data.sessao;
+
+                setSessao(sessaoCarregada);
                 setHeatmap(resHeatmap.data);
+                setFaseSelecionada(
+                    sessaoCarregada?.capabilities?.phaseEvents === false
+                        ? -1
+                        : 0,
+                );
+                setFaseEventosSelecionada(0);
                 setCarregando(false);
             })
             .catch(() => {
@@ -53,23 +94,13 @@ export default function DetalhesSessao() {
             });
     }, [sessionId]);
 
-    const BACKEND_ORIGIN =
-        import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:3000";
-
-    const montarUrlImagem = (caminho) => {
-        if (!caminho) return null;
-        if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
-            return caminho;
-        }
-        return `${BACKEND_ORIGIN}${caminho}`;
-    };
-
-    const obterFasesHeatmap = () => {
-        if (!heatmap) return [];
+    const obterFasesHeatmap = useCallback(() => {
+        if (!heatmap || !temFasesConfiaveis) return [];
 
         const fases = heatmap.fases || [];
         const screenshots = heatmap.screenshots || [];
-        const total = Math.max(fases.length, screenshots.length, 4);
+        const minimoLegado = sessao?.capabilities ? 0 : 4;
+        const total = Math.max(fases.length, screenshots.length, minimoLegado);
 
         return Array.from({ length: total }, (_, index) => ({
             faseIndex: index,
@@ -78,9 +109,9 @@ export default function DetalhesSessao() {
             screenshot:
                 screenshots.find((s) => s.faseIndex === index) ||
                 screenshots[index] ||
-                null,
+            null,
         }));
-    };
+    }, [heatmap, sessao?.capabilities, temFasesConfiaveis]);
 
     const carregarImagem = (url) =>
         new Promise((resolve, reject) => {
@@ -90,11 +121,6 @@ export default function DetalhesSessao() {
             img.onerror = reject;
             img.src = url;
         });
-
-    useEffect(() => {
-        setFaseSelecionada(0);
-        setFaseEventosSelecionada(0);
-    }, [sessionId]);
 
     // Desenha o heatmap no canvas após carregar os dados
     useEffect(() => {
@@ -107,7 +133,8 @@ export default function DetalhesSessao() {
             const ctx = canvas.getContext("2d");
 
             const fases = obterFasesHeatmap();
-            const visualizacaoGeral = faseSelecionada === -1;
+            const visualizacaoGeral =
+                !temFasesConfiaveis || faseSelecionada === -1;
 
             const faseAtual = visualizacaoGeral
                 ? null
@@ -139,9 +166,15 @@ export default function DetalhesSessao() {
 
             if (cancelado) return;
 
-            const pontosTodos = heatmap.mousePath || [];
-            const cliquesTodos = heatmap.clicks || [];
-            const arrastesTodos = heatmap.dragPath || [];
+            const pontosTodos = possuiCapacidade("mousePath")
+                ? heatmap.mousePath || []
+                : [];
+            const cliquesTodos = possuiCapacidade("clicks")
+                ? heatmap.clicks || []
+                : [];
+            const arrastesTodos = possuiCapacidade("dragPath")
+                ? heatmap.dragPath || []
+                : [];
 
             const dentroDaFase = (item) => {
                 const tempo = item.t ?? item.timestamp ?? 0;
@@ -542,7 +575,15 @@ export default function DetalhesSessao() {
         return () => {
             cancelado = true;
         };
-    }, [heatmap, sessao, faseSelecionada, itemHover]);
+    }, [
+        heatmap,
+        sessao,
+        faseSelecionada,
+        itemHover,
+        obterFasesHeatmap,
+        possuiCapacidade,
+        temFasesConfiaveis,
+    ]);
 
     const distanciaPontoSegmento = (px, py, item) => {
         if (item.tipo === "clique") {
@@ -721,7 +762,9 @@ export default function DetalhesSessao() {
             let payload = {};
             try {
                 payload = JSON.parse(evento.payload);
-            } catch (_) {}
+            } catch {
+                // Mantém a leitura da sessão mesmo com payload legado inválido.
+            }
 
             if (evento.eventType === "CategorySelected") {
                 categoriaAtual = payload.category || "";
@@ -764,7 +807,9 @@ export default function DetalhesSessao() {
                             const p = JSON.parse(ev.payload);
                             if (p.category)
                                 categoriaSessao = `Categoria: ${p.category}`;
-                        } catch {}
+                        } catch {
+                            // Mantém o título neutro quando o payload é inválido.
+                        }
                     }
                 }
                 const subtituloSessao = sessao
@@ -816,6 +861,17 @@ export default function DetalhesSessao() {
                                         Dados demonstrativos
                                     </span>
                                 )}
+                                {modoObservacional && (
+                                    <div className="telemetria-aviso">
+                                        <strong>Dados observacionais</strong>
+                                        <span>
+                                            Esta sessão registra interações,
+                                            mas não permite inferir
+                                            automaticamente acertos, erros ou
+                                            objetivos internos do jogo.
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="info-lista">
                                     <div className="info-item">
                                         <span className="texto-leve">
@@ -845,41 +901,54 @@ export default function DetalhesSessao() {
                                             {formatarDuracao(sessao.durationMs)}
                                         </span>
                                     </div>
-                                    <div className="info-item">
-                                        <span className="texto-leve">
-                                            Acertos
-                                        </span>
-                                        <span className="texto-verde">
-                                            {sessao.metrics?.totalCorrect || 0}
-                                        </span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="texto-leve">
-                                            Erros
-                                        </span>
-                                        <span
-                                            style={{ color: "var(--cor-erro)" }}
-                                        >
-                                            {sessao.metrics?.totalWrong || 0}
-                                        </span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="texto-leve">
-                                            Cliques
-                                        </span>
-                                        <span>
-                                            {sessao.metrics?.totalClicks || 0}
-                                        </span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="texto-leve">
-                                            Inatividades
-                                        </span>
-                                        <span>
-                                            {sessao.metrics?.inactivityCount ||
-                                                0}
-                                        </span>
-                                    </div>
+                                    {possuiCapacidade("correctWrong") && (
+                                        <>
+                                            <div className="info-item">
+                                                <span className="texto-leve">
+                                                    Acertos
+                                                </span>
+                                                <span className="texto-verde">
+                                                    {sessao.metrics?.totalCorrect ||
+                                                        0}
+                                                </span>
+                                            </div>
+                                            <div className="info-item">
+                                                <span className="texto-leve">
+                                                    Erros
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        color: "var(--cor-erro)",
+                                                    }}
+                                                >
+                                                    {sessao.metrics?.totalWrong ||
+                                                        0}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {possuiCapacidade("clicks") && (
+                                        <div className="info-item">
+                                            <span className="texto-leve">
+                                                Cliques
+                                            </span>
+                                            <span>
+                                                {sessao.metrics?.totalClicks ||
+                                                    0}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {possuiCapacidade("inactivity") && (
+                                        <div className="info-item">
+                                            <span className="texto-leve">
+                                                Inatividades
+                                            </span>
+                                            <span>
+                                                {sessao.metrics
+                                                    ?.inactivityCount || 0}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -889,41 +958,51 @@ export default function DetalhesSessao() {
                                     <div>
                                         <h3>Mapa de Interações</h3>
                                         <div className="heatmap-legenda">
-                                            {CORES_FASES.map((fase) => (
-                                                <span
-                                                    key={fase.nome}
-                                                    className="heatmap-legenda-item"
-                                                >
+                                            {temFasesConfiaveis &&
+                                                CORES_FASES.map((fase) => (
                                                     <span
-                                                        className="heatmap-legenda-cor"
-                                                        style={{
-                                                            background:
-                                                                fase.linha,
-                                                        }}
-                                                    />
-                                                    {fase.nome}
+                                                        key={fase.nome}
+                                                        className="heatmap-legenda-item"
+                                                    >
+                                                        <span
+                                                            className="heatmap-legenda-cor"
+                                                            style={{
+                                                                background:
+                                                                    fase.linha,
+                                                            }}
+                                                        />
+                                                        {fase.nome}
+                                                    </span>
+                                                ))}
+                                            {possuiCapacidade("mousePath") && (
+                                                <span className="heatmap-legenda-item">
+                                                    Linha contínua: movimento
                                                 </span>
-                                            ))}
-                                            <span className="heatmap-legenda-item">
-                                                Linha contínua: movimento
-                                            </span>
-                                            <span className="heatmap-legenda-item">
-                                                Linha tracejada: arraste
-                                            </span>
-                                            <span className="heatmap-legenda-item">
-                                                Branco/vermelho: cliques
-                                            </span>
+                                            )}
+                                            {possuiCapacidade("dragPath") && (
+                                                <span className="heatmap-legenda-item">
+                                                    Linha tracejada: arraste
+                                                </span>
+                                            )}
+                                            {possuiCapacidade("clicks") && (
+                                                <span className="heatmap-legenda-item">
+                                                    Branco/vermelho: cliques
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {heatmap?.screenshots?.length > 0 && (
+                                    {possuiCapacidade("screenshots") &&
+                                        heatmap?.screenshots?.length > 0 && (
                                         <span className="heatmap-badge">
                                             Imagens disponíveis
                                         </span>
                                     )}
                                 </div>
 
-                                {heatmap && obterFasesHeatmap().length > 1 && (
+                                {heatmap &&
+                                    temFasesConfiaveis &&
+                                    obterFasesHeatmap().length > 1 && (
                                     <div className="heatmap-tabs">
                                         <button
                                             type="button"
@@ -987,7 +1066,8 @@ export default function DetalhesSessao() {
                                     />
                                 </div>
 
-                                {faseSelecionada === -1 && (
+                                {(!temFasesConfiaveis ||
+                                    faseSelecionada === -1) && (
                                     <p className="texto-leve heatmap-ajuda">
                                         {heatmap?.screenshots?.length > 0
                                             ? "Use Geral para ver toda a sessão ou escolha uma fase para ver as interações sobre a imagem do jogo."
@@ -1024,7 +1104,9 @@ export default function DetalhesSessao() {
                                             payload = JSON.parse(
                                                 evento.payload,
                                             );
-                                        } catch (_) {}
+                                        } catch {
+                                            // Mantém os dados disponíveis sem chips de payload.
+                                        }
 
                                         const isAcerto =
                                             evento.eventType === "CorrectMatch";
@@ -1087,6 +1169,21 @@ export default function DetalhesSessao() {
                                             </div>
                                         );
                                     };
+
+                                    if (!temFasesConfiaveis) {
+                                        const eventos = sessao.gameEvents || [];
+
+                                        return eventos.length > 0 ? (
+                                            <div className="timeline">
+                                                {eventos.map(renderizarEvento)}
+                                            </div>
+                                        ) : (
+                                            <p className="texto-leve">
+                                                Esta sessão não possui eventos
+                                                semânticos registrados.
+                                            </p>
+                                        );
+                                    }
 
                                     return (
                                         <>
