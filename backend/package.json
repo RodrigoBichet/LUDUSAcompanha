@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
+        "validate:telemetry": "node src/scripts/validarTelemetriaExemplos.js",
         "seed:demo": "node src/scripts/seedDemo.js",
         "seed:demo:random": "node src/scripts/seedDemoRandom.js"
     },
@@ -13,6 +14,8 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
         "bcryptjs": "^3.0.3",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
