@@ -738,78 +738,6 @@ export default function PerfilAluno() {
                                 </div>
                             )}
 
-                            {/* Gráfico de evolução */}
-                            {resumo &&
-                                resumo.evolucaoTemporal &&
-                                resumo.evolucaoTemporal.length > 1 && (
-                                    <div className="card secao-card">
-                                        <h3>Evolução ao Longo do Tempo</h3>
-                                        <ResponsiveContainer
-                                            width="100%"
-                                            height={220}
-                                        >
-                                            <LineChart
-                                                data={resumo.evolucaoTemporal}
-                                            >
-                                                <CartesianGrid
-                                                    strokeDasharray="3 3"
-                                                    stroke="#E2D9CE"
-                                                />
-                                                <XAxis
-                                                    dataKey="startedAt"
-                                                    tickFormatter={(v) =>
-                                                        new Date(
-                                                            v,
-                                                        ).toLocaleDateString(
-                                                            "pt-BR",
-                                                        )
-                                                    }
-                                                    tick={{ fontSize: 11 }}
-                                                />
-                                                <YAxis
-                                                    tick={{ fontSize: 11 }}
-                                                />
-                                                <Tooltip
-                                                    labelFormatter={(v) =>
-                                                        new Date(
-                                                            v,
-                                                        ).toLocaleString(
-                                                            "pt-BR",
-                                                        )
-                                                    }
-                                                    formatter={(val, name) => [
-                                                        val,
-                                                        name === "totalCorrect"
-                                                            ? "Acertos"
-                                                            : "Erros",
-                                                    ]}
-                                                />
-                                                <Legend
-                                                    formatter={(v) =>
-                                                        v === "totalCorrect"
-                                                            ? "Acertos"
-                                                            : "Erros"
-                                                    }
-                                                />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="totalCorrect"
-                                                    stroke="#4ECBA0"
-                                                    strokeWidth={2}
-                                                    dot
-                                                />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="totalWrong"
-                                                    stroke="#FC8181"
-                                                    strokeWidth={2}
-                                                    dot
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
-
                             {/* Sem sessões */}
                             {!resumo && (
                                 <div className="card secao-card">
@@ -972,6 +900,99 @@ export default function PerfilAluno() {
                                                 </div>
                                             );
                                         })}
+
+                                        {/* Gráfico de evolução */}
+                                        {resumo &&
+                                            resumo.evolucaoTemporal &&
+                                            resumo.evolucaoTemporal.length >
+                                                1 && (
+                                                <div className="card secao-card">
+                                                    <h3>
+                                                        Evolução ao Longo do
+                                                        Tempo
+                                                    </h3>
+                                                    <ResponsiveContainer
+                                                        width="100%"
+                                                        height={220}
+                                                    >
+                                                        <LineChart
+                                                            data={
+                                                                resumo.evolucaoTemporal
+                                                            }
+                                                        >
+                                                            <CartesianGrid
+                                                                strokeDasharray="3 3"
+                                                                stroke="#E2D9CE"
+                                                            />
+                                                            <XAxis
+                                                                dataKey="startedAt"
+                                                                tickFormatter={(
+                                                                    v,
+                                                                ) =>
+                                                                    new Date(
+                                                                        v,
+                                                                    ).toLocaleDateString(
+                                                                        "pt-BR",
+                                                                    )
+                                                                }
+                                                                tick={{
+                                                                    fontSize: 11,
+                                                                }}
+                                                            />
+                                                            <YAxis
+                                                                tick={{
+                                                                    fontSize: 11,
+                                                                }}
+                                                            />
+                                                            <Tooltip
+                                                                labelFormatter={(
+                                                                    v,
+                                                                ) =>
+                                                                    new Date(
+                                                                        v,
+                                                                    ).toLocaleString(
+                                                                        "pt-BR",
+                                                                    )
+                                                                }
+                                                                formatter={(
+                                                                    val,
+                                                                    name,
+                                                                ) => [
+                                                                    val,
+                                                                    name ===
+                                                                    "totalCorrect"
+                                                                        ? "Acertos"
+                                                                        : "Erros",
+                                                                ]}
+                                                            />
+                                                            <Legend
+                                                                formatter={(
+                                                                    v,
+                                                                ) =>
+                                                                    v ===
+                                                                    "totalCorrect"
+                                                                        ? "Acertos"
+                                                                        : "Erros"
+                                                                }
+                                                            />
+                                                            <Line
+                                                                type="monotone"
+                                                                dataKey="totalCorrect"
+                                                                stroke="#4ECBA0"
+                                                                strokeWidth={2}
+                                                                dot
+                                                            />
+                                                            <Line
+                                                                type="monotone"
+                                                                dataKey="totalWrong"
+                                                                stroke="#FC8181"
+                                                                strokeWidth={2}
+                                                                dot
+                                                            />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             )}

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { textosAnonimos } from "../../config/modoAnonimo";
+import logoLudus from "../../assets/logo-ludus.svg";
 import "./Sidebar.css";
 
 export default function Sidebar() {
@@ -10,11 +11,11 @@ export default function Sidebar() {
         <aside className="sidebar">
             {/* Logo */}
             <div className="sidebar-logo">
-                <span className="logo-icone">🎮</span>
-                <div>
-                    <div className="logo-titulo">LUDUS</div>
-                    <div className="logo-subtitulo">Acompanha</div>
-                </div>
+                <img
+                    src={logoLudus}
+                    alt="LUDUS Acompanha"
+                    className="sidebar-logo-img"
+                />
             </div>
 
             {/* Navegação */}

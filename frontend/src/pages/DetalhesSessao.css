@@ -341,3 +341,62 @@
     font-size: 0.76rem;
     font-weight: 700;
 }
+
+/* Modo figura: usado apenas para capturas do artigo */
+.pagina-conteudo-figura .btn-voltar {
+    display: none;
+}
+
+.pagina-conteudo-figura .detalhes-layout {
+    align-items: start;
+}
+
+.pagina-conteudo-figura .heatmap-cabecalho {
+    margin-bottom: 0.65rem;
+}
+
+.pagina-conteudo-figura .heatmap-tabs {
+    margin-bottom: 0.65rem;
+}
+
+.pagina-conteudo-figura .heatmap-legenda {
+    font-size: 0.78rem;
+    gap: 0.35rem 0.6rem;
+}
+
+.pagina-conteudo-figura .heatmap-ajuda {
+    display: none;
+}
+
+.pagina-conteudo-figura .detalhes-info-card {
+    padding: 1rem 1.1rem;
+}
+
+.pagina-conteudo-figura .detalhes-info-card h3 {
+    margin-bottom: 0.45rem;
+    font-size: 1rem;
+}
+
+.pagina-conteudo-figura .detalhes-info-card .badge-demo {
+    margin-bottom: 0.5rem;
+}
+
+.pagina-conteudo-figura .detalhes-info-card .info-lista {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.35rem 0.75rem;
+}
+
+.pagina-conteudo-figura .detalhes-info-card .info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    padding: 0.25rem 0;
+    border-bottom: none;
+    font-size: 0.78rem;
+}
+
+.pagina-conteudo-figura .detalhes-info-card .info-item span:last-child {
+    font-weight: 700;
+}

@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import { buscarSessao, heatmapSessao } from "../services/api";
 import "./DetalhesSessao.css";
@@ -25,6 +25,8 @@ const obterCorFase = (faseIndex) => CORES_FASES[faseIndex % CORES_FASES.length];
 export default function DetalhesSessao() {
     const { sessionId } = useParams();
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+    const modoFigura = searchParams.get("figura") === "1";
     const canvasRef = useRef(null);
     const segmentosHeatmapRef = useRef([]);
     const [itemHover, setItemHover] = useState(null);
@@ -776,7 +778,13 @@ export default function DetalhesSessao() {
                 );
             })()}
 
-            <div className="pagina-conteudo">
+            <div
+                className={
+                    modoFigura
+                        ? "pagina-conteudo pagina-conteudo-figura"
+                        : "pagina-conteudo"
+                }
+            >
                 <button className="btn-voltar" onClick={() => navegar(-1)}>
                     ← Voltar
                 </button>
@@ -800,7 +808,7 @@ export default function DetalhesSessao() {
                         {/* Coluna esquerda */}
                         <div className="detalhes-coluna">
                             {/* Info geral */}
-                            <div className="card secao-card">
+                            <div className="card secao-card detalhes-info-card">
                                 <h3>Informações Gerais</h3>
                                 {sessaoDemonstrativa && (
                                     <span className="badge-demo">
