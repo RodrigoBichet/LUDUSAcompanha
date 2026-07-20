@@ -5,6 +5,35 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [1.10.1] — 2026-07-20 — Preparacao e publicacao inicial do ambiente online
+
+### Adicionado
+
+- `frontend/.env.example` com as variaveis publicas do Vite.
+- `frontend/public/_redirects` para fallback de rotas SPA no Netlify.
+- ambiente publicado no Render para API e no Netlify para dashboard.
+
+### Alterado
+
+- `frontend/src/services/api.js` passa a usar `VITE_API_URL`, mantendo fallback para o backend local.
+- `frontend/src/pages/DetalhesSessao.jsx` passa a usar `VITE_BACKEND_ORIGIN` para carregar screenshots do backend publicado, mantendo fallback local.
+- README e SETUP passam a documentar URLs, configuracao de deploy, validacoes e limitacoes atuais.
+
+### Validado
+
+- API publicada respondeu ao health check e conectou ao MongoDB Atlas.
+- dashboard publicado abriu no Netlify, incluindo carregamento direto da rota `/login`.
+- login de administrador e criacao de dados foram confirmados no ambiente publicado.
+
+### Limitacoes conhecidas
+
+- instancias Free do Render podem hibernar apos inatividade;
+- screenshots ainda usam filesystem efemero do Render;
+- CORS permanece aberto temporariamente;
+- o jogo Unity ainda precisa de uma etapa propria para apontar ao backend publicado e gerar novo build WebGL.
+
+---
+
 ## [1.10.0] — 2026-05-13 — Fluxo demonstrativo e leitura das sessoes
 
 ### Adicionado

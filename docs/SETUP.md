@@ -398,6 +398,70 @@ Nunca versione o arquivo `.env`.
 
 ---
 
+## Ambiente publicado e deploy
+
+O primeiro ambiente publico foi publicado em **20/07/2026**.
+
+| Componente | Plataforma | URL |
+| ---------- | ---------- | --- |
+| Backend/API | Render (Free, Oregon) | `https://ludus-acompanha-api.onrender.com` |
+| Frontend/dashboard | Netlify | `https://ludus-acompanha.netlify.app` |
+
+### Backend no Render
+
+Configuracao aplicada:
+
+```txt
+Repository: RodrigoBichet/LUDUSAcompanha
+Branch: main
+Root Directory: backend
+Runtime: Node
+Build Command: npm install
+Start Command: npm start
+Plan: Free
+```
+
+Variaveis configuradas no Render:
+
+```env
+MONGODB_URI=<connection-string-do-Atlas>
+JWT_SECRET=<segredo-gerado-ou-definido-em-ambiente-seguro>
+```
+
+Nao definir `PORT` manualmente: o Render fornece a porta pelo ambiente. O health check esta disponivel em `GET /` e deve retornar `status: "ok"`.
+
+### Frontend no Netlify
+
+Configuracao aplicada:
+
+```txt
+Repository: RodrigoBichet/LUDUSAcompanha
+Branch: main
+Base directory: frontend
+Build command: npm run build
+Publish directory: dist
+```
+
+Variaveis publicas configuradas no Netlify:
+
+```env
+VITE_API_URL=https://ludus-acompanha-api.onrender.com/api
+VITE_BACKEND_ORIGIN=https://ludus-acompanha-api.onrender.com
+VITE_MODO_ANONIMO=false
+```
+
+O arquivo `frontend/public/_redirects` contem `/* /index.html 200`, necessario para que rotas React, como `/login`, `/aluno/:id` e `/sessao/:sessionId`, funcionem ao abrir ou recarregar diretamente.
+
+### Seguranca, CORS e limitacoes atuais
+
+- o CORS do backend esta aberto temporariamente com `app.use(cors())`; depois de estabilizar o ambiente, restringir as origens ao dominio do Netlify e ao desenvolvimento local;
+- valores de `MONGODB_URI`, `JWT_SECRET`, senhas e tokens devem existir apenas nos provedores e nos arquivos `.env` locais ignorados pelo Git;
+- como o plano Free do Render pode hibernar, o primeiro acesso apos inatividade pode demorar;
+- o filesystem do Render e efemero. Portanto, screenshots em `backend/uploads/screenshots/` podem desaparecer depois de reinicios ou redeploys. Antes de uso continuado com dados reais, migrar imagens para storage persistente, como Cloudinary, S3 ou R2;
+- o jogo Unity permanece configurado inicialmente para `localhost`; apontar o SDK e os controladores do jogo para a API publicada exige uma etapa propria e novo build WebGL.
+
+---
+
 ## Uploads e persistencia de imagens
 
 As imagens capturadas durante as sessoes do jogo sao salvas localmente pelo backend em:
@@ -658,3 +722,7 @@ Antes de demonstrar ou entregar o ambiente, conferir:
 - heatmap funciona sem screenshots;
 - exclusao em cascata remove sessoes e imagens;
 - `backend/uploads/` nao aparece como arquivo versionado no Git.
+- health check publicado responde `200 OK`;
+- dashboard publicado abre e permite login;
+- rotas React carregam diretamente no Netlify;
+- configuracoes e segredos do deploy nao foram versionados.

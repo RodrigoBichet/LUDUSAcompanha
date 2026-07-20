@@ -122,6 +122,28 @@ npm run dev
 
 Acesse em `http://localhost:5173` — sera redirecionado para a tela de login.
 
+## Ambiente publicado
+
+O ambiente inicial de demonstracao esta publicado desde **20/07/2026**:
+
+| Componente | URL |
+| ---------- | --- |
+| Dashboard | `https://ludus-acompanha.netlify.app` |
+| API | `https://ludus-acompanha-api.onrender.com` |
+| Health check | `https://ludus-acompanha-api.onrender.com/` |
+
+O dashboard publicado usa `VITE_API_URL` e `VITE_BACKEND_ORIGIN` para acessar a API e as screenshots. Para configuracao detalhada de deploy, variaveis de ambiente e limitacoes conhecidas, consulte [`docs/SETUP.md`](docs/SETUP.md).
+
+> O plano Free do Render pode hibernar apos inatividade. O primeiro acesso posterior pode levar alguns segundos para responder.
+
+### Validacao online realizada
+
+- health check da API respondeu `200 OK`;
+- backend conectou ao MongoDB Atlas;
+- login de administrador foi realizado pelo dashboard publicado;
+- operacoes administrativas criaram dados corretamente no banco;
+- a rota `/login` foi aberta diretamente no Netlify, confirmando o fallback de SPA.
+
 ### Criar primeiro administrador
 
 ```bash
@@ -407,7 +429,7 @@ Esses dados sao usados pelo dashboard para montar historico, indicadores, relato
 | 26    | Sequencia da sessao por fase                | Concluido                       |
 | 27    | Responsividade                              | Planejado                       |
 | 28    | Design final da designer                    | Planejado                       |
-| 29    | Publicar backend                            | Planejado                       |
+| 29    | Deploy inicial: backend + dashboard         | Concluido                       |
 | 30    | Coleta nas escolas parceiras                | Planejado                       |
 | 31    | ML (K-Means + Arvore de Decisao)            | Planejado                       |
 
