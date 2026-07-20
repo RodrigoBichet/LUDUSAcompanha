@@ -53,7 +53,8 @@ export default function DetalhesSessao() {
             });
     }, [sessionId]);
 
-    const BACKEND_ORIGIN = "http://localhost:3000";
+    const BACKEND_ORIGIN =
+        import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
     const montarUrlImagem = (caminho) => {
         if (!caminho) return null;
