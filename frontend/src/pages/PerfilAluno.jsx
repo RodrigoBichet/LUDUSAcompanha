@@ -77,6 +77,14 @@ export default function PerfilAluno() {
     //Usuario
     const { usuario } = useAuth();
 
+    const temDadosDesempenho = resumo?.temDadosDesempenho === true;
+    const evolucaoComDesempenho =
+        resumo?.evolucaoTemporal?.filter(
+            (sessao) => sessao.temDadosDesempenho,
+        ) || [];
+    const sessaoTemDadosDesempenho = (sessao) =>
+        sessao?.capabilities?.correctWrong !== false;
+
     const carregarDados = async () => {
         try {
             setCarregando(true);
@@ -654,9 +662,9 @@ export default function PerfilAluno() {
                                 <div className="card secao-card alerta-ok">
                                     <span>🟢</span>
                                     <p>
-                                        Nenhum alerta pedagógico no momento —
-                                        indicadores recentes sem pontos de
-                                        atenção.
+                                        {temDadosDesempenho
+                                            ? "Nenhum alerta pedagógico no momento — indicadores recentes sem pontos de atenção."
+                                            : "Não há alertas semânticos disponíveis para as sessões observacionais registradas."}
                                     </p>
                                 </div>
                             )}
@@ -674,36 +682,50 @@ export default function PerfilAluno() {
                                                 Sessões
                                             </span>
                                         </div>
-                                        <div className="metrica-mini">
-                                            <span className="metrica-mini-valor texto-verde">
-                                                {resumo.totalCorrect}
-                                            </span>
-                                            <span className="metrica-mini-label">
-                                                Acertos
-                                            </span>
-                                        </div>
-                                        <div className="metrica-mini">
-                                            <span
-                                                className="metrica-mini-valor"
-                                                style={{
-                                                    color: "var(--cor-erro)",
-                                                }}
-                                            >
-                                                {resumo.totalWrong}
-                                            </span>
-                                            <span className="metrica-mini-label">
-                                                Erros
-                                            </span>
-                                        </div>
-                                        <div className="metrica-mini destaque">
-                                            <span className="metrica-mini-valor">
-                                                {resumo.taxaAcerto}
-                                            </span>
-                                            <span className="metrica-mini-label">
-                                                Taxa de Acerto
-                                            </span>
-                                        </div>
+                                        {temDadosDesempenho && (
+                                            <>
+                                                <div className="metrica-mini">
+                                                    <span className="metrica-mini-valor texto-verde">
+                                                        {resumo.totalCorrect}
+                                                    </span>
+                                                    <span className="metrica-mini-label">
+                                                        Acertos
+                                                    </span>
+                                                </div>
+                                                <div className="metrica-mini">
+                                                    <span
+                                                        className="metrica-mini-valor"
+                                                        style={{
+                                                            color: "var(--cor-erro)",
+                                                        }}
+                                                    >
+                                                        {resumo.totalWrong}
+                                                    </span>
+                                                    <span className="metrica-mini-label">
+                                                        Erros
+                                                    </span>
+                                                </div>
+                                                <div className="metrica-mini destaque">
+                                                    <span className="metrica-mini-valor">
+                                                        {resumo.taxaAcerto}
+                                                    </span>
+                                                    <span className="metrica-mini-label">
+                                                        Taxa de Acerto
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
+
+                                    {!temDadosDesempenho && (
+                                        <p className="texto-leve">
+                                            As sessões disponíveis registram
+                                            interações observacionais. Acertos,
+                                            erros e taxa de acerto não são
+                                            calculados sem eventos semânticos
+                                            do jogo.
+                                        </p>
+                                    )}
 
                                     {/* Última sessão */}
                                     {sessoes.length > 0 && (
@@ -717,16 +739,24 @@ export default function PerfilAluno() {
                                                 )}
                                             </p>
                                             <div className="ultima-sessao-meta">
-                                                <span className="chip-acerto">
-                                                    ✅{" "}
-                                                    {sessoes[0].metrics
-                                                        ?.totalCorrect || 0}
-                                                </span>
-                                                <span className="chip-erro">
-                                                    ❌{" "}
-                                                    {sessoes[0].metrics
-                                                        ?.totalWrong || 0}
-                                                </span>
+                                                {sessaoTemDadosDesempenho(
+                                                    sessoes[0],
+                                                ) && (
+                                                    <>
+                                                        <span className="chip-acerto">
+                                                            ✅{" "}
+                                                            {sessoes[0].metrics
+                                                                ?.totalCorrect ||
+                                                                0}
+                                                        </span>
+                                                        <span className="chip-erro">
+                                                            ❌{" "}
+                                                            {sessoes[0].metrics
+                                                                ?.totalWrong ||
+                                                                0}
+                                                        </span>
+                                                    </>
+                                                )}
                                                 <span className="texto-leve">
                                                     {formatarDuracao(
                                                         sessoes[0].durationMs,
@@ -876,18 +906,24 @@ export default function PerfilAluno() {
                                                         </span>
                                                     </div>
                                                     <div className="sessao-metricas">
-                                                        <span className="chip-acerto">
-                                                            ✅{" "}
-                                                            {sessao.metrics
-                                                                ?.totalCorrect ||
-                                                                0}
-                                                        </span>
-                                                        <span className="chip-erro">
-                                                            ❌{" "}
-                                                            {sessao.metrics
-                                                                ?.totalWrong ||
-                                                                0}
-                                                        </span>
+                                                        {sessaoTemDadosDesempenho(
+                                                            sessao,
+                                                        ) && (
+                                                            <>
+                                                                <span className="chip-acerto">
+                                                                    ✅{" "}
+                                                                    {sessao.metrics
+                                                                        ?.totalCorrect ||
+                                                                        0}
+                                                                </span>
+                                                                <span className="chip-erro">
+                                                                    ❌{" "}
+                                                                    {sessao.metrics
+                                                                        ?.totalWrong ||
+                                                                        0}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                         <span className="texto-leve">
                                                             {formatarDuracao(
                                                                 sessao.durationMs,
@@ -902,10 +938,8 @@ export default function PerfilAluno() {
                                         })}
 
                                         {/* Gráfico de evolução */}
-                                        {resumo &&
-                                            resumo.evolucaoTemporal &&
-                                            resumo.evolucaoTemporal.length >
-                                                1 && (
+                                        {temDadosDesempenho &&
+                                            evolucaoComDesempenho.length > 1 && (
                                                 <div className="card secao-card">
                                                     <h3>
                                                         Evolução ao Longo do
@@ -917,7 +951,7 @@ export default function PerfilAluno() {
                                                     >
                                                         <LineChart
                                                             data={
-                                                                resumo.evolucaoTemporal
+                                                                evolucaoComDesempenho
                                                             }
                                                         >
                                                             <CartesianGrid

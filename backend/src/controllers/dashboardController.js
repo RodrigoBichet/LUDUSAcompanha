@@ -20,6 +20,9 @@ const montarFiltroSessao = (studentId, gameId) => {
     return filtro;
 };
 
+const possuiCapacidade = (sessao, capacidade) =>
+    sessao.capabilities?.[capacidade] !== false;
+
 // -------------------------------------------------------------------------
 // resumoJogador — GET /api/dashboard/summary/:studentId
 // -------------------------------------------------------------------------
@@ -46,17 +49,35 @@ const resumoJogador = async (req, res) => {
         let totalWrong = 0;
         let totalDuracaoMs = 0;
         let totalInatividade = 0;
+        let totalSessoesComDesempenho = 0;
+        let totalSessoesComInatividade = 0;
         let categorias = {};
         let evolucaoTemporal = [];
 
         sessoes.forEach((sessao) => {
-            totalClicks += sessao.metrics.totalClicks || 0;
-            totalCorrect += sessao.metrics.totalCorrect || 0;
-            totalWrong += sessao.metrics.totalWrong || 0;
-            totalDuracaoMs += sessao.durationMs || 0;
-            totalInatividade += sessao.metrics.inactivityCount || 0;
+            const temDadosDesempenho = possuiCapacidade(
+                sessao,
+                "correctWrong",
+            );
 
-            sessao.gameEvents.forEach((evento) => {
+            if (possuiCapacidade(sessao, "clicks")) {
+                totalClicks += sessao.metrics.totalClicks || 0;
+            }
+
+            if (temDadosDesempenho) {
+                totalCorrect += sessao.metrics.totalCorrect || 0;
+                totalWrong += sessao.metrics.totalWrong || 0;
+                totalSessoesComDesempenho++;
+            }
+
+            totalDuracaoMs += sessao.durationMs || 0;
+
+            if (possuiCapacidade(sessao, "inactivity")) {
+                totalInatividade += sessao.metrics.inactivityCount || 0;
+                totalSessoesComInatividade++;
+            }
+
+            (sessao.gameEvents || []).forEach((evento) => {
                 if (evento.eventType === "CategorySelected") {
                     try {
                         const payload = JSON.parse(evento.payload);
@@ -69,10 +90,17 @@ const resumoJogador = async (req, res) => {
             evolucaoTemporal.push({
                 sessionId: sessao.sessionId,
                 startedAt: sessao.startedAt,
-                totalCorrect: sessao.metrics.totalCorrect || 0,
-                totalWrong: sessao.metrics.totalWrong || 0,
+                temDadosDesempenho,
+                totalCorrect: temDadosDesempenho
+                    ? sessao.metrics.totalCorrect || 0
+                    : null,
+                totalWrong: temDadosDesempenho
+                    ? sessao.metrics.totalWrong || 0
+                    : null,
                 durationMs: sessao.durationMs || 0,
-                inatividade: sessao.metrics.inactivityCount || 0,
+                inatividade: possuiCapacidade(sessao, "inactivity")
+                    ? sessao.metrics.inactivityCount || 0
+                    : null,
             });
         });
 
@@ -81,7 +109,7 @@ const resumoJogador = async (req, res) => {
                 ? ((totalCorrect / (totalCorrect + totalWrong)) * 100).toFixed(
                       1,
                   )
-                : 0;
+                : null;
 
         return res.json({
             sucesso: true,
@@ -89,11 +117,15 @@ const resumoJogador = async (req, res) => {
             gameId: gameId || "todos",
             totalSessoes: sessoes.length,
             totalClicks,
-            totalCorrect,
-            totalWrong,
-            taxaAcerto: `${taxaAcerto}%`,
+            totalSessoesComDesempenho,
+            temDadosDesempenho: totalSessoesComDesempenho > 0,
+            totalCorrect:
+                totalSessoesComDesempenho > 0 ? totalCorrect : null,
+            totalWrong: totalSessoesComDesempenho > 0 ? totalWrong : null,
+            taxaAcerto: taxaAcerto === null ? null : `${taxaAcerto}%`,
             totalDuracaoMs,
             totalInatividade,
+            totalSessoesComInatividade,
             categorias,
             evolucaoTemporal,
         });
@@ -195,9 +227,15 @@ const alertasAluno = async (req, res) => {
         }
 
         const alertas = [];
+        const sessoesComDesempenho = sessoes.filter((sessao) =>
+            possuiCapacidade(sessao, "correctWrong"),
+        );
+        const sessoesComInatividade = sessoes.filter((sessao) =>
+            possuiCapacidade(sessao, "inactivity"),
+        );
 
         // Indicador 1 — Taxa de acerto baixa nas últimas 3 sessões
-        const ultimas3 = sessoes.slice(0, 3);
+        const ultimas3 = sessoesComDesempenho.slice(0, 3);
         if (ultimas3.length >= 2) {
             const totalAcertos = ultimas3.reduce(
                 (s, sess) => s + (sess.metrics.totalCorrect || 0),
@@ -238,13 +276,16 @@ const alertasAluno = async (req, res) => {
         }
 
         // Alerta 2 — Inatividade frequente
-        const totalInatividade = sessoes.reduce(
+        const totalInatividade = sessoesComInatividade.reduce(
             (s, sess) => s + (sess.metrics.inactivityCount || 0),
             0,
         );
-        const mediaInatividade = totalInatividade / sessoes.length;
+        const mediaInatividade =
+            sessoesComInatividade.length > 0
+                ? totalInatividade / sessoesComInatividade.length
+                : 0;
 
-        if (mediaInatividade >= 3) {
+        if (sessoesComInatividade.length > 0 && mediaInatividade >= 3) {
             alertas.push({
                 tipo: "inatividade_alta",
                 severidade: "alta",
@@ -254,7 +295,10 @@ const alertasAluno = async (req, res) => {
                 sugestao:
                     "Observe o contexto da atividade para compreender se as pausas indicam espera por ajuda, reflexão, cansaço ou necessidade de ajuste na mediação.",
             });
-        } else if (mediaInatividade >= 1.5) {
+        } else if (
+            sessoesComInatividade.length > 0 &&
+            mediaInatividade >= 1.5
+        ) {
             alertas.push({
                 tipo: "inatividade_media",
                 severidade: "media",
@@ -297,7 +341,7 @@ const alertasAluno = async (req, res) => {
         // Alerta 4 — Categoria problemática
         const errosPorCategoria = {};
 
-        sessoes.forEach((sessao) => {
+        sessoesComDesempenho.forEach((sessao) => {
             let categoriaAtual = null;
             sessao.gameEvents.forEach((evento) => {
                 if (evento.eventType === "CategorySelected") {
@@ -337,9 +381,9 @@ const alertasAluno = async (req, res) => {
         });
 
         // Alerta 5 — Evolução positiva
-        if (sessoes.length >= 3) {
-            const primeiras = sessoes.slice(-3);
-            const recentes = sessoes.slice(0, 3);
+        if (sessoesComDesempenho.length >= 3) {
+            const primeiras = sessoesComDesempenho.slice(-3);
+            const recentes = sessoesComDesempenho.slice(0, 3);
 
             const mediaAntiga =
                 primeiras.reduce(
