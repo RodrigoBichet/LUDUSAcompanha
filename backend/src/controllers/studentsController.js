@@ -6,9 +6,262 @@
 // Controller dos alunos monitorados.
 // =============================================================================
 
+const fs = require("fs");
+const path = require("path");
 const Student = require("../models/Student");
 const Session = require("../models/Session");
-const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
+const Group = require("../models/Group");
+const {
+    obterContextoEscolar,
+    podeAcessarInstituicao,
+} = require("../services/schoolAccess");
+
+const GAME_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,99}$/;
+const PASTA_SCREENSHOTS = path.resolve(__dirname, "../../uploads/screenshots");
+
+const removerArquivosDasSessoes = (sessoes) => {
+    let totalRemovido = 0;
+
+    for (const sessao of sessoes) {
+        for (const screenshot of sessao.screenshots || []) {
+            const caminhoPublico = String(screenshot.caminho || "");
+            if (!caminhoPublico.startsWith("/uploads/screenshots/")) continue;
+
+            const nomeArquivo = path.basename(caminhoPublico);
+            const caminhoArquivo = path.resolve(PASTA_SCREENSHOTS, nomeArquivo);
+            if (!caminhoArquivo.startsWith(`${PASTA_SCREENSHOTS}${path.sep}`)) {
+                continue;
+            }
+
+            try {
+                if (fs.existsSync(caminhoArquivo)) {
+                    fs.unlinkSync(caminhoArquivo);
+                    totalRemovido += 1;
+                }
+            } catch (erroArquivo) {
+                console.warn(
+                    `[LUDUS] Não foi possível remover screenshot ${nomeArquivo}:`,
+                    erroArquivo.message,
+                );
+            }
+        }
+    }
+
+    return totalRemovido;
+};
+
+const montarFiltroAcessoAlunos = async (usuarioId) => {
+    const contexto = await obterContextoEscolar(usuarioId);
+    if (!contexto) return null;
+    if (contexto.todasInstituicoes) return {};
+
+    const alternativas = [{ ownerUserId: contexto.usuario._id }];
+    if (contexto.institutionIds.length > 0) {
+        const turmas = await Group.find({
+            institutionId: { $in: contexto.institutionIds },
+        }).select("_id");
+        if (turmas.length > 0) {
+            alternativas.push({ groupId: { $in: turmas.map((turma) => turma._id) } });
+        }
+    }
+
+    return { $or: alternativas };
+};
+
+const buscarAlunoComAcesso = async (usuarioId, alunoId) => {
+    const filtroAcesso = await montarFiltroAcessoAlunos(usuarioId);
+    if (!filtroAcesso) return null;
+
+    return Student.findOne({
+        $and: [{ _id: alunoId }, filtroAcesso],
+    });
+};
+
+// -------------------------------------------------------------------------
+// listarAlunosPorJogo — GET /api/students/for-game/:gameId
+// Para Que Serve? mantém leitura dos alunos escolares legados. Jogos novos
+// exibem somente alunos associados explicitamente ao identificador do jogo.
+// -------------------------------------------------------------------------
+
+const listarAlunosPorJogo = async (req, res) => {
+    try {
+        const { gameId } = req.params;
+        if (!GAME_ID_REGEX.test(gameId)) {
+            return res.status(400).json({ sucesso: false, mensagem: "gameId inválido." });
+        }
+
+        const filtroAcesso = await montarFiltroAcessoAlunos(req.usuarioId);
+        if (!filtroAcesso) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "Usuário autenticado não foi encontrado.",
+            });
+        }
+
+        const filtroJogo =
+            gameId === "para-que-serve"
+                ? {
+                      $or: [
+                          { groupId: { $ne: null } },
+                          { assignedGameIds: gameId },
+                      ],
+                  }
+                : { assignedGameIds: gameId };
+        const alunos = await Student.find({
+            $and: [filtroAcesso, filtroJogo],
+        })
+            .select("name birthDate groupId institutionId ownerUserId enrollmentMode assignedGameIds deletionProtected")
+            .sort({ name: 1 });
+
+        return res.json({ sucesso: true, gameId, total: alunos.length, alunos });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao listar alunos por jogo:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao listar alunos do jogo.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// listarAlunosIndividuais — GET /api/students/individual
+// Lista somente os alunos individuais do usuário autenticado.
+// -------------------------------------------------------------------------
+
+const listarAlunosIndividuais = async (req, res) => {
+    try {
+        const alunos = await Student.find({
+            ownerUserId: req.usuarioId,
+            groupId: null,
+        }).sort({ name: 1 });
+
+        return res.json({ sucesso: true, total: alunos.length, alunos });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao listar alunos individuais:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao listar alunos individuais.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// criarAlunoIndividual — POST /api/students/individual
+// Cria aluno vinculado ao usuário, sem instituição ou turma.
+// -------------------------------------------------------------------------
+
+const criarAlunoIndividual = async (req, res) => {
+    try {
+        const {
+            name,
+            birthDate,
+            supportLevel,
+            otherConditions,
+            guardianName,
+            guardianContact,
+            gameId,
+        } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Campo obrigatório: name.",
+            });
+        }
+        if (!GAME_ID_REGEX.test(gameId || "")) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "gameId válido é obrigatório para aluno individual.",
+            });
+        }
+
+        const aluno = new Student({
+            name: name.trim(),
+            birthDate,
+            supportLevel,
+            otherConditions,
+            guardianName,
+            guardianContact,
+            groupId: null,
+            institutionId: null,
+            ownerUserId: req.usuarioId,
+            enrollmentMode: "individual",
+            assignedGameIds: [gameId],
+        });
+        await aluno.save();
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: "Aluno individual criado com sucesso.",
+            aluno,
+        });
+    } catch (erro) {
+        if (erro.name === "ValidationError") {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Dados inválidos para cadastro do aluno.",
+            });
+        }
+
+        console.error("[LUDUS] Erro ao criar aluno individual:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao criar aluno individual.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// removerAlunoIndividualDoJogo — DELETE /api/students/individual/:id/games/:gameId
+// Remove apenas a associação individual ao jogo. Não apaga perfil ou sessões.
+// -------------------------------------------------------------------------
+
+const removerAlunoIndividualDoJogo = async (req, res) => {
+    try {
+        const { id, gameId } = req.params;
+        if (!GAME_ID_REGEX.test(gameId)) {
+            return res.status(400).json({ sucesso: false, mensagem: "gameId inválido." });
+        }
+
+        const filtroAcesso = await montarFiltroAcessoAlunos(req.usuarioId);
+        if (!filtroAcesso) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "Usuário autenticado não foi encontrado.",
+            });
+        }
+
+        const aluno = await Student.findOne({
+            $and: [
+                { _id: id, enrollmentMode: "individual" },
+                filtroAcesso,
+            ],
+        });
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno individual não encontrado ou sem permissão.",
+            });
+        }
+
+        aluno.assignedGameIds = (aluno.assignedGameIds || []).filter(
+            (item) => item !== gameId,
+        );
+        await aluno.save();
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Aluno removido deste jogo. O perfil e o histórico foram preservados.",
+            aluno,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao remover aluno do jogo:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao remover aluno do jogo.",
+        });
+    }
+};
 
 // -------------------------------------------------------------------------
 // criarAluno — POST /api/students
@@ -31,6 +284,15 @@ const criarAluno = async (req, res) => {
             return res.status(400).json({
                 sucesso: false,
                 mensagem: "Campos obrigatórios: name, groupId",
+            });
+        }
+
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        const turma = await Group.findById(groupId).select("institutionId");
+        if (!contexto || !turma || !podeAcessarInstituicao(contexto, turma.institutionId)) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "Sem permissão para cadastrar aluno nesta turma.",
             });
         }
 
@@ -69,7 +331,16 @@ const criarAluno = async (req, res) => {
 const listarAlunos = async (req, res) => {
     try {
         const { groupId } = req.query;
-        const filtro = groupId ? { groupId } : {};
+        const filtroAcesso = await montarFiltroAcessoAlunos(req.usuarioId);
+        if (!filtroAcesso) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "Usuário autenticado não foi encontrado.",
+            });
+        }
+        const filtro = groupId
+            ? { $and: [filtroAcesso, { groupId }] }
+            : filtroAcesso;
 
         const alunos = await Student.find(filtro)
             .populate("groupId", "name")
@@ -95,10 +366,7 @@ const listarAlunos = async (req, res) => {
 
 const buscarAluno = async (req, res) => {
     try {
-        const aluno = await Student.findById(req.params.id).populate(
-            "groupId",
-            "name",
-        );
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -106,6 +374,8 @@ const buscarAluno = async (req, res) => {
                 mensagem: "Aluno não encontrado",
             });
         }
+
+        await aluno.populate("groupId", "name");
 
         // Busca sessões vinculadas ao ID do aluno
         const sessoes = await Session.find({ studentId: aluno._id })
@@ -144,12 +414,23 @@ const atualizarAluno = async (req, res) => {
             guardianContact,
         } = req.body;
 
-        const alunoAtual = await Student.findById(req.params.id);
+        const alunoAtual = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
         if (!alunoAtual) {
             return res.status(404).json({
                 sucesso: false,
                 mensagem: "Aluno não encontrado",
             });
+        }
+
+        if (groupId) {
+            const contexto = await obterContextoEscolar(req.usuarioId);
+            const turma = await Group.findById(groupId).select("institutionId");
+            if (!contexto || !turma || !podeAcessarInstituicao(contexto, turma.institutionId)) {
+                return res.status(403).json({
+                    sucesso: false,
+                    mensagem: "Sem permissão para vincular o aluno a esta turma.",
+                });
+            }
         }
 
         const aluno = await Student.findByIdAndUpdate(
@@ -189,7 +470,7 @@ const atualizarAluno = async (req, res) => {
 
 const deletarAluno = async (req, res) => {
     try {
-        const aluno = await Student.findById(req.params.id);
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -198,20 +479,29 @@ const deletarAluno = async (req, res) => {
             });
         }
 
-        const limpeza = await removerSessoesPorFiltro({
-            studentId: aluno._id,
-        });
+        if (aluno.deletionProtected) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "Este aluno está protegido contra exclusão para preservar os dados reais de acompanhamento.",
+            });
+        }
 
+        const sessoes = await Session.find({ studentId: aluno._id })
+            .select("screenshots.caminho")
+            .lean();
+        await Session.deleteMany({ studentId: aluno._id });
         await Student.findByIdAndDelete(aluno._id);
+        const totalImagensRemovidas = removerArquivosDasSessoes(sessoes);
 
         console.log(
-            `[LUDUS] Aluno deletado: ${aluno.name} | Sessões removidas: ${limpeza.sessoesRemovidas} | Arquivos removidos: ${limpeza.arquivosRemovidos}`,
+            `[LUDUS] Aluno deletado: ${aluno.name} | Sessões: ${sessoes.length} | Imagens: ${totalImagensRemovidas}`,
         );
 
         return res.json({
             sucesso: true,
-            mensagem:
-                "Aluno, sessões e imagens vinculadas deletados com sucesso!",
+            mensagem: "Aluno, sessões e imagens vinculadas foram removidos permanentemente.",
+            totalSessoesRemovidas: sessoes.length,
+            totalImagensRemovidas,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao deletar aluno:", erro.message);
@@ -239,7 +529,7 @@ const adicionarAnotacao = async (req, res) => {
 
         const usuario = await require("../models/User").findById(req.usuarioId);
 
-        const aluno = await Student.findById(req.params.id);
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
         if (!aluno) {
             return res.status(404).json({
                 sucesso: false,
@@ -277,7 +567,7 @@ const adicionarAnotacao = async (req, res) => {
 
 const deletarAnotacao = async (req, res) => {
     try {
-        const aluno = await Student.findById(req.params.id);
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -322,7 +612,7 @@ const deletarAnotacao = async (req, res) => {
 const solicitarCaptura = async (req, res) => {
     try {
         const ativo = req.body.ativo !== false;
-        const aluno = await Student.findById(req.params.id);
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
 
         if (!aluno) {
             return res.status(404).json({
@@ -369,6 +659,10 @@ const solicitarCaptura = async (req, res) => {
 };
 
 module.exports = {
+    listarAlunosPorJogo,
+    listarAlunosIndividuais,
+    criarAlunoIndividual,
+    removerAlunoIndividualDoJogo,
     criarAluno,
     listarAlunos,
     buscarAluno,

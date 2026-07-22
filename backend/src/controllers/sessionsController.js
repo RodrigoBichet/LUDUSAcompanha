@@ -11,8 +11,12 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const mongoose = require("mongoose");
 const Session = require("../models/Session");
 const Student = require("../models/Student");
+const Group = require("../models/Group");
+const Game = require("../models/Game");
 const {
     ErroValidacaoTelemetria,
     validarSessaoTelemetria,
@@ -20,6 +24,13 @@ const {
 const {
     normalizarSessaoTelemetria,
 } = require("../services/telemetryNormalizer");
+const {
+    adaptarRelatorioMonitorLegado,
+} = require("../services/legacyMonitorAdapter");
+const {
+    obterContextoEscolar,
+    podeAcessarInstituicao,
+} = require("../services/schoolAccess");
 
 // Pasta onde os screenshots das fases serão salvos
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
@@ -73,6 +84,244 @@ const processarScreenshots = (screenshots, sessionId) => {
     });
 };
 
+const validarENormalizarSessao = (dadosBrutos) => {
+    const resultadoValidacao = validarSessaoTelemetria(dadosBrutos);
+    return normalizarSessaoTelemetria(
+        resultadoValidacao.dados,
+        resultadoValidacao.tipo,
+    );
+};
+
+const salvarSessaoNormalizada = async (
+    dados,
+    { resetarCapturaSolicitada = false } = {},
+) => {
+    const sessaoExistente = await buscarSessaoDuplicadaImportada(dados);
+
+    if (sessaoExistente) {
+        const erro = new Error("Sessão já registrada com este sessionId");
+        erro.status = 409;
+        throw erro;
+    }
+
+    const temScreenshots =
+        Array.isArray(dados.screenshots) && dados.screenshots.length > 0;
+    const temCapturasBase64 = temScreenshots && dados.screenshots.some(
+        (screenshot) => Boolean(screenshot.screenshotBase64),
+    );
+
+    if (temScreenshots) {
+        dados.screenshots = processarScreenshots(
+            dados.screenshots,
+            dados.sessionId,
+        );
+    }
+
+    const sessao = new Session(dados);
+    await sessao.save();
+
+    if (resetarCapturaSolicitada && temCapturasBase64) {
+        try {
+            await Student.findOneAndUpdate(
+                { _id: dados.studentId, capturaSolicitada: true },
+                {
+                    capturaSolicitada: false,
+                    capturaSolicitadaOrigem: null,
+                },
+            );
+        } catch (erroReset) {
+            console.warn(
+                "[LUDUS] Não foi possível resetar capturaSolicitada:",
+                erroReset.message,
+            );
+        }
+    }
+
+    return sessao;
+};
+
+const criarSessionIdDeImportacao = (sourceSessionId, studentId) => {
+    const hash = crypto
+        .createHash("sha256")
+        .update(`${sourceSessionId}:${studentId}`)
+        .digest("hex");
+
+    return `import-${hash}`;
+};
+
+const buscarSessaoDuplicadaImportada = (dados) => {
+    const filtros = [{ sessionId: dados.sessionId }];
+
+    if (dados.ingestionMethod === "file-import" && dados.sourceSessionId) {
+        filtros.push({
+            studentId: dados.studentId,
+            sourceSessionId: dados.sourceSessionId,
+        });
+        // Compatibilidade com importações realizadas antes de sourceSessionId
+        // existir no modelo: o sessionId original era salvo diretamente.
+        filtros.push({
+            studentId: dados.studentId,
+            sessionId: dados.sourceSessionId,
+            ingestionMethod: "file-import",
+        });
+    }
+
+    return Session.findOne({ $or: filtros });
+};
+
+const usuarioPodeImportarParaAluno = async (usuarioId, aluno) => {
+    const contexto = await obterContextoEscolar(usuarioId);
+    if (!contexto) return false;
+    if (contexto.todasInstituicoes) return true;
+
+    if (
+        aluno.ownerUserId &&
+        String(aluno.ownerUserId) === String(contexto.usuario._id)
+    ) {
+        return true;
+    }
+
+    if (!aluno.groupId) return false;
+
+    const turma = await Group.findById(aluno.groupId).select("institutionId");
+    if (!turma) return false;
+
+    return podeAcessarInstituicao(contexto, turma.institutionId);
+};
+
+// A importação é uma evidência de que este aluno participou do jogo indicado
+// pelo próprio JSON. O vínculo é feito sem criar outro perfil, inclusive para
+// alunos que já pertencem a uma turma.
+const registrarJogoEAssociarAluno = async ({
+    usuarioId,
+    aluno,
+    dados,
+    nomeJogoDetectado,
+}) => {
+    const scopeKey = `user:${usuarioId}`;
+    const jogo = await Game.findOneAndUpdate(
+        { scopeKey, gameId: dados.gameId },
+        {
+            $setOnInsert: {
+                gameId: dados.gameId,
+                name: nomeJogoDetectado || dados.gameId,
+                sourceType: "external-json",
+                scopeType: "personal",
+                scopeKey,
+                ownerUserId: usuarioId,
+            },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
+
+    await Student.updateOne(
+        { _id: aluno._id },
+        { $addToSet: { assignedGameIds: dados.gameId } },
+    );
+
+    return jogo;
+};
+
+const prepararImportacao = async (req) => {
+    const dadosBrutos = req.body?.sessao;
+
+    if (!dadosBrutos || typeof dadosBrutos !== "object") {
+        throw new ErroValidacaoTelemetria(
+            "Envie o JSON da sessão no campo sessao.",
+        );
+    }
+
+    if (
+        dadosBrutos.studentId &&
+        String(dadosBrutos.studentId) !== String(req.params.studentId)
+    ) {
+        throw new ErroValidacaoTelemetria(
+            "O studentId do JSON não corresponde ao aluno selecionado.",
+        );
+    }
+
+    if (!mongoose.isValidObjectId(req.params.studentId)) {
+        throw new ErroValidacaoTelemetria("studentId inválido na rota de importação.");
+    }
+
+    const aluno = await Student.findById(req.params.studentId);
+
+    if (!aluno) {
+        const erro = new Error("Aluno não encontrado");
+        erro.status = 404;
+        throw erro;
+    }
+
+    const autorizado = await usuarioPodeImportarParaAluno(
+        req.usuarioId,
+        aluno,
+    );
+
+    if (!autorizado) {
+        const erro = new Error("Sem permissão para importar sessões deste aluno");
+        erro.status = 403;
+        throw erro;
+    }
+
+    const dadosAdaptados = adaptarRelatorioMonitorLegado(dadosBrutos);
+    const gameIdSelecionado = String(req.body?.gameId || "").trim();
+    const nomeJogoDetectado = String(
+        dadosBrutos.app || dadosAdaptados.gameId,
+    ).trim();
+
+    if (gameIdSelecionado && !/^[a-z0-9][a-z0-9-]{0,99}$/.test(gameIdSelecionado)) {
+        throw new ErroValidacaoTelemetria("gameId inválido no contexto da importação.");
+    }
+
+    if (gameIdSelecionado && gameIdSelecionado !== dadosAdaptados.gameId) {
+        const erro = new Error(
+            `Este JSON pertence ao jogo \"${nomeJogoDetectado}\", não ao jogo selecionado.`,
+        );
+        erro.status = 409;
+        erro.codigo = "JOGO_INCOMPATIVEL";
+        erro.jogoDetectado = {
+            gameId: dadosAdaptados.gameId,
+            nome: nomeJogoDetectado || dadosAdaptados.gameId,
+        };
+        throw erro;
+    }
+
+    const dadosParaImportar = {
+        ...dadosAdaptados,
+        studentId: String(aluno._id),
+    };
+
+    if (dadosParaImportar.schemaVersion) {
+        dadosParaImportar.ingestionMethod = "file-import";
+    }
+
+    const dados = validarENormalizarSessao(dadosParaImportar);
+    dados.playerId = aluno.name;
+    dados.ingestionMethod = "file-import";
+    dados.sourceSessionId = dadosAdaptados.sessionId;
+    dados.sourceGameId = dadosAdaptados.gameId;
+    dados.sessionId = criarSessionIdDeImportacao(
+        dados.sourceSessionId,
+        aluno._id,
+    );
+
+    return { aluno, dados, nomeJogoDetectado };
+};
+
+const resumirImportacao = (dados, jaRegistrada) => ({
+    sessionId: dados.sessionId,
+    gameId: dados.gameId,
+    gameVersion: dados.gameVersion || null,
+    captureMode: dados.captureMode,
+    source: dados.source,
+    durationMs: dados.durationMs || 0,
+    capabilities: dados.capabilities,
+    totalClicks: dados.metrics?.totalClicks ?? dados.clicks?.length ?? 0,
+    totalEventos: dados.gameEvents?.length || 0,
+    totalScreenshots: dados.screenshots?.length || 0,
+    jaRegistrada,
+});
+
 // -------------------------------------------------------------------------
 // criarSessao — POST /api/sessions
 // Recebe o JSON da sessão gerado pelo LudusExporter e salva no banco.
@@ -83,11 +332,7 @@ const criarSessao = async (req, res) => {
         let dados;
 
         try {
-            const resultadoValidacao = validarSessaoTelemetria(req.body);
-            dados = normalizarSessaoTelemetria(
-                resultadoValidacao.dados,
-                resultadoValidacao.tipo,
-            );
+            dados = validarENormalizarSessao(req.body);
         } catch (erroValidacao) {
             if (!(erroValidacao instanceof ErroValidacaoTelemetria)) {
                 throw erroValidacao;
@@ -111,65 +356,13 @@ const criarSessao = async (req, res) => {
 
         dados.playerId = aluno.name;
 
-        // Verifica duplicata
-        const sessaoExistente = await Session.findOne({
-            sessionId: dados.sessionId,
+        const sessao = await salvarSessaoNormalizada(dados, {
+            resetarCapturaSolicitada: true,
         });
-        if (sessaoExistente) {
-            return res.status(409).json({
-                sucesso: false,
-                mensagem: "Sessão já registrada com este sessionId",
-            });
-        }
-
-        // Processa screenshots se a sessão trouxer algum
-        // O base64 é extraído, salvo em disco e substituído pelo caminho
-        const temScreenshots =
-            Array.isArray(dados.screenshots) && dados.screenshots.length > 0;
-        const temCapturasBase64 = temScreenshots && dados.screenshots.some(
-            (screenshot) => Boolean(screenshot.screenshotBase64),
-        );
-
-        if (temScreenshots) {
-            dados.screenshots = processarScreenshots(
-                dados.screenshots,
-                dados.sessionId,
-            );
-        }
-
-        // Salva a sessão no MongoDB (sem base64 — só caminhos)
-        const sessao = new Session(dados);
-        await sessao.save();
 
         console.log(
             `[LUDUS] Sessão recebida: ${sessao.sessionId} | Player: ${sessao.playerId}`,
         );
-
-        // Se a sessão veio com screenshots, reseta o flag capturaSolicitada do aluno.
-        // O flag é resetado pelo ID do aluno, evitando colisões por nomes repetidos.
-        // Usamos findOneAndUpdate para não travar o fluxo caso o aluno não seja encontrado.
-        if (temCapturasBase64) {
-            try {
-                await Student.findOneAndUpdate(
-                    { _id: dados.studentId, capturaSolicitada: true },
-
-                    {
-                        capturaSolicitada: false,
-                        capturaSolicitadaOrigem: null,
-                    },
-                );
-
-                console.log(
-                    `[LUDUS] Flag capturaSolicitada resetado para: ${dados.playerId}`,
-                );
-            } catch (erroReset) {
-                // Não interrompe o fluxo — o reset é secundário
-                console.warn(
-                    "[LUDUS] Não foi possível resetar capturaSolicitada:",
-                    erroReset.message,
-                );
-            }
-        }
 
         return res.status(201).json({
             sucesso: true,
@@ -178,9 +371,99 @@ const criarSessao = async (req, res) => {
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao salvar sessão:", erro.message);
+        if (erro.status) {
+            return res.status(erro.status).json({
+                sucesso: false,
+                mensagem: erro.message,
+            });
+        }
         return res.status(500).json({
             sucesso: false,
             mensagem: "Erro interno ao salvar sessão",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// previewImportacao — POST /api/sessions/import/:studentId/preview
+// Valida e normaliza um JSON sem gravar dados no MongoDB.
+// -------------------------------------------------------------------------
+
+const previewImportacao = async (req, res) => {
+    try {
+        const { dados } = await prepararImportacao(req);
+        const jaRegistrada = Boolean(
+            await buscarSessaoDuplicadaImportada(dados),
+        );
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Sessão validada para importação.",
+            preview: resumirImportacao(dados, jaRegistrada),
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes || [],
+                codigo: erro.codigo || null,
+                jogoDetectado: erro.jogoDetectado || null,
+            });
+        }
+
+        console.error("[LUDUS] Erro ao pré-visualizar importação:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao pré-visualizar importação",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// confirmarImportacao — POST /api/sessions/import/:studentId/confirm
+// Persiste uma sessão já revisada no fluxo de importação autenticado.
+// -------------------------------------------------------------------------
+
+const confirmarImportacao = async (req, res) => {
+    try {
+        const { aluno, dados, nomeJogoDetectado } = await prepararImportacao(req);
+        const jogo = await registrarJogoEAssociarAluno({
+            usuarioId: req.usuarioId,
+            aluno,
+            dados,
+            nomeJogoDetectado,
+        });
+        const sessao = await salvarSessaoNormalizada(dados);
+
+        console.log(
+            `[LUDUS] Sessão importada: ${sessao.sessionId} | Player: ${sessao.playerId}`,
+        );
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: "Sessão importada com sucesso!",
+            sessionId: sessao.sessionId,
+            jogo: {
+                gameId: jogo.gameId,
+                name: jogo.name,
+            },
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes || [],
+                codigo: erro.codigo || null,
+                jogoDetectado: erro.jogoDetectado || null,
+            });
+        }
+
+        console.error("[LUDUS] Erro ao confirmar importação:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao confirmar importação",
         });
     }
 };
@@ -282,6 +565,8 @@ const sessoesPorAluno = async (req, res) => {
 
 module.exports = {
     criarSessao,
+    previewImportacao,
+    confirmarImportacao,
     listarSessoes,
     buscarSessao,
     sessoesPorAluno,

@@ -16,6 +16,7 @@ import {
     atualizarTurma,
     deletarTurma,
     listarInstituicoes,
+    criarInstituicao,
 } from "../services/api";
 import "./Turmas.css";
 
@@ -39,6 +40,11 @@ export default function Turmas() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
     const [editando, setEditando] = useState(null);
+    const [mostrarFormInstituicao, setMostrarFormInstituicao] = useState(false);
+    const [nomeInstituicao, setNomeInstituicao] = useState("");
+    const [cidadeInstituicao, setCidadeInstituicao] = useState("");
+    const [salvandoInstituicao, setSalvandoInstituicao] = useState(false);
+    const [erroInstituicao, setErroInstituicao] = useState("");
 
     const turmasFiltradas = institutionIdSelecionada
         ? turmas.filter((turma) => {
@@ -133,8 +139,11 @@ export default function Turmas() {
 
             fecharForm();
             carregarDados();
-        } catch {
-            setErroForm("Erro ao salvar turma. Tente novamente.");
+        } catch (erroCadastro) {
+            setErroForm(
+                erroCadastro.response?.data?.mensagem ||
+                    "Erro ao salvar turma. Tente novamente.",
+            );
         } finally {
             setSalvando(false);
         }
@@ -143,45 +152,140 @@ export default function Turmas() {
     const handleDeletar = async (id, nome) => {
         if (
             !window.confirm(
-                `Tem certeza que deseja excluir a turma "${nome}"? Todos os alunos, sessões e imagens vinculadas também serão removidos.`,
+                `Tem certeza que deseja excluir a turma "${nome}"? Apenas turmas sem alunos podem ser excluídas; alunos e sessões existentes serão preservados.`,
             )
         )
             return;
         try {
             await deletarTurma(id);
             carregarDados();
-        } catch {
-            alert("Erro ao excluir turma.");
+        } catch (erroExclusao) {
+            alert(
+                erroExclusao.response?.data?.mensagem ||
+                    "Não foi possível excluir a turma.",
+            );
+        }
+    };
+
+    const handleCriarInstituicao = async (evento) => {
+        evento.preventDefault();
+        if (!nomeInstituicao.trim()) return;
+
+        try {
+            setSalvandoInstituicao(true);
+            setErroInstituicao("");
+            const resposta = await criarInstituicao({
+                name: nomeInstituicao.trim(),
+                city: cidadeInstituicao.trim(),
+            });
+            const instituicao = resposta.data.instituicao;
+            setInstituicoes((atuais) => [...atuais, instituicao].sort((a, b) =>
+                a.name.localeCompare(b.name, "pt-BR"),
+            ));
+            setNomeInstituicao("");
+            setCidadeInstituicao("");
+            setMostrarFormInstituicao(false);
+            navegar(`/turmas?institutionId=${encodeURIComponent(instituicao._id)}`);
+        } catch (erroCadastro) {
+            setErroInstituicao(
+                erroCadastro.response?.data?.mensagem ||
+                    "Não foi possível cadastrar a instituição.",
+            );
+        } finally {
+            setSalvandoInstituicao(false);
         }
     };
 
     return (
         <div>
             <Header
-                titulo={instituicaoSelecionada?.name || "Minhas Turmas"}
+                titulo={instituicaoSelecionada?.name || "Instituições"}
                 subtitulo={
                     instituicaoSelecionada
                         ? "Turmas vinculadas a esta instituição"
-                        : "Gerencie suas turmas e alunos"
+                        : "Organize instituições, turmas e alunos"
                 }
             />
 
             <div className="pagina-conteudo">
+                <section className="instituicoes-escolares">
+                    <div className="turmas-topo">
+                        <div className="secao-titulo">
+                            <h2>Instituições</h2>
+                            {!carregando && (
+                                <span className="badge">{instituicoes.length}</span>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            className="btn-primario"
+                            onClick={() => setMostrarFormInstituicao((aberto) => !aberto)}
+                        >
+                            {mostrarFormInstituicao
+                                ? "Fechar cadastro"
+                                : "+ Nova Instituição"}
+                        </button>
+                    </div>
+
+                    {mostrarFormInstituicao && (
+                        <form className="card form-instituicao" onSubmit={handleCriarInstituicao}>
+                            <label className="campo-grupo">
+                                <span className="campo-label">Nome da instituição</span>
+                                <input className="campo-input" value={nomeInstituicao}
+                                    onChange={(evento) => setNomeInstituicao(evento.target.value)}
+                                    required disabled={salvandoInstituicao} />
+                            </label>
+                            <label className="campo-grupo">
+                                <span className="campo-label">Cidade (opcional)</span>
+                                <input className="campo-input" value={cidadeInstituicao}
+                                    onChange={(evento) => setCidadeInstituicao(evento.target.value)}
+                                    disabled={salvandoInstituicao} />
+                            </label>
+                            {erroInstituicao && <p className="form-erro">{erroInstituicao}</p>}
+                            <button className="btn-primario" disabled={salvandoInstituicao}>
+                                {salvandoInstituicao ? "Salvando..." : "Salvar instituição"}
+                            </button>
+                        </form>
+                    )}
+
+                    {!carregando && instituicoes.length === 0 ? (
+                        <div className="card estado-vazio">
+                            <p>Cadastre a primeira instituição para organizar suas turmas e alunos.</p>
+                        </div>
+                    ) : (
+                        <div className="lista-instituicoes-escolares">
+                            {instituicoes.map((instituicao) => (
+                                <button key={instituicao._id} type="button"
+                                    className={institutionIdSelecionada === instituicao._id ? "card instituicao-escolar-card selecionada" : "card instituicao-escolar-card"}
+                                    onClick={() => navegar(`/turmas?institutionId=${encodeURIComponent(instituicao._id)}`)}>
+                                    <span className="instituicao-escolar-icone">🏫</span>
+                                    <span>
+                                        <strong>{instituicao.name}</strong>
+                                        <small>{instituicao.city || "Cidade não informada"}</small>
+                                    </span>
+                                    <span className="aluno-individual-seta">→</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
                 {institutionIdSelecionada && (
                     <button
                         className="btn-voltar"
-                        onClick={() =>
-                            navegar(
-                                gameIdSelecionado
-                                    ? `/?gameId=${gameIdSelecionado}`
-                                    : "/",
-                            )
-                        }
+                        onClick={() => navegar("/turmas")}
                     >
-                        ← Voltar para Visão Geral
+                        ← Voltar para instituições
                     </button>
                 )}
 
+                {!institutionIdSelecionada ? (
+                    <div className="card estado-vazio turma-sem-instituicao">
+                        <span className="estado-vazio-icone">🏫</span>
+                        <p>Selecione uma instituição para visualizar ou cadastrar turmas.</p>
+                    </div>
+                ) : (
+                    <>
                 {/* Botão nova turma */}
                 <div className="turmas-topo">
                     <div className="secao-titulo">
@@ -231,35 +335,9 @@ export default function Turmas() {
                                     disabled={salvando}
                                 />
                             </div>
-                            <div className="campo-grupo">
-                                <label className="campo-label">
-                                    Instituição
-                                </label>
-                                <select
-                                    className="campo-input"
-                                    value={instituicaoId}
-                                    onChange={(e) =>
-                                        setInstituicaoId(e.target.value)
-                                    }
-                                    disabled={
-                                        salvando || !!institutionIdSelecionada
-                                    }
-                                >
-                                    <option value="">Selecione...</option>
-                                    {instituicoes.map((inst) => (
-                                        <option key={inst._id} value={inst._id}>
-                                            {inst.name}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {institutionIdSelecionada && (
-                                    <p className="texto-leve">
-                                        A turma será vinculada à instituição
-                                        selecionada na Visão Geral.
-                                    </p>
-                                )}
-                            </div>
+                            <p className="texto-leve">
+                                A turma será vinculada a {instituicaoSelecionada?.name}.
+                            </p>
                             {erroForm && (
                                 <p className="form-erro">{erroForm}</p>
                             )}
@@ -371,6 +449,8 @@ export default function Turmas() {
                             ))}
                         </div>
                     ))}
+                    </>
+                )}
             </div>
         </div>
     );

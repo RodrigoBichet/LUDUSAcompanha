@@ -190,7 +190,7 @@ export default function RelatorioPDF({
                     )}
                     <div className="pdf-dado">
                         <span className="pdf-dado-label">
-                            Grau de Suporte (TEA)
+                            Nível de suporte relacionado ao TEA
                         </span>
                         <span className="pdf-dado-valor">
                             {aluno?.supportLevel || "Não informado"}
@@ -199,7 +199,7 @@ export default function RelatorioPDF({
                     {aluno?.otherConditions && (
                         <div className="pdf-dado">
                             <span className="pdf-dado-label">
-                                Outras condições
+                                Outras condições ou informações relevantes
                             </span>
                             <span className="pdf-dado-valor">
                                 {aluno.otherConditions}

@@ -12,6 +12,14 @@ const InstitutionSchema = new mongoose.Schema(
     {
         name: { type: String, required: true },
         city: { type: String },
+        // Instituições históricas permanecem sem autora e são acessadas pelo
+        // vínculo legado em User.institutionId.
+        ownerUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+            immutable: true,
+        },
     },
     {
         timestamps: true,

@@ -31,6 +31,9 @@ import {
     historicoAluno,
     alertasAluno,
     solicitarCaptura,
+    previsualizarImportacaoSessao,
+    confirmarImportacaoSessao,
+    criarJogoDetectado,
 } from "../services/api";
 import "./PerfilAluno.css";
 import { useRef } from "react";
@@ -43,6 +46,7 @@ export default function PerfilAluno() {
     const [searchParams] = useSearchParams();
 
     const gameIdSelecionado = searchParams.get("gameId");
+    const importacaoPronta = searchParams.get("importacaoPronta") === "1";
 
     const [aluno, setAluno] = useState(null);
     const [resumo, setResumo] = useState(null);
@@ -63,6 +67,22 @@ export default function PerfilAluno() {
     const [solicitandoCaptura, setSolicitandoCaptura] = useState(false);
 
     const [modalCaptura, setModalCaptura] = useState(null);
+
+    // Importação de telemetria: o arquivo permanece somente no estado do navegador
+    // até a confirmação explícita da pessoa usuária.
+    const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
+    const [sessaoParaImportar, setSessaoParaImportar] = useState(null);
+    const [nomeArquivoImportacao, setNomeArquivoImportacao] = useState("");
+    const [previewImportacao, setPreviewImportacao] = useState(null);
+    const [erroImportacao, setErroImportacao] = useState("");
+    const [jogoIncompativel, setJogoIncompativel] = useState(null);
+    const [criandoJogoDetectado, setCriandoJogoDetectado] = useState(false);
+    const [jogoDetectadoJaCadastrado, setJogoDetectadoJaCadastrado] = useState(null);
+    const [sucessoImportacao, setSucessoImportacao] = useState("");
+    const [processandoImportacao, setProcessandoImportacao] = useState(false);
+    const [modalOrientacaoImportacao, setModalOrientacaoImportacao] = useState(
+        importacaoPronta,
+    );
 
     useEffect(() => {
         carregarDados();
@@ -244,6 +264,150 @@ export default function PerfilAluno() {
         }
     };
 
+    const abrirImportacao = () => {
+        setModalImportacaoAberto(true);
+        setSessaoParaImportar(null);
+        setNomeArquivoImportacao("");
+        setPreviewImportacao(null);
+        setErroImportacao("");
+        setJogoIncompativel(null);
+        setJogoDetectadoJaCadastrado(null);
+        setSucessoImportacao("");
+    };
+
+    const handleArquivoImportacao = async (evento) => {
+        const arquivo = evento.target.files?.[0];
+        setPreviewImportacao(null);
+        setErroImportacao("");
+        setJogoIncompativel(null);
+        setJogoDetectadoJaCadastrado(null);
+        setSucessoImportacao("");
+        setSessaoParaImportar(null);
+        setNomeArquivoImportacao(arquivo?.name || "");
+
+        if (!arquivo) return;
+
+        try {
+            const conteudo = await arquivo.text();
+            const sessao = JSON.parse(conteudo);
+
+            if (!sessao || Array.isArray(sessao) || typeof sessao !== "object") {
+                throw new Error("O arquivo deve conter um objeto JSON de sessão.");
+            }
+
+            setSessaoParaImportar(sessao);
+        } catch (erro) {
+            setErroImportacao(
+                erro.message || "Não foi possível ler o arquivo JSON selecionado.",
+            );
+        }
+    };
+
+    const handlePrevisualizarImportacao = async () => {
+        if (!sessaoParaImportar || !aluno?._id) return;
+
+        try {
+            setProcessandoImportacao(true);
+            setErroImportacao("");
+            setJogoIncompativel(null);
+            setJogoDetectadoJaCadastrado(null);
+            const resposta = await previsualizarImportacaoSessao(
+                aluno._id,
+                sessaoParaImportar,
+                gameIdSelecionado,
+            );
+            setPreviewImportacao(resposta.data.preview);
+        } catch (erro) {
+            setPreviewImportacao(null);
+            setJogoIncompativel(
+                erro.response?.data?.codigo === "JOGO_INCOMPATIVEL"
+                    ? erro.response.data.jogoDetectado
+                    : null,
+            );
+            setErroImportacao(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível validar a sessão para importação.",
+            );
+        } finally {
+            setProcessandoImportacao(false);
+        }
+    };
+
+    const handleConfirmarImportacao = async () => {
+        if (!sessaoParaImportar || !previewImportacao || !aluno?._id) return;
+
+        if (previewImportacao.jaRegistrada) {
+            setErroImportacao("Esta sessão já está registrada para este aluno.");
+            return;
+        }
+
+        try {
+            setProcessandoImportacao(true);
+            setErroImportacao("");
+            const resposta = await confirmarImportacaoSessao(
+                aluno._id,
+                sessaoParaImportar,
+                gameIdSelecionado,
+            );
+
+            await carregarDados();
+            const nomeJogoAssociado = resposta.data?.jogo?.name;
+            setSucessoImportacao(
+                nomeJogoAssociado
+                    ? `Sessão importada com sucesso. O aluno foi associado ao jogo “${nomeJogoAssociado}”.`
+                    : "Sessão importada com sucesso. O histórico do aluno foi atualizado.",
+            );
+        } catch (erro) {
+            setJogoIncompativel(
+                erro.response?.data?.codigo === "JOGO_INCOMPATIVEL"
+                    ? erro.response.data.jogoDetectado
+                    : null,
+            );
+            setErroImportacao(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível confirmar a importação.",
+            );
+        } finally {
+            setProcessandoImportacao(false);
+        }
+    };
+
+    const handleCriarJogoDetectado = async (evento) => {
+        evento.preventDefault();
+        if (!jogoIncompativel) return;
+
+        try {
+            setCriandoJogoDetectado(true);
+            setErroImportacao("");
+            const resposta = await criarJogoDetectado({
+                name: jogoIncompativel.nome,
+                gameId: jogoIncompativel.gameId,
+            });
+            const jogo = resposta.data.jogo;
+            if (!resposta.data.criado) {
+                setJogoDetectadoJaCadastrado(jogo);
+                return;
+            }
+
+            continuarParaCadastroNoJogo(jogo);
+        } catch (erro) {
+            setErroImportacao(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível cadastrar o jogo detectado.",
+            );
+        } finally {
+            setCriandoJogoDetectado(false);
+        }
+    };
+
+    const continuarParaCadastroNoJogo = (jogo) => {
+        const parametros = new URLSearchParams({
+            novoAluno: aluno.name,
+            origem: "importacao",
+        });
+        navegar(`/jogos/${encodeURIComponent(jogo.gameId)}/alunos?${parametros.toString()}`);
+    };
+
     const capturaAtivaPelaUnity =
         aluno?.capturaSolicitada && aluno?.capturaSolicitadaOrigem === "unity";
 
@@ -326,6 +490,14 @@ export default function PerfilAluno() {
         html2pdf().set(opcoes).from(elemento).save();
     };
 
+    const fecharOrientacaoImportacao = () => {
+        setModalOrientacaoImportacao(false);
+        const parametros = new URLSearchParams();
+        if (gameIdSelecionado) parametros.set("gameId", gameIdSelecionado);
+        const query = parametros.toString();
+        navegar(`/aluno/${id}${query ? `?${query}` : ""}`, { replace: true });
+    };
+
     return (
         <div>
             <Header
@@ -396,14 +568,14 @@ export default function PerfilAluno() {
                                     <div className="info-lista">
                                         <div className="info-item">
                                             <span className="texto-leve">
-                                                Grau de suporte
+                                                Nível de suporte relacionado ao TEA
                                             </span>
                                             <span>{aluno.supportLevel}</span>
                                         </div>
                                         {aluno.otherConditions && (
                                             <div className="info-item">
                                                 <span className="texto-leve">
-                                                    Outras condições
+                                                    Outras condições ou informações relevantes
                                                 </span>
                                                 <span>
                                                     {aluno.otherConditions}
@@ -472,6 +644,28 @@ export default function PerfilAluno() {
                                     </div>
                                 )}
 
+                                {!editando && (
+                                    <div className="importacao-card">
+                                        <div className="captura-card-icone">
+                                            📥
+                                        </div>
+                                        <div className="captura-card-texto">
+                                            <strong>Importar telemetria</strong>
+                                            <p className="texto-leve">
+                                                Valide um arquivo JSON antes de
+                                                registrá-lo para este aluno.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn-captura"
+                                            onClick={abrirImportacao}
+                                        >
+                                            Importar JSON
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Modo edição */}
                                 {editando && (
                                     <form
@@ -514,7 +708,7 @@ export default function PerfilAluno() {
                                         </div>
                                         <div className="campo-grupo">
                                             <label className="campo-label">
-                                                Grau de suporte
+                                                Nível de suporte relacionado ao TEA
                                             </label>
                                             <select
                                                 className="campo-input"
@@ -535,11 +729,12 @@ export default function PerfilAluno() {
                                         </div>
                                         <div className="campo-grupo">
                                             <label className="campo-label">
-                                                Outras condições
+                                                Outras condições ou informações relevantes (opcional)
                                             </label>
                                             <input
                                                 type="text"
                                                 className="campo-input"
+                                                placeholder="Ex.: TDAH, síndrome de Down ou informação compartilhada pela família/escola"
                                                 value={
                                                     formAluno.otherConditions
                                                 }
@@ -1063,6 +1258,182 @@ export default function PerfilAluno() {
                             >
                                 Entendi
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {modalOrientacaoImportacao && !carregando && !erro && aluno && (
+                    <div
+                        className="modal-captura-backdrop"
+                        role="presentation"
+                    >
+                        <div
+                            className="modal-orientacao-importacao"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="titulo-orientacao-importacao"
+                        >
+                            <div className="modal-captura-icone">✅</div>
+                            <h3 id="titulo-orientacao-importacao">Agora sim!</h3>
+                            <p>
+                                O aluno está no jogo correto. Anexe novamente o
+                                JSON para importá-lo neste perfil.
+                            </p>
+                            <button
+                                type="button"
+                                className="btn-captura"
+                                onClick={fecharOrientacaoImportacao}
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {modalImportacaoAberto && (
+                    <div className="modal-captura-backdrop">
+                        <div className="modal-importacao" role="dialog" aria-modal="true" aria-labelledby="titulo-importacao">
+                            <div>
+                                <h3 id="titulo-importacao">Importar telemetria</h3>
+                                <p>
+                                    Selecione um JSON de uma sessão. Primeiro,
+                                    o sistema valida o conteúdo sem salvar nada.
+                                </p>
+                            </div>
+
+                            <label className="campo-arquivo-importacao">
+                                <span>Arquivo JSON</span>
+                                <input
+                                    type="file"
+                                    accept="application/json,.json"
+                                    onChange={handleArquivoImportacao}
+                                    disabled={processandoImportacao}
+                                />
+                            </label>
+
+                            {nomeArquivoImportacao && (
+                                <p className="texto-leve">
+                                    Selecionado: {nomeArquivoImportacao}
+                                </p>
+                            )}
+
+                            {erroImportacao && (
+                                <p className="mensagem-importacao erro-importacao">
+                                    {erroImportacao}
+                                </p>
+                            )}
+
+                            {jogoIncompativel && (
+                                <form
+                                    className="preview-importacao"
+                                    onSubmit={handleCriarJogoDetectado}
+                                >
+                                    <strong>Identificamos outro jogo neste arquivo.</strong>
+                                    <span>
+                                        O arquivo pertence a “{jogoIncompativel.nome}”,
+                                        não ao jogo aberto neste momento.
+                                    </span>
+                                    {!jogoDetectadoJaCadastrado && (
+                                        <>
+                                    <p className="texto-leve">
+                                        Usaremos o jogo identificado no JSON e abriremos
+                                        o cadastro de um perfil individual para “{aluno?.name}”.
+                                    </p>
+                                    <button
+                                        type="submit"
+                                        className="btn-captura"
+                                        disabled={criandoJogoDetectado}
+                                    >
+                                        {criandoJogoDetectado
+                                            ? "Preparando..."
+                                            : `Usar ${jogoIncompativel.nome} e continuar`}
+                                    </button>
+                                        </>
+                                    )}
+                                    {jogoDetectadoJaCadastrado && (
+                                        <>
+                                            <p className="mensagem-importacao sucesso-importacao">
+                                                Este jogo já está registrado como “{jogoDetectadoJaCadastrado.name}”.
+                                                Vamos usá-lo para manter as sessões reunidas no mesmo acompanhamento.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                className="btn-captura"
+                                                onClick={() => continuarParaCadastroNoJogo(jogoDetectadoJaCadastrado)}
+                                            >
+                                                Continuar com aluno
+                                            </button>
+                                        </>
+                                    )}
+                                </form>
+                            )}
+
+                            {sucessoImportacao && (
+                                <p className="mensagem-importacao sucesso-importacao">
+                                    {sucessoImportacao}
+                                </p>
+                            )}
+
+                            {previewImportacao && (
+                                <div className="preview-importacao">
+                                    <strong>Prévia validada</strong>
+                                    <span>Sessão: {previewImportacao.sessionId}</span>
+                                    <span>Jogo: {previewImportacao.gameId}</span>
+                                    <span>
+                                        Modo: {previewImportacao.captureMode === "observational" ? "observacional" : "SDK instrumentado"}
+                                    </span>
+                                    <span>
+                                        Registros: {previewImportacao.totalClicks} cliques observados, {previewImportacao.totalEventos} eventos
+                                    </span>
+                                    {previewImportacao.jaRegistrada && (
+                                        <p className="mensagem-importacao erro-importacao">
+                                            Esta sessão já está registrada e não será duplicada.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="acoes-importacao">
+                                {sucessoImportacao ? (
+                                    <button
+                                        type="button"
+                                        className="btn-captura"
+                                        onClick={() => setModalImportacaoAberto(false)}
+                                    >
+                                        Fechar
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="btn-cancelar-importacao"
+                                            onClick={() => setModalImportacaoAberto(false)}
+                                            disabled={processandoImportacao}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        {!previewImportacao ? (
+                                    <button
+                                        type="button"
+                                        className="btn-captura"
+                                        onClick={handlePrevisualizarImportacao}
+                                        disabled={!sessaoParaImportar || processandoImportacao}
+                                    >
+                                        {processandoImportacao ? "Validando..." : "Validar prévia"}
+                                    </button>
+                                        ) : (
+                                    <button
+                                        type="button"
+                                        className="btn-captura"
+                                        onClick={handleConfirmarImportacao}
+                                        disabled={previewImportacao.jaRegistrada || processandoImportacao}
+                                    >
+                                        {processandoImportacao ? "Importando..." : "Confirmar importação"}
+                                    </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

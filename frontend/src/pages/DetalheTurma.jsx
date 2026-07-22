@@ -135,8 +135,11 @@ export default function DetalheTurma() {
             await criarAluno({ ...form, groupId: id });
             fecharFormAluno();
             carregarDados();
-        } catch {
-            setErroForm("Erro ao cadastrar aluno. Tente novamente.");
+        } catch (erroCadastro) {
+            setErroForm(
+                erroCadastro.response?.data?.mensagem ||
+                    "Erro ao cadastrar aluno. Tente novamente.",
+            );
         } finally {
             setSalvando(false);
         }
@@ -145,15 +148,18 @@ export default function DetalheTurma() {
     const handleDeletar = async (alunoId, nome) => {
         if (
             !window.confirm(
-                `Tem certeza que deseja excluir "${nome}"? As sessões e imagens vinculadas a este aluno também serão removidas.`,
+                `Excluir "${nome}" permanentemente? O perfil, as sessões e as imagens vinculadas serão apagados. Esta ação não pode ser desfeita.`,
             )
         )
             return;
         try {
             await deletarAluno(alunoId);
             carregarDados();
-        } catch {
-            alert("Erro ao excluir aluno.");
+        } catch (erroExclusao) {
+            alert(
+                erroExclusao.response?.data?.mensagem ||
+                    "Não foi possível excluir o aluno.",
+            );
         }
     };
 
@@ -262,7 +268,7 @@ export default function DetalheTurma() {
 
                                     <div className="campo-grupo">
                                         <label className="campo-label">
-                                            Grau de suporte (TEA)
+                                            Nível de suporte relacionado ao TEA
                                         </label>
                                         <select
                                             className="campo-input"
@@ -285,12 +291,12 @@ export default function DetalheTurma() {
 
                                     <div className="campo-grupo">
                                         <label className="campo-label">
-                                            Outras condições
+                                            Outras condições ou informações relevantes (opcional)
                                         </label>
                                         <input
                                             type="text"
                                             className="campo-input"
-                                            placeholder="Ex: TDAH, Dislexia"
+                                            placeholder="Ex.: TDAH, síndrome de Down ou informação compartilhada pela família/escola"
                                             value={form.otherConditions}
                                             onChange={(e) =>
                                                 setForm({

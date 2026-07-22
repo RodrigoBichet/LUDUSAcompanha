@@ -6,10 +6,16 @@
 // Página inicial — visão geral dos alunos monitorados.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
-import { listarTurmas, listarInstituicoes } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import {
+    listarJogos,
+    criarJogo,
+    atualizarJogo,
+    arquivarJogo,
+} from "../services/api";
 import "./Home.css";
 
 const JOGOS_DISPONIVEIS = [
@@ -23,118 +29,168 @@ const JOGOS_DISPONIVEIS = [
         id: "historietas-divertidas",
         nome: "Historietas Divertidas",
         descricao: "Preparado para integração futura.",
-        ativo: false,
+        ativo: true,
     },
 ];
 
-function CardInstituicao({ instituicao, turmas, jogoSelecionado, navegar }) {
-    const totalTurmas = turmas.filter((turma) => {
-        const instituicaoTurma =
-            turma.institutionId?._id || turma.institutionId;
-
-        return instituicaoTurma === instituicao._id;
-    }).length;
-
-    const montarUrlTurmas = () => {
-        const params = new URLSearchParams();
-
-        params.set("institutionId", instituicao._id);
-        params.set("gameId", jogoSelecionado.id);
-
-        return `/turmas?${params.toString()}`;
-    };
-
-    return (
-        <div
-            className="card home-instituicao-card"
-            onClick={() => navegar(montarUrlTurmas())}
-        >
-            <div className="home-instituicao-icone">🏫</div>
-
-            <div className="home-instituicao-info">
-                <h3>{instituicao.name}</h3>
-
-                <div className="home-instituicao-detalhes">
-                    <span className="texto-leve">
-                        {instituicao.city || "Cidade não informada"}
-                    </span>
-
-                    <span className="home-instituicao-meta">
-                        {totalTurmas} {totalTurmas === 1 ? "turma" : "turmas"}
-                    </span>
-                </div>
-            </div>
-
-            <span className="home-instituicao-seta">→</span>
-        </div>
-    );
-}
-
 export default function Home() {
-    const [instituicoes, setInstituicoes] = useState([]);
-    const [turmas, setTurmas] = useState([]);
-    const [jogoSelecionado, setJogoSelecionado] = useState(null);
+    const { usuario } = useAuth();
+    const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+    const nomeJogoSugerido = searchParams.get("novoJogo") || "";
+    const [jogos, setJogos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
-    const navegar = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [mostrarCadastroJogo, setMostrarCadastroJogo] = useState(
+        Boolean(nomeJogoSugerido),
+    );
+    const [salvandoJogo, setSalvandoJogo] = useState(false);
+    const [erroJogo, setErroJogo] = useState("");
+    const [formJogo, setFormJogo] = useState({ name: nomeJogoSugerido });
+    const [jogoEmEdicao, setJogoEmEdicao] = useState(null);
+    const [formEdicaoJogo, setFormEdicaoJogo] = useState({});
+    const [processandoJogoId, setProcessandoJogoId] = useState(null);
+
+    const jogosDisponiveis = useMemo(() => {
+        const cadastrados = jogos.map((jogo) => ({
+            id: jogo.gameId,
+            nome: jogo.name,
+            descricao:
+                jogo.description ||
+                `Jogo cadastrado (${jogo.sourceType || "origem não informada"}).`,
+            descricaoEditavel: jogo.description || "",
+            ativo: jogo.active !== false,
+            escopo: jogo.scopeType,
+            registroId: jogo._id,
+        }));
+
+        return [
+            ...(usuario?.role === "admin" ? JOGOS_DISPONIVEIS : []).filter(
+                (jogo) => !cadastrados.some((item) => item.id === jogo.id),
+            ),
+            ...cadastrados,
+        ];
+    }, [jogos, usuario?.role]);
 
     useEffect(() => {
-        carregarDados();
-    }, []);
-
-    useEffect(() => {
-        const gameIdUrl = searchParams.get("gameId");
-
-        if (!gameIdUrl) {
-            setJogoSelecionado(null);
-            return;
-        }
-
-        const jogoUrl = JOGOS_DISPONIVEIS.find(
-            (jogo) => jogo.id === gameIdUrl && jogo.ativo,
-        );
-
-        setJogoSelecionado(jogoUrl || null);
-    }, [searchParams]);
-
-    const carregarDados = async () => {
+        const carregarJogos = async () => {
         try {
             setCarregando(true);
-
-            const [resInstituicoes, resTurmas] = await Promise.all([
-                listarInstituicoes(),
-                listarTurmas(),
-            ]);
-
-            setInstituicoes(resInstituicoes.data.instituicoes || []);
-            setTurmas(resTurmas.data.turmas || []);
+            const resJogos = await listarJogos();
+            setJogos(resJogos.data.jogos || []);
         } catch {
-            setErro("Não foi possível carregar as instituições.");
+            setErro("Não foi possível carregar os jogos.");
         } finally {
             setCarregando(false);
         }
-    };
+        };
+
+        void carregarJogos();
+    }, []);
 
     const selecionarJogo = (jogo) => {
         if (!jogo.ativo) return;
 
-        setJogoSelecionado(jogo);
-        setSearchParams({ gameId: jogo.id });
+        navegar(`/jogos/${encodeURIComponent(jogo.id)}/alunos`);
+    };
+
+    const handleCadastrarJogo = async (evento) => {
+        evento.preventDefault();
+
+        try {
+            setSalvandoJogo(true);
+            setErroJogo("");
+            const resposta = await criarJogo({
+                ...formJogo,
+                scopeType: "personal",
+                sourceType: "external-json",
+            });
+            const jogo = resposta.data.jogo;
+            setJogos((atuais) => [...atuais, jogo]);
+            setFormJogo({ name: "" });
+            setMostrarCadastroJogo(false);
+            navegar(`/jogos/${encodeURIComponent(jogo.gameId)}/alunos`);
+        } catch (erroCadastro) {
+            setErroJogo(
+                erroCadastro.response?.data?.mensagem ||
+                    "Não foi possível cadastrar o jogo.",
+            );
+        } finally {
+            setSalvandoJogo(false);
+        }
+    };
+
+    const abrirEdicaoJogo = (jogo) => {
+        setJogoEmEdicao(jogo);
+        setFormEdicaoJogo({
+            name: jogo.nome,
+            description: jogo.descricaoEditavel || "",
+        });
+        setErroJogo("");
+    };
+
+    const handleSalvarEdicaoJogo = async (evento) => {
+        evento.preventDefault();
+        if (!jogoEmEdicao) return;
+
+        try {
+            setProcessandoJogoId(jogoEmEdicao.registroId);
+            setErroJogo("");
+            const resposta = await atualizarJogo(
+                jogoEmEdicao.registroId,
+                formEdicaoJogo,
+            );
+            setJogos((atuais) => atuais.map((jogo) =>
+                jogo._id === jogoEmEdicao.registroId ? resposta.data.jogo : jogo,
+            ));
+            setJogoEmEdicao(null);
+        } catch (erroEdicao) {
+            setErroJogo(
+                erroEdicao.response?.data?.mensagem ||
+                    "Não foi possível atualizar o jogo.",
+            );
+        } finally {
+            setProcessandoJogoId(null);
+        }
+    };
+
+    const handleAlternarArquivoJogo = async (jogo) => {
+        const acao = jogo.ativo ? "arquivar" : "reativar";
+        if (!window.confirm(`Deseja ${acao} “${jogo.nome}”? O histórico será preservado.`)) {
+            return;
+        }
+
+        try {
+            setProcessandoJogoId(jogo.registroId);
+            setErroJogo("");
+            const resposta = jogo.ativo
+                ? await arquivarJogo(jogo.registroId)
+                : await atualizarJogo(jogo.registroId, { active: true });
+            setJogos((atuais) => atuais.map((item) =>
+                item._id === jogo.registroId ? resposta.data.jogo : item,
+            ));
+        } catch (erroArquivo) {
+            setErroJogo(
+                erroArquivo.response?.data?.mensagem ||
+                    "Não foi possível alterar o estado do jogo.",
+            );
+        } finally {
+            setProcessandoJogoId(null);
+        }
     };
 
     return (
         <div>
             <Header
-                titulo="Visão Geral"
-                subtitulo="Selecione um jogo para acompanhar instituições, turmas e alunos"
+                titulo="Jogos"
+                subtitulo="Selecione um jogo para acompanhar os alunos"
             />
 
             <div className="pagina-conteudo">
                 {carregando && (
                     <div className="estado-centro">
                         <div className="spinner" />
-                        <p className="texto-leve">Carregando instituições...</p>
+                        <p className="texto-leve">Carregando jogos...</p>
                     </div>
                 )}
 
@@ -156,84 +212,153 @@ export default function Home() {
                                 </p>
                             </div>
 
-                            <div className="jogos-opcoes">
-                                {JOGOS_DISPONIVEIS.map((jogo) => (
+                            <div className="acoes-jogos">
+                                <button
+                                    type="button"
+                                    className="btn-primario"
+                                    onClick={() => {
+                                        setMostrarCadastroJogo((aberto) => !aberto);
+                                        setErroJogo("");
+                                    }}
+                                >
+                                    {mostrarCadastroJogo
+                                        ? "Fechar cadastro"
+                                        : "+ Cadastrar jogo"}
+                                </button>
+                            </div>
+
+                            {mostrarCadastroJogo && (
+                                <form
+                                    className="form-cadastro-jogo"
+                                    onSubmit={handleCadastrarJogo}
+                                >
+                                    <label className="campo-grupo">
+                                        <span className="campo-label">
+                                            Nome do jogo
+                                        </span>
+                                        <input
+                                            className="campo-input"
+                                            value={formJogo.name}
+                                            onChange={(evento) =>
+                                                setFormJogo((atual) => ({
+                                                    ...atual,
+                                                    name: evento.target.value,
+                                                }))
+                                            }
+                                            required
+                                            maxLength={120}
+                                        />
+                                    </label>
+                                    {erroJogo && (
+                                        <p className="erro-cadastro-jogo">
+                                            {erroJogo}
+                                        </p>
+                                    )}
                                     <button
-                                        key={jogo.id}
-                                        type="button"
-                                        className={
-                                            jogoSelecionado?.id === jogo.id
-                                                ? "jogo-opcao ativo"
-                                                : "jogo-opcao"
-                                        }
-                                        onClick={() => selecionarJogo(jogo)}
-                                        disabled={!jogo.ativo}
+                                        type="submit"
+                                        className="btn-primario"
+                                        disabled={salvandoJogo}
                                     >
-                                        <span className="jogo-opcao-nome">
-                                            {jogo.nome}
-                                        </span>
-                                        <span className="jogo-opcao-descricao">
-                                            {jogo.descricao}
-                                        </span>
-                                        {!jogo.ativo && (
-                                            <span className="jogo-opcao-badge">
-                                                Em breve
-                                            </span>
-                                        )}
+                                        {salvandoJogo
+                                            ? "Cadastrando..."
+                                            : "Salvar jogo"}
                                     </button>
-                                ))}
-                            </div>
-                        </div>
+                                </form>
+                            )}
 
-                        {!jogoSelecionado ? (
-                            <div className="card estado-vazio">
-                                <span className="estado-vazio-icone">🎮</span>
-                                <p>Selecione um jogo para começar.</p>
-                                <p className="texto-leve">
-                                    As instituições, turmas e alunos aparecerão
-                                    após a escolha.
-                                </p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="secao-titulo">
-                                    <h2>Instituições</h2>
-                                    <span className="badge">
-                                        {instituicoes.length}
-                                    </span>
-                                </div>
-
-                                {instituicoes.length === 0 ? (
+                            <div className="jogos-opcoes">
+                                {jogosDisponiveis.length === 0 && (
                                     <div className="card estado-vazio">
-                                        <span className="estado-vazio-icone">
-                                            🏫
-                                        </span>
-                                        <p>
-                                            Nenhuma instituição cadastrada
-                                            ainda.
-                                        </p>
+                                        <span className="estado-vazio-icone">🎮</span>
+                                        <p>Nenhum jogo cadastrado ainda.</p>
                                         <p className="texto-leve">
-                                            Cadastre instituições para organizar
-                                            turmas e alunos.
+                                            Cadastre um jogo ou importe o primeiro JSON de uma sessão.
                                         </p>
-                                    </div>
-                                ) : (
-                                    <div className="grid-instituicoes">
-                                        {instituicoes.map((instituicao) => (
-                                            <CardInstituicao
-                                                key={instituicao._id}
-                                                instituicao={instituicao}
-                                                turmas={turmas}
-                                                jogoSelecionado={
-                                                    jogoSelecionado
-                                                }
-                                                navegar={navegar}
-                                            />
-                                        ))}
                                     </div>
                                 )}
-                            </>
-                        )}
+                                {jogosDisponiveis.map((jogo) => (
+                                    <div
+                                        key={jogo.id}
+                                        className="jogo-opcao"
+                                    >
+                                        <button
+                                            type="button"
+                                            className="jogo-opcao-principal"
+                                            onClick={() => selecionarJogo(jogo)}
+                                            disabled={!jogo.ativo}
+                                        >
+                                            <span className="jogo-opcao-nome">
+                                                {jogo.nome}
+                                            </span>
+                                            <span className="jogo-opcao-descricao">
+                                                {jogo.descricao}
+                                            </span>
+                                            {!jogo.ativo && (
+                                                <span className="jogo-opcao-badge">
+                                                    Arquivado
+                                                </span>
+                                            )}
+                                            {jogo.escopo === "personal" && (
+                                                <span className="jogo-opcao-escopo">
+                                                    Pessoal
+                                                </span>
+                                            )}
+                                        </button>
+                                        {jogo.registroId && (
+                                            <div className="jogo-opcao-acoes">
+                                                <button
+                                                    type="button"
+                                                    title="Editar jogo"
+                                                    aria-label={`Editar ${jogo.nome}`}
+                                                    onClick={() => abrirEdicaoJogo(jogo)}
+                                                    disabled={Boolean(processandoJogoId)}
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title={jogo.ativo ? "Arquivar jogo" : "Reativar jogo"}
+                                                    aria-label={jogo.ativo ? `Arquivar ${jogo.nome}` : `Reativar ${jogo.nome}`}
+                                                    onClick={() => handleAlternarArquivoJogo(jogo)}
+                                                    disabled={Boolean(processandoJogoId)}
+                                                >
+                                                    {processandoJogoId === jogo.registroId
+                                                        ? "…"
+                                                        : jogo.ativo ? "🗑️" : "↩️"}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {jogoEmEdicao && (
+                                <div className="modal-edicao-jogo-backdrop">
+                                    <form className="modal-edicao-jogo" onSubmit={handleSalvarEdicaoJogo}>
+                                        <h3>Editar jogo</h3>
+                                        <label className="campo-grupo">
+                                            <span className="campo-label">Nome do jogo</span>
+                                            <input className="campo-input" value={formEdicaoJogo.name} required maxLength={120}
+                                                onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, name: evento.target.value }))} />
+                                        </label>
+                                        <label className="campo-grupo">
+                                            <span className="campo-label">Descrição (opcional)</span>
+                                            <input className="campo-input" value={formEdicaoJogo.description}
+                                                onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, description: evento.target.value }))} />
+                                        </label>
+                                        <div className="modal-edicao-jogo-acoes">
+                                            <button type="button" className="btn-secundario" onClick={() => setJogoEmEdicao(null)} disabled={Boolean(processandoJogoId)}>
+                                                Cancelar
+                                            </button>
+                                            <button className="btn-primario" disabled={Boolean(processandoJogoId)}>
+                                                {processandoJogoId ? "Salvando..." : "Salvar alterações"}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+                        </div>
+
                     </>
                 )}
             </div>

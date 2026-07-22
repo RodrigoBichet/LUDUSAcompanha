@@ -35,6 +35,16 @@ export const heatmapSessao = (sessionId) =>
 // Sessions
 // -------------------------------------------------------------------------
 export const buscarSessao = (sessionId) => api.get(`/sessions/${sessionId}`);
+export const previsualizarImportacaoSessao = (studentId, sessao, gameId) =>
+    api.post(`/sessions/import/${encodeURIComponent(studentId)}/preview`, {
+        sessao,
+        gameId,
+    });
+export const confirmarImportacaoSessao = (studentId, sessao, gameId) =>
+    api.post(`/sessions/import/${encodeURIComponent(studentId)}/confirm`, {
+        sessao,
+        gameId,
+    });
 
 // -------------------------------------------------------------------------
 // Institutions (Instituições)
@@ -60,6 +70,11 @@ export const deletarTurma = (id) => api.delete(`/groups/${id}`);
 export const listarAlunos = (groupId) =>
     api.get(`/students?groupId=${groupId}`);
 export const criarAluno = (dados) => api.post("/students", dados);
+export const listarAlunosIndividuais = () => api.get("/students/individual");
+export const criarAlunoIndividual = (dados) =>
+    api.post("/students/individual", dados);
+export const listarAlunosPorJogo = (gameId) =>
+    api.get(`/students/for-game/${encodeURIComponent(gameId)}`);
 export const buscarAluno = (id) => api.get(`/students/${id}`);
 export const atualizarAluno = (id, dados) => api.put(`/students/${id}`, dados);
 export const deletarAluno = (id) => api.delete(`/students/${id}`);
@@ -92,5 +107,14 @@ export const deletarUsuario = (id) => api.delete(`/users/${id}`);
 
 export const atualizarUsuario = (id, dados) => api.put(`/users/${id}`, dados);
 export const atualizarPerfil = (dados) => api.put("/auth/perfil", dados);
+
+// -------------------------------------------------------------------------
+// Jogos
+// -------------------------------------------------------------------------
+export const listarJogos = () => api.get("/games");
+export const criarJogo = (dados) => api.post("/games", dados);
+export const criarJogoDetectado = (dados) => api.post("/games/detected", dados);
+export const atualizarJogo = (id, dados) => api.patch(`/games/${id}`, dados);
+export const arquivarJogo = (id) => api.delete(`/games/${id}`);
 
 export default api;

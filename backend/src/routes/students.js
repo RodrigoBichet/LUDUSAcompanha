@@ -9,8 +9,16 @@ const router = express.Router();
 const controller = require("../controllers/studentsController");
 const { autenticar } = require("../middleware/auth");
 
-router.post("/", autenticar, controller.criarAluno);
 router.get("/", autenticar, controller.listarAlunos);
+router.get("/for-game/:gameId", autenticar, controller.listarAlunosPorJogo);
+router.get("/individual", autenticar, controller.listarAlunosIndividuais);
+router.post("/individual", autenticar, controller.criarAlunoIndividual);
+router.delete(
+    "/individual/:id/games/:gameId",
+    autenticar,
+    controller.removerAlunoIndividualDoJogo,
+);
+router.post("/", autenticar, controller.criarAluno);
 router.get("/:id", autenticar, controller.buscarAluno);
 router.put("/:id", autenticar, controller.atualizarAluno);
 router.delete("/:id", autenticar, controller.deletarAluno);

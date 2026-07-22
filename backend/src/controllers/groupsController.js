@@ -1,174 +1,192 @@
 // =============================================================================
 // groupsController.js
-// LUDUS Acompanha — UFPel (2026)
-// Autor: Rodrigo Leitzke Bichet
-//
-// Controller das turmas.
-// Professor vê só as turmas da sua instituição.
-// Admin vê todas.
+// Turmas protegidas pelo acesso à instituição de origem.
 // =============================================================================
 
 const Group = require("../models/Group");
-const User = require("../models/User");
 const Student = require("../models/Student");
-const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
+const {
+    obterContextoEscolar,
+    podeAcessarInstituicao,
+} = require("../services/schoolAccess");
+
+const responderSemContexto = (res) =>
+    res.status(401).json({
+        sucesso: false,
+        mensagem: "Usuário autenticado não foi encontrado.",
+    });
+
+const buscarTurmaAcessivel = async (contexto, id) => {
+    const turma = await Group.findById(id)
+        .populate("institutionId", "name city ownerUserId")
+        .populate("professorId", "name email");
+    if (!turma || !podeAcessarInstituicao(contexto, turma.institutionId?._id)) {
+        return null;
+    }
+    return turma;
+};
 
 const criarTurma = async (req, res) => {
     try {
-        const { name, institutionId, professorId } = req.body;
-
-        if (!name || !institutionId) {
+        const { name, institutionId } = req.body;
+        if (!name || !String(name).trim() || !institutionId) {
             return res.status(400).json({
                 sucesso: false,
-                mensagem: "Campos obrigatórios: name, institutionId",
+                mensagem: "Campos obrigatórios: name, institutionId.",
             });
         }
 
-        const turma = new Group({ name, institutionId, professorId });
-        await turma.save();
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        if (!contexto) return responderSemContexto(res);
+        if (!podeAcessarInstituicao(contexto, institutionId)) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "Sem permissão para criar turma nesta instituição.",
+            });
+        }
 
-        console.log(`[LUDUS] Turma criada: ${turma.name}`);
+        const turma = new Group({
+            name: String(name).trim(),
+            institutionId,
+            professorId: contexto.todasInstituicoes
+                ? req.body.professorId || contexto.usuario._id
+                : contexto.usuario._id,
+        });
+        await turma.save();
 
         return res.status(201).json({
             sucesso: true,
-            mensagem: "Turma criada com sucesso!",
+            mensagem: "Turma criada com sucesso.",
             turma,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao criar turma:", erro.message);
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro interno ao criar turma",
+            mensagem: "Erro interno ao criar turma.",
         });
     }
 };
 
 const listarTurmas = async (req, res) => {
     try {
-        const usuario = await User.findById(req.usuarioId);
-        let filtro = {};
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        if (!contexto) return responderSemContexto(res);
 
-        // Professor vê só turmas da sua instituição
-        if (usuario.role === "professor") {
-            filtro = { institutionId: usuario.institutionId };
-        }
-
+        const filtro = contexto.todasInstituicoes
+            ? {}
+            : { institutionId: { $in: contexto.institutionIds } };
         const turmas = await Group.find(filtro)
             .populate("institutionId", "name city")
             .populate("professorId", "name email")
             .sort({ name: 1 });
 
-        return res.json({
-            sucesso: true,
-            total: turmas.length,
-            turmas,
-        });
+        return res.json({ sucesso: true, total: turmas.length, turmas });
     } catch (erro) {
         console.error("[LUDUS] Erro ao listar turmas:", erro.message);
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro interno ao listar turmas",
+            mensagem: "Erro interno ao listar turmas.",
         });
     }
 };
 
 const buscarTurma = async (req, res) => {
     try {
-        const turma = await Group.findById(req.params.id)
-            .populate("institutionId", "name city")
-            .populate("professorId", "name email");
-
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        if (!contexto) return responderSemContexto(res);
+        const turma = await buscarTurmaAcessivel(contexto, req.params.id);
         if (!turma) {
             return res.status(404).json({
                 sucesso: false,
-                mensagem: "Turma não encontrada",
+                mensagem: "Turma não encontrada ou sem permissão de acesso.",
             });
         }
-
         return res.json({ sucesso: true, turma });
     } catch (erro) {
         console.error("[LUDUS] Erro ao buscar turma:", erro.message);
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro interno ao buscar turma",
+            mensagem: "Erro interno ao buscar turma.",
         });
     }
 };
 
 const atualizarTurma = async (req, res) => {
     try {
-        const { name, professorId, institutionId } = req.body;
-
-        const turma = await Group.findByIdAndUpdate(
-            req.params.id,
-            { name, professorId, institutionId },
-            { new: true, runValidators: true },
-        );
-
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        if (!contexto) return responderSemContexto(res);
+        const turma = await buscarTurmaAcessivel(contexto, req.params.id);
         if (!turma) {
             return res.status(404).json({
                 sucesso: false,
-                mensagem: "Turma não encontrada",
+                mensagem: "Turma não encontrada ou sem permissão para alterá-la.",
             });
         }
 
-        console.log(`[LUDUS] Turma atualizada: ${turma.name}`);
+        const institutionId = req.body.institutionId || turma.institutionId._id;
+        if (!podeAcessarInstituicao(contexto, institutionId)) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "Sem permissão para mover a turma para esta instituição.",
+            });
+        }
+        if (!req.body.name || !String(req.body.name).trim()) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Nome da turma é obrigatório.",
+            });
+        }
+
+        turma.name = String(req.body.name).trim();
+        turma.institutionId = institutionId;
+        if (contexto.todasInstituicoes && req.body.professorId) {
+            turma.professorId = req.body.professorId;
+        }
+        await turma.save();
 
         return res.json({
             sucesso: true,
-            mensagem: "Turma atualizada com sucesso!",
+            mensagem: "Turma atualizada com sucesso.",
             turma,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao atualizar turma:", erro.message);
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro interno ao atualizar turma",
+            mensagem: "Erro interno ao atualizar turma.",
         });
     }
 };
 
+// Exclusão física só é permitida para turmas vazias, preservando alunos e sessões.
 const deletarTurma = async (req, res) => {
     try {
-        const turma = await Group.findById(req.params.id);
-
+        const contexto = await obterContextoEscolar(req.usuarioId);
+        if (!contexto) return responderSemContexto(res);
+        const turma = await buscarTurmaAcessivel(contexto, req.params.id);
         if (!turma) {
             return res.status(404).json({
                 sucesso: false,
-                mensagem: "Turma não encontrada",
+                mensagem: "Turma não encontrada ou sem permissão para removê-la.",
             });
         }
 
-        const alunos = await Student.find({ groupId: turma._id }).select("_id");
-        const idsAlunos = alunos.map((aluno) => aluno._id);
-
-        const limpeza =
-            idsAlunos.length > 0
-                ? await removerSessoesPorFiltro({
-                      studentId: { $in: idsAlunos },
-                  })
-                : { sessoesRemovidas: 0, arquivosRemovidos: 0 };
-
-        const alunosRemovidos = await Student.deleteMany({
-            groupId: turma._id,
-        });
+        const totalAlunos = await Student.countDocuments({ groupId: turma._id });
+        if (totalAlunos > 0) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "A turma possui alunos e não pode ser excluída. O histórico foi preservado.",
+            });
+        }
 
         await Group.findByIdAndDelete(turma._id);
-
-        console.log(
-            `[LUDUS] Turma deletada: ${turma.name} | Alunos removidos: ${alunosRemovidos.deletedCount} | Sessões removidas: ${limpeza.sessoesRemovidas} | Arquivos removidos: ${limpeza.arquivosRemovidos}`,
-        );
-
-        return res.json({
-            sucesso: true,
-            mensagem:
-                "Turma, alunos, sessões e imagens vinculadas deletados com sucesso!",
-        });
+        return res.json({ sucesso: true, mensagem: "Turma vazia removida com sucesso." });
     } catch (erro) {
         console.error("[LUDUS] Erro ao deletar turma:", erro.message);
         return res.status(500).json({
             sucesso: false,
-            mensagem: "Erro interno ao deletar turma",
+            mensagem: "Erro interno ao deletar turma.",
         });
     }
 };

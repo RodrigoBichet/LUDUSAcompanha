@@ -9,9 +9,22 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/sessionsController");
+const { autenticar } = require("../middleware/auth");
 
 // POST /api/sessions       — recebe sessão do Unity
 router.post("/", controller.criarSessao);
+
+// Importação autenticada pelo dashboard: valida antes de persistir.
+router.post(
+    "/import/:studentId/preview",
+    autenticar,
+    controller.previewImportacao,
+);
+router.post(
+    "/import/:studentId/confirm",
+    autenticar,
+    controller.confirmarImportacao,
+);
 
 // GET  /api/sessions       — lista sessões (debug)
 router.get("/", controller.listarSessoes);

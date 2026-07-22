@@ -9,6 +9,74 @@
     margin-bottom: 0;
 }
 
+.instituicoes-escolares {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.lista-instituicoes-escolares {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.8rem;
+}
+
+.instituicao-escolar-card {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    border: 1px solid var(--cor-borda);
+    background: white;
+    color: var(--cor-texto);
+    cursor: pointer;
+    text-align: left;
+}
+
+.instituicao-escolar-card:hover,
+.instituicao-escolar-card.selecionada {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.1);
+}
+
+.instituicao-escolar-card > span:nth-child(2) {
+    display: grid;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.instituicao-escolar-card small {
+    color: var(--cor-texto-leve);
+}
+
+.instituicao-escolar-icone {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 8px;
+    background: rgba(78, 203, 160, 0.15);
+    font-size: 1.25rem;
+}
+
+.form-instituicao {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.8rem;
+}
+
+.form-instituicao .campo-grupo {
+    margin: 0;
+}
+
+.form-instituicao .form-erro {
+    grid-column: 1 / -1;
+}
+
+.turma-sem-instituicao {
+    margin-top: 0.5rem;
+}
+
 /* Botão primário global */
 .btn-primario {
     background: var(--cor-primaria);

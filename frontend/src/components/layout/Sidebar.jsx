@@ -28,7 +28,7 @@ export default function Sidebar() {
                     }
                 >
                     <span className="nav-icone">📊</span>
-                    <span>Visão Geral</span>
+                    <span>Jogos</span>
                 </NavLink>
 
                 <NavLink
@@ -38,7 +38,7 @@ export default function Sidebar() {
                     }
                 >
                     <span className="nav-icone">📚</span>
-                    <span>Minhas Turmas</span>
+                    <span>Instituições</span>
                 </NavLink>
             </nav>
 

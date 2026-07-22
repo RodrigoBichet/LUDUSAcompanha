@@ -1,0 +1,14 @@
+{
+  "app": "2D Project",
+  "version": "1.0",
+  "scene": "Inicial",
+  "build": "",
+  "datehourstart": "2026-04-06 09:53:47",
+  "datehourend": "2026-04-06 09:53:51",
+  "reports": [
+    { "id": "1", "title": "[+LUDUS-monitor-start]", "description": "Monitor iniciado", "date": "2026-04-06 09:53:47" },
+    { "id": "2", "title": "[+LUDUS-mouse-move]:", "description": "POS:(978;274;0)", "date": "2026-04-06 09:53:47" },
+    { "id": "3", "title": "[+LUDUS-mouse-move]:", "description": "POS:(696;15;0)", "date": "2026-04-06 09:53:49" },
+    { "id": "4", "title": "[+LUDUS-mouse-click]:", "description": "Botao esquerdo .btnConfig", "date": "2026-04-06 09:53:49" }
+  ]
+}

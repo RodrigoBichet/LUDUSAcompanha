@@ -14,6 +14,40 @@
     margin-bottom: 0.25rem;
 }
 
+.acoes-jogos {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.form-cadastro-jogo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    background: var(--cor-fundo);
+}
+
+.erro-cadastro-jogo {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--cor-erro);
+    font-size: 0.85rem;
+}
+
+.proximo-passo-jogo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.proximo-passo-jogo h2 {
+    margin-bottom: 0.3rem;
+}
+
 .jogos-opcoes {
     display: flex;
     gap: 0.75rem;
@@ -23,20 +57,16 @@
 .jogo-opcao {
     position: relative;
     min-width: 190px;
-    padding: 0.8rem 1rem;
     border: 1px solid var(--cor-borda);
     border-radius: 8px;
     background: var(--cor-fundo);
-    color: var(--cor-texto);
-    text-align: left;
-    cursor: pointer;
     transition:
         border-color 0.15s,
         background 0.15s,
         transform 0.15s;
 }
 
-.jogo-opcao:hover:not(:disabled) {
+.jogo-opcao:hover {
     transform: translateY(-1px);
     border-color: var(--cor-primaria);
 }
@@ -46,9 +76,20 @@
     background: rgba(78, 203, 160, 0.1);
 }
 
-.jogo-opcao:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
+.jogo-opcao-principal {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem 0.5rem;
+    border: 0;
+    background: transparent;
+    color: var(--cor-texto);
+    cursor: pointer;
+    text-align: left;
+}
+
+.jogo-opcao-principal:disabled {
+    cursor: default;
+    opacity: 0.68;
 }
 
 .jogo-opcao-nome,
@@ -77,6 +118,76 @@
     font-weight: 800;
 }
 
+.jogo-opcao-escopo {
+    display: inline-block;
+    margin-top: 0.45rem;
+    margin-left: 0.35rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(64, 169, 224, 0.12);
+    color: #276a96;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.jogo-opcao-acoes {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0 0.7rem 0.55rem;
+}
+
+.jogo-opcao-acoes button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.94rem;
+    opacity: 0.72;
+}
+
+.jogo-opcao-acoes button:hover:not(:disabled) {
+    background: rgba(78, 203, 160, 0.16);
+    opacity: 1;
+}
+
+.jogo-opcao-acoes button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.modal-edicao-jogo-backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(21, 37, 53, 0.42);
+}
+
+.modal-edicao-jogo {
+    display: grid;
+    width: min(100%, 460px);
+    gap: 0.9rem;
+    padding: 1.3rem;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-edicao-jogo h3,
+.modal-edicao-jogo .campo-grupo {
+    margin: 0;
+}
+
+.modal-edicao-jogo-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+}
+
 @media (max-width: 780px) {
     .jogos-selecao {
         align-items: stretch;
@@ -84,6 +195,15 @@
     }
 
     .jogos-opcoes {
+        flex-direction: column;
+    }
+
+    .form-cadastro-jogo {
+        grid-template-columns: 1fr;
+    }
+
+    .proximo-passo-jogo {
+        align-items: stretch;
         flex-direction: column;
     }
 

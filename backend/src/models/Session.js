@@ -112,6 +112,10 @@ const FaseScreenshotSchema = new mongoose.Schema(
 const SessionSchema = new mongoose.Schema(
     {
         sessionId: { type: String, required: true, unique: true },
+        // Identificador preservado do arquivo de origem. Em importações, o
+        // sessionId persistido é específico do aluno para permitir que o
+        // mesmo JSON seja associado a alunos distintos sem perder rastreio.
+        sourceSessionId: { type: String },
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",
@@ -120,6 +124,9 @@ const SessionSchema = new mongoose.Schema(
         },
         playerId: { type: String, required: true },
         gameId: { type: String, required: true },
+        // Jogo informado pela fonte externa antes do vínculo com o jogo que
+        // a pessoa usuária escolheu no dashboard.
+        sourceGameId: { type: String },
 
         // Metadados da telemetria multi-jogo. Sessões históricas podem não
         // possuir esses campos e continuam legíveis pelo dashboard atual.

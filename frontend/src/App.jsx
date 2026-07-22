@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import RotaProtegida from "./components/shared/RotaProtegida";
 import Sidebar from "./components/layout/Sidebar";
@@ -8,6 +8,7 @@ import DetalhesSessao from "./pages/DetalhesSessao";
 import Turmas from "./pages/Turmas";
 import DetalheTurma from "./pages/DetalheTurma";
 import PerfilAluno from "./pages/PerfilAluno";
+import AlunosJogo from "./pages/AlunosJogo";
 import RotaAdmin from "./components/shared/RotaAdmin";
 import GerenciarInstituicoes from "./pages/GerenciarInstituicoes";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
@@ -79,6 +80,24 @@ function App() {
                                 <Layout>
                                     <PerfilAluno />
                                 </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/jogos/:gameId/alunos"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <AlunosJogo />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/jogos"
+                        element={
+                            <RotaProtegida>
+                                <Navigate to="/" replace />
                             </RotaProtegida>
                         }
                     />

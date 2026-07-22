@@ -11,6 +11,9 @@ const {
 const {
     normalizarSessaoTelemetria,
 } = require("../services/telemetryNormalizer");
+const {
+    adaptarRelatorioMonitorLegado,
+} = require("../services/legacyMonitorAdapter");
 const Session = require("../models/Session");
 
 const PASTA_EXEMPLOS = path.join(
@@ -72,6 +75,18 @@ try {
     }
 
     validarEExibir("payload Unity legado", sessaoLegada);
+
+    const relatorioMonitorLegado = JSON.parse(
+        fs.readFileSync(
+            path.join(__dirname, "../fixtures/relatorioMonitorLegado.fixture.json"),
+            "utf8",
+        ),
+    );
+    validarEExibir("relatorio observacional externo legado", {
+        ...adaptarRelatorioMonitorLegado(relatorioMonitorLegado),
+        studentId: "64f000000000000000000004",
+        playerId: "Estudante observacional",
+    });
     console.log("Telemetria validada com sucesso.");
 } catch (erro) {
     console.error("Falha na validação de telemetria:", erro.message);

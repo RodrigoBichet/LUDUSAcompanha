@@ -38,9 +38,23 @@ const resumoJogador = async (req, res) => {
         ).sort({ startedAt: 1 });
 
         if (sessoes.length === 0) {
-            return res.status(404).json({
-                sucesso: false,
-                mensagem: `Nenhuma sessão encontrada para: ${studentId}`,
+            return res.json({
+                sucesso: true,
+                studentId,
+                gameId: gameId || "todos",
+                totalSessoes: 0,
+                totalClicks: 0,
+                totalSessoesComDesempenho: 0,
+                temDadosDesempenho: false,
+                totalCorrect: null,
+                totalWrong: null,
+                taxaAcerto: null,
+                totalDuracaoMs: 0,
+                totalInatividade: 0,
+                totalSessoesComInatividade: 0,
+                categorias: {},
+                evolucaoTemporal: [],
+                mensagem: "Nenhuma sessão encontrada para este filtro.",
             });
         }
 

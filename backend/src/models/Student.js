@@ -33,7 +33,39 @@ const StudentSchema = new mongoose.Schema(
         groupId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Group",
-            required: true,
+            required: false,
+            default: null,
+        },
+        // Contexto opcional para alunos individuais. Alunos escolares mantêm
+        // groupId e têm a instituição validada a partir da turma.
+        institutionId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Institution",
+            default: null,
+        },
+        ownerUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+        enrollmentMode: {
+            type: String,
+            enum: ["school", "individual", "legacy"],
+            default: "legacy",
+        },
+        // Jogos aos quais o aluno foi associado pelo fluxo individual.
+        // Alunos escolares históricos de Para Que Serve? permanecem sem este
+        // campo e são lidos pelo perfil legado, sem migração em massa.
+        assignedGameIds: {
+            type: [String],
+            default: [],
+        },
+
+        // Trava explícita para perfis reais que não podem ser removidos pelos
+        // fluxos comuns de limpeza de dados de demonstração.
+        deletionProtected: {
+            type: Boolean,
+            default: false,
         },
 
         // Informações clínicas
