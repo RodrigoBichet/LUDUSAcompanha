@@ -7,7 +7,7 @@
 // Dados cadastrais, anotações do professor e monitoramento.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
@@ -27,7 +27,6 @@ import {
     adicionarAnotacao,
     deletarAnotacao,
     resumoAluno,
-    buscarSessao,
     historicoAluno,
     alertasAluno,
     solicitarCaptura,
@@ -36,7 +35,6 @@ import {
     criarJogoDetectado,
 } from "../services/api";
 import "./PerfilAluno.css";
-import { useRef } from "react";
 import RelatorioPDF from "../components/shared/RelatorioPDF";
 import { MODO_ANONIMO } from "../config/modoAnonimo";
 
@@ -52,6 +50,7 @@ export default function PerfilAluno() {
     const [resumo, setResumo] = useState(null);
     const [sessoes, setSessoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
+    const [agora] = useState(() => Date.now());
     const [erro, setErro] = useState(null);
 
     // Edição de dados
@@ -77,22 +76,15 @@ export default function PerfilAluno() {
     const [erroImportacao, setErroImportacao] = useState("");
     const [jogoIncompativel, setJogoIncompativel] = useState(null);
     const [criandoJogoDetectado, setCriandoJogoDetectado] = useState(false);
-    const [jogoDetectadoJaCadastrado, setJogoDetectadoJaCadastrado] = useState(null);
+    const [jogoDetectadoJaCadastrado, setJogoDetectadoJaCadastrado] =
+        useState(null);
     const [sucessoImportacao, setSucessoImportacao] = useState("");
     const [processandoImportacao, setProcessandoImportacao] = useState(false);
-    const [modalOrientacaoImportacao, setModalOrientacaoImportacao] = useState(
-        importacaoPronta,
-    );
-
-    useEffect(() => {
-        carregarDados();
-    }, [id, gameIdSelecionado]);
+    const [modalOrientacaoImportacao, setModalOrientacaoImportacao] =
+        useState(importacaoPronta);
 
     //Alertas
     const [alertas, setAlertas] = useState([]);
-
-    //PDF
-    const refRelatorio = useRef(null);
 
     //Usuario
     const { usuario } = useAuth();
@@ -105,7 +97,7 @@ export default function PerfilAluno() {
     const sessaoTemDadosDesempenho = (sessao) =>
         sessao?.capabilities?.correctWrong !== false;
 
-    const carregarDados = async () => {
+    const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
             const resAluno = await buscarAluno(id);
@@ -145,11 +137,19 @@ export default function PerfilAluno() {
         } finally {
             setCarregando(false);
         }
-    };
+    }, [id, gameIdSelecionado]);
+
+    useEffect(() => {
+        const iniciarCarregamento = async () => {
+            await carregarDados();
+        };
+
+        iniciarCarregamento();
+    }, [carregarDados]);
 
     const calcularIdade = (birthDate) => {
         if (!birthDate) return null;
-        const diff = Date.now() - new Date(birthDate).getTime();
+        const diff = agora - new Date(birthDate).getTime();
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     };
 
@@ -291,14 +291,21 @@ export default function PerfilAluno() {
             const conteudo = await arquivo.text();
             const sessao = JSON.parse(conteudo);
 
-            if (!sessao || Array.isArray(sessao) || typeof sessao !== "object") {
-                throw new Error("O arquivo deve conter um objeto JSON de sessão.");
+            if (
+                !sessao ||
+                Array.isArray(sessao) ||
+                typeof sessao !== "object"
+            ) {
+                throw new Error(
+                    "O arquivo deve conter um objeto JSON de sessão.",
+                );
             }
 
             setSessaoParaImportar(sessao);
         } catch (erro) {
             setErroImportacao(
-                erro.message || "Não foi possível ler o arquivo JSON selecionado.",
+                erro.message ||
+                    "Não foi possível ler o arquivo JSON selecionado.",
             );
         }
     };
@@ -337,7 +344,9 @@ export default function PerfilAluno() {
         if (!sessaoParaImportar || !previewImportacao || !aluno?._id) return;
 
         if (previewImportacao.jaRegistrada) {
-            setErroImportacao("Esta sessão já está registrada para este aluno.");
+            setErroImportacao(
+                "Esta sessão já está registrada para este aluno.",
+            );
             return;
         }
 
@@ -405,7 +414,9 @@ export default function PerfilAluno() {
             novoAluno: aluno.name,
             origem: "importacao",
         });
-        navegar(`/jogos/${encodeURIComponent(jogo.gameId)}/alunos?${parametros.toString()}`);
+        navegar(
+            `/jogos/${encodeURIComponent(jogo.gameId)}/alunos?${parametros.toString()}`,
+        );
     };
 
     const capturaAtivaPelaUnity =
@@ -568,14 +579,16 @@ export default function PerfilAluno() {
                                     <div className="info-lista">
                                         <div className="info-item">
                                             <span className="texto-leve">
-                                                Nível de suporte relacionado ao TEA
+                                                Nível de suporte relacionado ao
+                                                TEA
                                             </span>
                                             <span>{aluno.supportLevel}</span>
                                         </div>
                                         {aluno.otherConditions && (
                                             <div className="info-item">
                                                 <span className="texto-leve">
-                                                    Outras condições ou informações relevantes
+                                                    Outras condições ou
+                                                    informações relevantes
                                                 </span>
                                                 <span>
                                                     {aluno.otherConditions}
@@ -708,7 +721,8 @@ export default function PerfilAluno() {
                                         </div>
                                         <div className="campo-grupo">
                                             <label className="campo-label">
-                                                Nível de suporte relacionado ao TEA
+                                                Nível de suporte relacionado ao
+                                                TEA
                                             </label>
                                             <select
                                                 className="campo-input"
@@ -729,7 +743,8 @@ export default function PerfilAluno() {
                                         </div>
                                         <div className="campo-grupo">
                                             <label className="campo-label">
-                                                Outras condições ou informações relevantes (opcional)
+                                                Outras condições ou informações
+                                                relevantes (opcional)
                                             </label>
                                             <input
                                                 type="text"
@@ -917,8 +932,8 @@ export default function PerfilAluno() {
                                             As sessões disponíveis registram
                                             interações observacionais. Acertos,
                                             erros e taxa de acerto não são
-                                            calculados sem eventos semânticos
-                                            do jogo.
+                                            calculados sem eventos semânticos do
+                                            jogo.
                                         </p>
                                     )}
 
@@ -1107,13 +1122,15 @@ export default function PerfilAluno() {
                                                             <>
                                                                 <span className="chip-acerto">
                                                                     ✅{" "}
-                                                                    {sessao.metrics
+                                                                    {sessao
+                                                                        .metrics
                                                                         ?.totalCorrect ||
                                                                         0}
                                                                 </span>
                                                                 <span className="chip-erro">
                                                                     ❌{" "}
-                                                                    {sessao.metrics
+                                                                    {sessao
+                                                                        .metrics
                                                                         ?.totalWrong ||
                                                                         0}
                                                                 </span>
@@ -1134,7 +1151,8 @@ export default function PerfilAluno() {
 
                                         {/* Gráfico de evolução */}
                                         {temDadosDesempenho &&
-                                            evolucaoComDesempenho.length > 1 && (
+                                            evolucaoComDesempenho.length >
+                                                1 && (
                                                 <div className="card secao-card">
                                                     <h3>
                                                         Evolução ao Longo do
@@ -1263,10 +1281,7 @@ export default function PerfilAluno() {
                 )}
 
                 {modalOrientacaoImportacao && !carregando && !erro && aluno && (
-                    <div
-                        className="modal-captura-backdrop"
-                        role="presentation"
-                    >
+                    <div className="modal-captura-backdrop" role="presentation">
                         <div
                             className="modal-orientacao-importacao"
                             role="dialog"
@@ -1274,7 +1289,9 @@ export default function PerfilAluno() {
                             aria-labelledby="titulo-orientacao-importacao"
                         >
                             <div className="modal-captura-icone">✅</div>
-                            <h3 id="titulo-orientacao-importacao">Agora sim!</h3>
+                            <h3 id="titulo-orientacao-importacao">
+                                Agora sim!
+                            </h3>
                             <p>
                                 O aluno está no jogo correto. Anexe novamente o
                                 JSON para importá-lo neste perfil.
@@ -1292,12 +1309,19 @@ export default function PerfilAluno() {
 
                 {modalImportacaoAberto && (
                     <div className="modal-captura-backdrop">
-                        <div className="modal-importacao" role="dialog" aria-modal="true" aria-labelledby="titulo-importacao">
+                        <div
+                            className="modal-importacao"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="titulo-importacao"
+                        >
                             <div>
-                                <h3 id="titulo-importacao">Importar telemetria</h3>
+                                <h3 id="titulo-importacao">
+                                    Importar telemetria
+                                </h3>
                                 <p>
-                                    Selecione um JSON de uma sessão. Primeiro,
-                                    o sistema valida o conteúdo sem salvar nada.
+                                    Selecione um JSON de uma sessão. Primeiro, o
+                                    sistema valida o conteúdo sem salvar nada.
                                 </p>
                             </div>
 
@@ -1328,38 +1352,51 @@ export default function PerfilAluno() {
                                     className="preview-importacao"
                                     onSubmit={handleCriarJogoDetectado}
                                 >
-                                    <strong>Identificamos outro jogo neste arquivo.</strong>
+                                    <strong>
+                                        Identificamos outro jogo neste arquivo.
+                                    </strong>
                                     <span>
-                                        O arquivo pertence a “{jogoIncompativel.nome}”,
-                                        não ao jogo aberto neste momento.
+                                        O arquivo pertence a “
+                                        {jogoIncompativel.nome}”, não ao jogo
+                                        aberto neste momento.
                                     </span>
                                     {!jogoDetectadoJaCadastrado && (
                                         <>
-                                    <p className="texto-leve">
-                                        Usaremos o jogo identificado no JSON e abriremos
-                                        o cadastro de um perfil individual para “{aluno?.name}”.
-                                    </p>
-                                    <button
-                                        type="submit"
-                                        className="btn-captura"
-                                        disabled={criandoJogoDetectado}
-                                    >
-                                        {criandoJogoDetectado
-                                            ? "Preparando..."
-                                            : `Usar ${jogoIncompativel.nome} e continuar`}
-                                    </button>
+                                            <p className="texto-leve">
+                                                Usaremos o jogo identificado no
+                                                JSON e abriremos o cadastro de
+                                                um perfil individual para “
+                                                {aluno?.name}”.
+                                            </p>
+                                            <button
+                                                type="submit"
+                                                className="btn-captura"
+                                                disabled={criandoJogoDetectado}
+                                            >
+                                                {criandoJogoDetectado
+                                                    ? "Preparando..."
+                                                    : `Usar ${jogoIncompativel.nome} e continuar`}
+                                            </button>
                                         </>
                                     )}
                                     {jogoDetectadoJaCadastrado && (
                                         <>
                                             <p className="mensagem-importacao sucesso-importacao">
-                                                Este jogo já está registrado como “{jogoDetectadoJaCadastrado.name}”.
-                                                Vamos usá-lo para manter as sessões reunidas no mesmo acompanhamento.
+                                                Este jogo já está registrado
+                                                como “
+                                                {jogoDetectadoJaCadastrado.name}
+                                                ”. Vamos usá-lo para manter as
+                                                sessões reunidas no mesmo
+                                                acompanhamento.
                                             </p>
                                             <button
                                                 type="button"
                                                 className="btn-captura"
-                                                onClick={() => continuarParaCadastroNoJogo(jogoDetectadoJaCadastrado)}
+                                                onClick={() =>
+                                                    continuarParaCadastroNoJogo(
+                                                        jogoDetectadoJaCadastrado,
+                                                    )
+                                                }
                                             >
                                                 Continuar com aluno
                                             </button>
@@ -1377,17 +1414,29 @@ export default function PerfilAluno() {
                             {previewImportacao && (
                                 <div className="preview-importacao">
                                     <strong>Prévia validada</strong>
-                                    <span>Sessão: {previewImportacao.sessionId}</span>
-                                    <span>Jogo: {previewImportacao.gameId}</span>
                                     <span>
-                                        Modo: {previewImportacao.captureMode === "observational" ? "observacional" : "SDK instrumentado"}
+                                        Sessão: {previewImportacao.sessionId}
                                     </span>
                                     <span>
-                                        Registros: {previewImportacao.totalClicks} cliques observados, {previewImportacao.totalEventos} eventos
+                                        Jogo: {previewImportacao.gameId}
+                                    </span>
+                                    <span>
+                                        Modo:{" "}
+                                        {previewImportacao.captureMode ===
+                                        "observational"
+                                            ? "observacional"
+                                            : "SDK instrumentado"}
+                                    </span>
+                                    <span>
+                                        Registros:{" "}
+                                        {previewImportacao.totalClicks} cliques
+                                        observados,{" "}
+                                        {previewImportacao.totalEventos} eventos
                                     </span>
                                     {previewImportacao.jaRegistrada && (
                                         <p className="mensagem-importacao erro-importacao">
-                                            Esta sessão já está registrada e não será duplicada.
+                                            Esta sessão já está registrada e não
+                                            será duplicada.
                                         </p>
                                     )}
                                 </div>
@@ -1398,7 +1447,9 @@ export default function PerfilAluno() {
                                     <button
                                         type="button"
                                         className="btn-captura"
-                                        onClick={() => setModalImportacaoAberto(false)}
+                                        onClick={() =>
+                                            setModalImportacaoAberto(false)
+                                        }
                                     >
                                         Fechar
                                     </button>
@@ -1407,29 +1458,45 @@ export default function PerfilAluno() {
                                         <button
                                             type="button"
                                             className="btn-cancelar-importacao"
-                                            onClick={() => setModalImportacaoAberto(false)}
+                                            onClick={() =>
+                                                setModalImportacaoAberto(false)
+                                            }
                                             disabled={processandoImportacao}
                                         >
                                             Cancelar
                                         </button>
                                         {!previewImportacao ? (
-                                    <button
-                                        type="button"
-                                        className="btn-captura"
-                                        onClick={handlePrevisualizarImportacao}
-                                        disabled={!sessaoParaImportar || processandoImportacao}
-                                    >
-                                        {processandoImportacao ? "Validando..." : "Validar prévia"}
-                                    </button>
+                                            <button
+                                                type="button"
+                                                className="btn-captura"
+                                                onClick={
+                                                    handlePrevisualizarImportacao
+                                                }
+                                                disabled={
+                                                    !sessaoParaImportar ||
+                                                    processandoImportacao
+                                                }
+                                            >
+                                                {processandoImportacao
+                                                    ? "Validando..."
+                                                    : "Validar prévia"}
+                                            </button>
                                         ) : (
-                                    <button
-                                        type="button"
-                                        className="btn-captura"
-                                        onClick={handleConfirmarImportacao}
-                                        disabled={previewImportacao.jaRegistrada || processandoImportacao}
-                                    >
-                                        {processandoImportacao ? "Importando..." : "Confirmar importação"}
-                                    </button>
+                                            <button
+                                                type="button"
+                                                className="btn-captura"
+                                                onClick={
+                                                    handleConfirmarImportacao
+                                                }
+                                                disabled={
+                                                    previewImportacao.jaRegistrada ||
+                                                    processandoImportacao
+                                                }
+                                            >
+                                                {processandoImportacao
+                                                    ? "Importando..."
+                                                    : "Confirmar importação"}
+                                            </button>
                                         )}
                                     </>
                                 )}

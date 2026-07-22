@@ -14,6 +14,8 @@ const Group = require("../models/Group");
 const {
     obterContextoEscolar,
     podeAcessarInstituicao,
+    montarFiltroAcessoAlunos,
+    buscarAlunoComAcesso,
 } = require("../services/schoolAccess");
 
 const GAME_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,99}$/;
@@ -48,33 +50,6 @@ const removerArquivosDasSessoes = (sessoes) => {
     }
 
     return totalRemovido;
-};
-
-const montarFiltroAcessoAlunos = async (usuarioId) => {
-    const contexto = await obterContextoEscolar(usuarioId);
-    if (!contexto) return null;
-    if (contexto.todasInstituicoes) return {};
-
-    const alternativas = [{ ownerUserId: contexto.usuario._id }];
-    if (contexto.institutionIds.length > 0) {
-        const turmas = await Group.find({
-            institutionId: { $in: contexto.institutionIds },
-        }).select("_id");
-        if (turmas.length > 0) {
-            alternativas.push({ groupId: { $in: turmas.map((turma) => turma._id) } });
-        }
-    }
-
-    return { $or: alternativas };
-};
-
-const buscarAlunoComAcesso = async (usuarioId, alunoId) => {
-    const filtroAcesso = await montarFiltroAcessoAlunos(usuarioId);
-    if (!filtroAcesso) return null;
-
-    return Student.findOne({
-        $and: [{ _id: alunoId }, filtroAcesso],
-    });
 };
 
 // -------------------------------------------------------------------------

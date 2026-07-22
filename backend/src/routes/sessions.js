@@ -9,7 +9,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/sessionsController");
-const { autenticar } = require("../middleware/auth");
+const { autenticar, apenasAdmin } = require("../middleware/auth");
 
 // POST /api/sessions       — recebe sessão do Unity
 router.post("/", controller.criarSessao);
@@ -27,11 +27,11 @@ router.post(
 );
 
 // GET  /api/sessions       — lista sessões (debug)
-router.get("/", controller.listarSessoes);
+router.get("/", autenticar, apenasAdmin, controller.listarSessoes);
 
-router.get("/student/:studentId", controller.sessoesPorAluno);
+router.get("/student/:studentId", autenticar, controller.sessoesPorAluno);
 
 // GET  /api/sessions/:id   — busca sessão completa
-router.get("/:sessionId", controller.buscarSessao);
+router.get("/:sessionId", autenticar, controller.buscarSessao);
 
 module.exports = router;

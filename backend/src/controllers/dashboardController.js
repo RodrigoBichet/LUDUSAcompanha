@@ -9,6 +9,7 @@
 // =============================================================================
 
 const Session = require("../models/Session");
+const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 
 const montarFiltroSessao = (studentId, gameId) => {
     const filtro = { studentId };
@@ -32,6 +33,14 @@ const resumoJogador = async (req, res) => {
         const { studentId } = req.params;
 
         const { gameId } = req.query;
+
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, studentId);
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
 
         const sessoes = await Session.find(
             montarFiltroSessao(studentId, gameId),
@@ -180,6 +189,17 @@ const heatmapSessao = async (req, res) => {
         // Filtra apenas os eventos de início de fase para o frontend
         // calcular os intervalos de tempo de cada fase sem receber
         // o payload completo de todos os eventos
+        const aluno = await buscarAlunoComAcesso(
+            req.usuarioId,
+            sessao.studentId,
+        );
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada",
+            });
+        }
+
         const fases = (sessao.gameEvents || [])
             .filter((e) => e.eventType === "PhaseStarted")
             .map((e, index) => ({
@@ -223,6 +243,14 @@ const alertasAluno = async (req, res) => {
         const { studentId } = req.params;
 
         const { gameId } = req.query;
+
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, studentId);
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
 
         const sessoes = await Session.find(
             montarFiltroSessao(studentId, gameId),

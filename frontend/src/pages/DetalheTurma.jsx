@@ -6,7 +6,7 @@
 // Página de detalhe de uma turma — lista e cadastro de alunos.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
@@ -40,6 +40,7 @@ export default function DetalheTurma() {
     const [mostrarForm, setMostrarForm] = useState(false);
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
+    const [agora] = useState(() => Date.now());
 
     // Campos do formulário
     const [form, setForm] = useState({
@@ -50,10 +51,6 @@ export default function DetalheTurma() {
         guardianName: "",
         guardianContact: "",
     });
-
-    useEffect(() => {
-        carregarDados();
-    }, [id]);
 
     const montarUrlAluno = (alunoId) => {
         const params = new URLSearchParams();
@@ -86,7 +83,7 @@ export default function DetalheTurma() {
         return query ? `/turmas?${query}` : "/turmas";
     };
 
-    const carregarDados = async () => {
+    const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
             const [resTurma, resAlunos] = await Promise.all([
@@ -100,11 +97,19 @@ export default function DetalheTurma() {
         } finally {
             setCarregando(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        const iniciarCarregamento = async () => {
+            await carregarDados();
+        };
+
+        iniciarCarregamento();
+    }, [carregarDados]);
 
     const calcularIdade = (birthDate) => {
         if (!birthDate) return null;
-        const diff = Date.now() - new Date(birthDate).getTime();
+        const diff = agora - new Date(birthDate).getTime();
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     };
 
@@ -291,7 +296,8 @@ export default function DetalheTurma() {
 
                                     <div className="campo-grupo">
                                         <label className="campo-label">
-                                            Outras condições ou informações relevantes (opcional)
+                                            Outras condições ou informações
+                                            relevantes (opcional)
                                         </label>
                                         <input
                                             type="text"

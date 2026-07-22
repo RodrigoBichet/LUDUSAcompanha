@@ -5,6 +5,8 @@
 
 const Institution = require("../models/Institution");
 const User = require("../models/User");
+const Student = require("../models/Student");
+const Group = require("../models/Group");
 
 const obterContextoEscolar = async (usuarioId) => {
     const usuario = await User.findById(usuarioId).select(
@@ -47,9 +49,41 @@ const podeGerenciarInstituicao = (contexto, instituicao) =>
     (instituicao.ownerUserId &&
         String(instituicao.ownerUserId) === String(contexto.usuario._id));
 
+const montarFiltroAcessoAlunos = async (usuarioId) => {
+    const contexto = await obterContextoEscolar(usuarioId);
+    if (!contexto) return null;
+    if (contexto.todasInstituicoes) return {};
+
+    const alternativas = [{ ownerUserId: contexto.usuario._id }];
+    if (contexto.institutionIds.length > 0) {
+        const turmas = await Group.find({
+            institutionId: { $in: contexto.institutionIds },
+        }).select("_id");
+
+        if (turmas.length > 0) {
+            alternativas.push({
+                groupId: { $in: turmas.map((turma) => turma._id) },
+            });
+        }
+    }
+
+    return { $or: alternativas };
+};
+
+const buscarAlunoComAcesso = async (usuarioId, alunoId) => {
+    const filtroAcesso = await montarFiltroAcessoAlunos(usuarioId);
+    if (!filtroAcesso) return null;
+
+    return Student.findOne({
+        $and: [{ _id: alunoId }, filtroAcesso],
+    });
+};
+
 module.exports = {
     obterContextoEscolar,
     filtroInstituicoesAcessiveis,
     podeAcessarInstituicao,
     podeGerenciarInstituicao,
+    montarFiltroAcessoAlunos,
+    buscarAlunoComAcesso,
 };

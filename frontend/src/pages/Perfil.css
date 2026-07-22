@@ -4,7 +4,7 @@
    ============================================================================= */
 
 .perfil-conteudo {
-    max-width: 700px;
+    max-width: 1100px;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -50,4 +50,34 @@
     color: var(--cor-sucesso);
     margin-bottom: 0.75rem;
     font-weight: 600;
+}
+
+.perfil-formularios {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    align-items: start;
+    gap: 1.5rem;
+}
+
+.perfil-form-campos,
+.perfil-senha-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.perfil-senha-atual {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 620px) {
+    .perfil-form-campos,
+    .perfil-senha-campos {
+        grid-template-columns: 1fr;
+    }
+
+    .perfil-senha-atual {
+        grid-column: auto;
+    }
 }

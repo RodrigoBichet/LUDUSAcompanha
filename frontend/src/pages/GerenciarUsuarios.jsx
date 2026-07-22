@@ -7,7 +7,7 @@
 // Acessível apenas por usuários com role 'admin'.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Header from "../components/layout/Header";
 import {
     listarUsuarios,
@@ -35,14 +35,10 @@ export default function GerenciarUsuarios() {
     const [erroForm, setErroForm] = useState(null);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
 
-    useEffect(() => {
-        carregarDados();
-    }, []);
-
     // -------------------------------------------------------------------------
     // Carrega usuários e instituições em paralelo
     // -------------------------------------------------------------------------
-    const carregarDados = async () => {
+    const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
             const [resUsuarios, resInstituicoes] = await Promise.all([
@@ -56,7 +52,15 @@ export default function GerenciarUsuarios() {
         } finally {
             setCarregando(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        const iniciarCarregamento = async () => {
+            await carregarDados();
+        };
+
+        iniciarCarregamento();
+    }, [carregarDados]);
 
     // -------------------------------------------------------------------------
     // Abre formulário limpo para novo usuário

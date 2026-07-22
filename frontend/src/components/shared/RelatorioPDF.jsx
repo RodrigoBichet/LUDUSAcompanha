@@ -7,6 +7,7 @@
 // Linguagem acessível — pensado para apresentação aos pais/responsáveis.
 // =============================================================================
 
+import { useState } from "react";
 import { textosAnonimos } from "../../config/modoAnonimo";
 import "./RelatorioPDF.css";
 
@@ -19,10 +20,11 @@ export default function RelatorioPDF({
 }) {
     const nomeProfessorRelatorio =
         textosAnonimos.pdfProfessor || professor?.name;
+    const [agora] = useState(() => Date.now());
 
     const calcularIdade = (birthDate) => {
         if (!birthDate) return null;
-        const diff = Date.now() - new Date(birthDate).getTime();
+        const diff = agora - new Date(birthDate).getTime();
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     };
 
@@ -100,7 +102,9 @@ export default function RelatorioPDF({
                     const payload = JSON.parse(evento.payload);
                     const cat = traduzirCategoria(payload.category);
                     if (!categorias.includes(cat)) categorias.push(cat);
-                } catch (_) {}
+                } catch {
+                    // Ignora payload legado inválido sem interromper o relatório.
+                }
             }
         });
         return categorias.join(", ") || "—";
@@ -113,7 +117,9 @@ export default function RelatorioPDF({
                 try {
                     const payload = JSON.parse(evento.payload);
                     estrelas = payload.stars;
-                } catch (_) {}
+                } catch {
+                    // Ignora payload legado inválido sem interromper o relatório.
+                }
             }
         });
         if (estrelas === null) return "—";

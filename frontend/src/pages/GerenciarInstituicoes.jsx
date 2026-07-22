@@ -7,7 +7,7 @@
 // Acessível apenas por usuários com role 'admin'.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Header from "../components/layout/Header";
 import {
     listarInstituicoes,
@@ -30,14 +30,10 @@ export default function GerenciarInstituicoes() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
 
-    useEffect(() => {
-        carregarInstituicoes();
-    }, []);
-
     // -------------------------------------------------------------------------
     // Carrega lista de instituições do backend
     // -------------------------------------------------------------------------
-    const carregarInstituicoes = async () => {
+    const carregarInstituicoes = useCallback(async () => {
         try {
             setCarregando(true);
             const res = await listarInstituicoes();
@@ -47,7 +43,15 @@ export default function GerenciarInstituicoes() {
         } finally {
             setCarregando(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        const iniciarCarregamento = async () => {
+            await carregarInstituicoes();
+        };
+
+        iniciarCarregamento();
+    }, [carregarInstituicoes]);
 
     // -------------------------------------------------------------------------
     // Abre formulário para nova instituição

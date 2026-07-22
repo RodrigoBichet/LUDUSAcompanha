@@ -15,7 +15,6 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Session = require("../models/Session");
 const Student = require("../models/Student");
-const Group = require("../models/Group");
 const Game = require("../models/Game");
 const {
     ErroValidacaoTelemetria,
@@ -27,10 +26,7 @@ const {
 const {
     adaptarRelatorioMonitorLegado,
 } = require("../services/legacyMonitorAdapter");
-const {
-    obterContextoEscolar,
-    podeAcessarInstituicao,
-} = require("../services/schoolAccess");
+const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 
 // Pasta onde os screenshots das fases serão salvos
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
@@ -170,23 +166,8 @@ const buscarSessaoDuplicadaImportada = (dados) => {
 };
 
 const usuarioPodeImportarParaAluno = async (usuarioId, aluno) => {
-    const contexto = await obterContextoEscolar(usuarioId);
-    if (!contexto) return false;
-    if (contexto.todasInstituicoes) return true;
-
-    if (
-        aluno.ownerUserId &&
-        String(aluno.ownerUserId) === String(contexto.usuario._id)
-    ) {
-        return true;
-    }
-
-    if (!aluno.groupId) return false;
-
-    const turma = await Group.findById(aluno.groupId).select("institutionId");
-    if (!turma) return false;
-
-    return podeAcessarInstituicao(contexto, turma.institutionId);
+    const alunoComAcesso = await buscarAlunoComAcesso(usuarioId, aluno._id);
+    return Boolean(alunoComAcesso);
 };
 
 // A importação é uma evidência de que este aluno participou do jogo indicado
@@ -513,6 +494,17 @@ const buscarSessao = async (req, res) => {
             });
         }
 
+        const aluno = await buscarAlunoComAcesso(
+            req.usuarioId,
+            sessao.studentId,
+        );
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada",
+            });
+        }
+
         return res.json({ sucesso: true, sessao });
     } catch (erro) {
         console.error("[LUDUS] Erro ao buscar sessão:", erro.message);
@@ -531,6 +523,14 @@ const sessoesPorAluno = async (req, res) => {
     try {
         const { studentId } = req.params;
         const { gameId } = req.query;
+
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, studentId);
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado",
+            });
+        }
 
         const filtro = { studentId };
 

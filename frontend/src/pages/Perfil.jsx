@@ -133,29 +133,30 @@ export default function Perfil() {
                     </div>
                 </div>
 
-                {/* Formulário — dados pessoais */}
-                <div className="card">
-                    <h3 className="form-titulo">Dados pessoais</h3>
+                <div className="perfil-formularios">
+                    {/* Formulário — dados pessoais */}
+                    <div className="card perfil-formulario-card">
+                        <h3 className="form-titulo">Dados pessoais</h3>
 
-                    <div className="form-campos">
-                        <div className="campo-grupo">
-                            <label className="campo-label">Nome *</label>
-                            <input
-                                className="campo-input"
-                                type="text"
-                                value={nome}
-                                onChange={(e) => setNome(e.target.value)}
-                            />
-                        </div>
-                        <div className="campo-grupo">
-                            <label className="campo-label">Email *</label>
-                            <input
-                                className="campo-input"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
+                        <div className="perfil-form-campos">
+                            <div className="campo-grupo">
+                                <label className="campo-label">Nome *</label>
+                                <input
+                                    className="campo-input"
+                                    type="text"
+                                    value={nome}
+                                    onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="campo-grupo">
+                                <label className="campo-label">Email *</label>
+                                <input
+                                    className="campo-input"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
                     </div>
 
                     {erroDados && <p className="form-erro">⚠️ {erroDados}</p>}
@@ -175,11 +176,11 @@ export default function Perfil() {
                 </div>
 
                 {/* Formulário — troca de senha */}
-                <div className="card">
+                <div className="card perfil-formulario-card">
                     <h3 className="form-titulo">Alterar senha</h3>
 
-                    <div className="form-campos">
-                        <div className="campo-grupo">
+                    <div className="perfil-senha-campos">
+                        <div className="campo-grupo perfil-senha-atual">
                             <label className="campo-label">Senha atual *</label>
                             <input
                                 className="campo-input"
@@ -229,6 +230,7 @@ export default function Perfil() {
                             {salvandoSenha ? "Salvando..." : "Alterar senha"}
                         </button>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

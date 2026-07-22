@@ -28,7 +28,7 @@ export default function Login() {
         try {
             await login(email, password);
             navegar("/");
-        } catch (err) {
+        } catch {
             setErro("Email ou senha incorretos. Tente novamente.");
         } finally {
             setCarregando(false);
