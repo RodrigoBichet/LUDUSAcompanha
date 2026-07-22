@@ -5,6 +5,31 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
+
+### Adicionado
+
+- cadastro, edição, arquivamento e reativação de jogos no catálogo pessoal;
+- importação autenticada de JSON com prévia, validação, normalização e prevenção de duplicidade por aluno;
+- adaptador para telemetria observacional externa e metadados de capacidades;
+- alunos individuais por jogo e associação automática de alunos escolares ao jogo identificado no JSON;
+- criação de instituições por professor, com escopo de acesso às próprias instituições, turmas e alunos;
+- trava persistente para perfis reais protegidos contra exclusão e backups JSON externos antes de limpezas de demonstração.
+
+### Alterado
+
+- a navegação principal passou a separar **Jogos** de **Instituições**;
+- jogos abrem diretamente seus alunos, sem listar instituições na tela de catálogo;
+- exclusão permanente de aluno remove também sessões e imagens vinculadas; turmas e instituições com alunos permanecem protegidas;
+- a URL legada `/jogos` redireciona para o catálogo atual.
+
+### Compatibilidade
+
+- sessões legadas e alunos escolares existentes permanecem legíveis;
+- o SDK Unity não foi alterado nesta etapa.
+
+---
+
 ## [1.10.1] — 2026-07-20 — Preparacao e publicacao inicial do ambiente online
 
 ### Adicionado

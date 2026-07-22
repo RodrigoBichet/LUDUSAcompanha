@@ -207,7 +207,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Papel       | Acesso                                                 |
 | ----------- | ------------------------------------------------------ |
 | `admin`     | Acesso total — todas as instituicoes e funcionalidades |
-| `professor` | Acesso restrito a sua instituicao e turmas             |
+| `professor` | Acesso às instituições que criou, suas turmas e seus alunos individuais |
 
 ---
 
@@ -240,10 +240,11 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Tela                   | Rota                  | Descricao                                                                 |
 | ---------------------- | --------------------- | ------------------------------------------------------------------------- |
 | Login                  | `/login`              | Autenticacao JWT                                                          |
-| Home                   | `/`                   | Selecao de jogo e listagem de instituicoes                                |
+| Jogos                  | `/`                   | Catálogo de jogos e acesso direto aos alunos associados                    |
 | Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
-| Turmas                 | `/turmas`             | Gerenciamento de turmas, com filtro por instituicao quando vindo da Home  |
-| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos, preservando o contexto do jogo selecionado    |
+| Instituições           | `/turmas`             | Cadastro de instituições, seleção e gerenciamento de turmas               |
+| Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos vinculados à turma                              |
+| Alunos do jogo         | `/jogos/:gameId/alunos` | Seleção de alunos escolares ou individuais associados ao jogo            |
 | Perfil Aluno           | `/aluno/:id`          | Dados, anotacoes, indicadores, monitoramento, PDF e solicitacao de imagem |
 | Gerenciar Instituicoes | `/admin/instituicoes` | CRUD de instituicoes (apenas admin)                                       |
 | Gerenciar Usuarios     | `/admin/usuarios`     | CRUD de usuarios (apenas admin)                                           |
@@ -251,29 +252,19 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 
 ---
 
-## Fluxo por jogo, instituicao, turma e aluno
+## Fluxos de jogos, instituições e alunos
 
-A Home do dashboard funciona como entrada do acompanhamento pedagogico. O professor primeiro seleciona o jogo acompanhado e, em seguida, visualiza as instituicoes cadastradas.
+A entrada principal é **Jogos**. Cada jogo abre diretamente a lista de alunos associados e permite cadastrar um aluno individual quando não for necessário informar instituição ou turma.
 
-Fluxo atual:
-
-```txt
-Jogo acompanhado -> Instituicao -> Turma -> Aluno -> Sessao
-```
-
-O jogo atual ativo e **Para Que Serve?** (`gameId: para-que-serve`). A interface ja exibe **Historietas Divertidas** como integracao futura, ainda bloqueada.
-
-Ao selecionar um jogo, o dashboard preserva o `gameId` nas URLs:
+O fluxo escolar é independente e começa em **Instituições**:
 
 ```txt
-/?gameId=para-que-serve
-/turmas?institutionId=...&gameId=para-que-serve
-/turmas/:id?gameId=para-que-serve
-/aluno/:id?gameId=para-que-serve
-/sessao/:sessionId?gameId=para-que-serve
+Instituição -> Turma -> Aluno -> Importar JSON -> Jogo detectado e associado ao mesmo aluno
 ```
 
-Com isso, o perfil do aluno filtra resumo, historico e indicadores pelo jogo selecionado. Quando nenhuma selecao de jogo e informada, as chamadas seguem funcionando no modo geral.
+Ao importar um JSON, o backend valida e normaliza a telemetria. O `gameId` vem do próprio arquivo: o sistema cria ou reutiliza o jogo no catálogo da professora e associa o aluno existente a ele, sem duplicar perfil. Quando o JSON é enviado no contexto de outro jogo, a interface orienta a continuidade no jogo identificado.
+
+As sessões continuam vinculadas canonicamente por `studentId`; `playerId` é apenas exibição. Um aluno pode ter sessões de mais de um jogo, e resumos, histórico e alertas aceitam filtro opcional por `gameId`.
 
 ---
 
@@ -285,15 +276,12 @@ Esse ajuste evita que alunos com nomes iguais ou reaproveitados herdem sessoes a
 
 ---
 
-## Exclusao em cascata
+## Exclusão e preservação de dados
 
-O backend remove dados vinculados ao excluir entidades principais:
-
-- Excluir aluno remove suas sessoes e imagens vinculadas.
-- Excluir turma remove seus alunos, sessoes e imagens vinculadas.
-- Excluir instituicao remove turmas, alunos, sessoes e imagens vinculadas, alem de desvincular usuarios associados.
-
-As imagens de sessoes sao removidas de `backend/uploads/screenshots/` por meio do helper `backend/src/utils/removerSessoes.js`.
+- A exclusão permanente de um aluno remove seu perfil, sessões e imagens vinculadas.
+- Turmas com alunos não podem ser excluídas; instituições com alunos também não. Essa proteção evita remoções acidentais de históricos escolares.
+- Perfis reais explicitamente marcados como protegidos não podem ser apagados pelas rotas comuns.
+- Jogos são arquivados e reativados, em vez de removidos, para manter os vínculos históricos.
 
 ---
 
