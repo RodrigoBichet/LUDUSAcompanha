@@ -110,6 +110,73 @@ const jsonImportavel = () => ({
     screenshots: [],
 });
 
+// Representa a forma canônica produzida pelo LUDUS Unity SDK em um build WebGL.
+// Os valores são inteiramente fictícios e mantêm coordenadas dentro do viewport.
+const sessaoSdkWebglDeTeste = (aluno) => ({
+    schemaVersion: "1.0.0",
+    captureMode: "sdk",
+    source: "ludus-unity-sdk",
+    sourceVersion: "0.1.0",
+    ingestionMethod: "direct-api",
+    capabilities: {
+        clicks: true,
+        mousePath: true,
+        dragPath: false,
+        screenshots: false,
+        inactivity: false,
+        focusEvents: false,
+        phaseEvents: false,
+        correctWrong: false,
+        categoryEvents: false,
+        customEvents: true,
+    },
+    sessionId: "sdk-webgl-sessao-ficticia",
+    studentId: String(aluno._id),
+    playerId: "Estudante Fictício do SDK",
+    gameId: "ludus-ficticio",
+    gameVersion: "1.0.0",
+    platform: "WebGLPlayer",
+    startedAt: "2026-07-27T20:50:17.625Z",
+    endedAt: "2026-07-27T20:50:19.625Z",
+    durationMs: 2000,
+    viewport: {
+        widthPx: 1123,
+        heightPx: 702,
+        coordinateUnit: "pixel",
+        coordinateOrigin: "bottom-left",
+    },
+    metrics: {
+        totalClicks: 2,
+        totalCorrect: 0,
+        totalWrong: 0,
+        firstActionMs: 350,
+        avgTimeBetweenActionsMs: 700,
+        inactivityCount: 0,
+        totalInactivityMs: 0,
+    },
+    clicks: [
+        { x: 240, y: 180, timestamp: 350 },
+        { x: 860, y: 510, timestamp: 1050 },
+    ],
+    mousePath: [
+        { x: 200, y: 160, t: 300 },
+        { x: 240, y: 180, t: 350 },
+        { x: 860, y: 510, t: 1050 },
+    ],
+    dragPath: [],
+    gameEvents: [
+        {
+            eventType: "CaptureContextStarted",
+            timestamp: 0,
+            payload: {
+                displayName: "Atividade fictícia WebGL",
+                contextKind: "activity",
+            },
+        },
+    ],
+    screenshots: [],
+});
+
 before(async () => {
     mongo = await MongoMemoryServer.create();
     await mongoose.connect(mongo.getUri());
@@ -199,6 +266,39 @@ test("preview nao grava e confirmacao impede importacao duplicada", async () => 
         .send({ sessao: dados })
         .expect(201);
     assert.equal(await Session.countDocuments(), 2);
+});
+
+test("recebe sessao WebGL do SDK e disponibiliza dados para heatmap", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
+
+    const recebimento = await request(app)
+        .post("/api/sessions")
+        .send(sessaoWebgl)
+        .expect(201);
+
+    assert.equal(recebimento.body.sucesso, true);
+    assert.equal(recebimento.body.sessionId, sessaoWebgl.sessionId);
+
+    const sessaoSalva = await Session.findOne({
+        sessionId: sessaoWebgl.sessionId,
+    });
+    assert.equal(String(sessaoSalva.studentId), String(alunoA._id));
+    assert.equal(sessaoSalva.playerId, alunoA.name);
+    assert.equal(sessaoSalva.platform, "WebGLPlayer");
+    assert.equal(sessaoSalva.captureMode, "sdk");
+    assert.equal(sessaoSalva.clicks.length, 2);
+    assert.equal(sessaoSalva.mousePath.length, 3);
+
+    const heatmap = await request(app)
+        .get(`/api/dashboard/heatmap/${sessaoWebgl.sessionId}`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+
+    assert.equal(heatmap.body.captureMode, "sdk");
+    assert.equal(heatmap.body.viewport.widthPx, 1123);
+    assert.equal(heatmap.body.clicks.length, 2);
+    assert.equal(heatmap.body.mousePath.length, 3);
 });
 
 test("exclusao protegida preserva aluno e sessoes vinculadas", async () => {
