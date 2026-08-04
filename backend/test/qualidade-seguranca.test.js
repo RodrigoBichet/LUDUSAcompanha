@@ -268,6 +268,28 @@ test("preview nao grava e confirmacao impede importacao duplicada", async () => 
     assert.equal(await Session.countDocuments(), 2);
 });
 
+test("importacao de JSON sem vinculo tecnico associa ao aluno selecionado", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const dados = {
+        ...sessaoSdkWebglDeTeste(alunoA),
+        sessionId: "arquivo-sem-vinculo-tecnico",
+        studentId: "000000000000000000000000",
+        playerId: "Teste do tutorial",
+    };
+
+    await request(app)
+        .post(`/api/sessions/import/${alunoA._id}/confirm`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ sessao: dados })
+        .expect(201);
+
+    const sessao = await Session.findOne({
+        sourceSessionId: "arquivo-sem-vinculo-tecnico",
+    });
+    assert.equal(String(sessao.studentId), String(alunoA._id));
+    assert.equal(sessao.playerId, alunoA.name);
+});
+
 test("recebe sessao WebGL do SDK e disponibiliza dados para heatmap", async () => {
     const { professoraA, alunoA } = await criarCenarioEscolar();
     const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);

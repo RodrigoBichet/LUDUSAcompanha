@@ -212,8 +212,11 @@ const prepararImportacao = async (req) => {
         );
     }
 
+    const studentIdPendenteDeImportacao = "000000000000000000000000";
+
     if (
         dadosBrutos.studentId &&
+        dadosBrutos.studentId !== studentIdPendenteDeImportacao &&
         String(dadosBrutos.studentId) !== String(req.params.studentId)
     ) {
         throw new ErroValidacaoTelemetria(
