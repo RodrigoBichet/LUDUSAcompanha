@@ -46,6 +46,19 @@ const CAPACIDADES_LEGADAS = {
     customEvents: true,
 };
 
+const ROTULOS_CAPACIDADES = {
+    clicks: "Cliques",
+    mousePath: "Trajetória do ponteiro",
+    dragPath: "Trajetória de arraste",
+    screenshots: "Capturas visuais",
+    inactivity: "Pausas registradas",
+    focusEvents: "Eventos de foco",
+    phaseEvents: "Eventos de fase",
+    correctWrong: "Acertos e erros informados pelo jogo",
+    categoryEvents: "Categorias informadas pelo jogo",
+    customEvents: "Contextos e eventos registrados",
+};
+
 export default function DetalhesSessao() {
     const { sessionId } = useParams();
     const navegar = useNavigate();
@@ -72,6 +85,9 @@ export default function DetalhesSessao() {
     );
     const temFasesConfiaveis = possuiCapacidade("phaseEvents");
     const modoObservacional = sessao?.captureMode === "observational";
+    const dadosDisponiveis = Object.entries(ROTULOS_CAPACIDADES)
+        .filter(([capacidade]) => possuiCapacidade(capacidade))
+        .map(([, rotulo]) => rotulo);
 
     useEffect(() => {
         Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
@@ -717,10 +733,16 @@ export default function DetalhesSessao() {
             CategorySelected: "Categoria Selecionada",
             PhaseStarted: "Fase Iniciada",
             DragAttempt: "Tentativa de Arraste",
+            DragStarted: "Arraste iniciado",
+            DragEnded: "Arraste encerrado",
             CorrectMatch: "Acerto ✅",
             WrongMatch: "Erro ❌",
             PhaseCompleted: "Fase Concluída",
-            InactivityDetected: "Inatividade Detectada",
+            InactivityDetected: "Pausa registrada",
+            FocusLost: "Jogo perdeu o foco",
+            FocusGained: "Jogo recuperou o foco",
+            CaptureContextStarted: "Recorte de acompanhamento iniciado",
+            CaptureContextEnded: "Recorte de acompanhamento encerrado",
             SessionEnded: "Sessão Encerrada",
         };
         return mapa[tipo] || tipo;
@@ -745,12 +767,33 @@ export default function DetalhesSessao() {
             acertos: "Acertos",
             erros: "Erros",
             stars: "Estrelas",
+            displayName: "Nome do recorte",
+            contextKind: "Tipo do recorte",
+            observationPurpose: "Objetivo do recorte",
         };
         return mapa[chave] || chave;
     };
 
+    const nomeValorCampo = (chave, valor) => {
+        if (chave === "contextKind") {
+            const tiposDeRecorte = {
+                scene: "Cena",
+                canvas: "Canvas",
+                panel: "Painel",
+                activity: "Atividade",
+            };
+            return tiposDeRecorte[valor] || String(valor);
+        }
+
+        return String(valor);
+    };
+
     // Chaves a esconder na exibição
-    const chavesOcultas = new Set(["correct", "target"]);
+    const chavesOcultas = new Set([
+        "correct",
+        "target",
+        "contextInstanceId",
+    ]);
 
     // Agrupa eventos em fases
     const agruparEventosPorFase = (eventos) => {
@@ -950,6 +993,10 @@ export default function DetalhesSessao() {
                                         </div>
                                     )}
                                 </div>
+                                <div className="telemetria-aviso">
+                                    <strong>Dados disponíveis nesta sessão</strong>
+                                    <span>{dadosDisponiveis.join(" • ")}</span>
+                                </div>
                             </div>
 
                             {/* Heatmap */}
@@ -995,7 +1042,7 @@ export default function DetalhesSessao() {
                                     {possuiCapacidade("screenshots") &&
                                         heatmap?.screenshots?.length > 0 && (
                                         <span className="heatmap-badge">
-                                            Imagens disponíveis
+                                            Capturas visuais disponíveis
                                         </span>
                                     )}
                                 </div>
@@ -1070,14 +1117,16 @@ export default function DetalhesSessao() {
                                     faseSelecionada === -1) && (
                                     <p className="texto-leve heatmap-ajuda">
                                         {heatmap?.screenshots?.length > 0
-                                            ? "Use Geral para ver toda a sessão ou escolha uma fase para ver as interações sobre a imagem do jogo."
-                                            : "Esta sessão não possui imagem de fundo. O mapa mostra as interações em uma área neutra."}
+                                            ? temFasesConfiaveis
+                                                ? "Use Geral para ver toda a sessão ou escolha uma fase para ver as interações sobre a captura visual correspondente."
+                                                : "Esta sessão possui capturas visuais associadas aos momentos registrados. O mapa continua exibindo as interações em uma área neutra."
+                                            : "Esta sessão não possui captura visual. O mapa mostra as interações em uma área neutra."}
                                     </p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Coluna direita — eventos agrupados por fase */}
+                        {/* Coluna direita — sequência de eventos */}
                         <div className="detalhes-coluna">
                             <div className="card secao-card">
                                 <h3>Sequência da Sessão</h3>
@@ -1146,7 +1195,13 @@ export default function DetalhesSessao() {
                                                                         k,
                                                                     ) &&
                                                                     k !==
-                                                                        "options",
+                                                                        "options" &&
+                                                                    payload[k] !==
+                                                                        "" &&
+                                                                    payload[k] !==
+                                                                        null &&
+                                                                    payload[k] !==
+                                                                        undefined,
                                                             )
                                                             .map(([k, v]) => (
                                                                 <span
@@ -1158,7 +1213,8 @@ export default function DetalhesSessao() {
                                                                     )}
                                                                     :{" "}
                                                                     <strong>
-                                                                        {String(
+                                                                        {nomeValorCampo(
+                                                                            k,
                                                                             v,
                                                                         )}
                                                                     </strong>
