@@ -804,7 +804,24 @@ export default function DetalhesSessao() {
     };
 
     // Tradução dos tipos de evento
-    const nomeEvento = (tipo) => {
+    const nomeEvento = (tipo, payload = {}) => {
+        if (tipo === "TrackedInteraction") {
+            const nome =
+                typeof payload.displayName === "string" &&
+                payload.displayName.trim()
+                    ? payload.displayName.trim()
+                    : "Elemento acompanhado";
+
+            if (
+                payload.interactionKind === "button" &&
+                payload.action === "activated"
+            ) {
+                return `${nome} acionado`;
+            }
+
+            return `${nome}: interação registrada`;
+        }
+
         const mapa = {
             CategorySelected: "Categoria Selecionada",
             PhaseStarted: "Fase Iniciada",
@@ -819,6 +836,7 @@ export default function DetalhesSessao() {
             FocusGained: "Jogo recuperou o foco",
             CaptureContextStarted: "Recorte de acompanhamento iniciado",
             CaptureContextEnded: "Recorte de acompanhamento encerrado",
+            TrackedInteraction: "Interação acompanhada",
             SessionEnded: "Sessão Encerrada",
         };
         return mapa[tipo] || tipo;
@@ -846,6 +864,8 @@ export default function DetalhesSessao() {
             displayName: "Nome do recorte",
             contextKind: "Tipo do recorte",
             observationPurpose: "Objetivo do recorte",
+            interactionKind: "Tipo de interação",
+            action: "Ação",
         };
         return mapa[chave] || chave;
     };
@@ -859,6 +879,20 @@ export default function DetalhesSessao() {
                 activity: "Atividade",
             };
             return tiposDeRecorte[valor] || String(valor);
+        }
+
+        if (chave === "interactionKind") {
+            const tiposDeInteracao = {
+                button: "Botão",
+            };
+            return tiposDeInteracao[valor] || String(valor);
+        }
+
+        if (chave === "action") {
+            const acoes = {
+                activated: "Acionado",
+            };
+            return acoes[valor] || String(valor);
         }
 
         return String(valor);
@@ -1247,14 +1281,11 @@ export default function DetalhesSessao() {
                                         fasesJogadas[0];
 
                                     const renderizarEvento = (evento, i) => {
-                                        let payload = {};
-                                        try {
-                                            payload = JSON.parse(
-                                                evento.payload,
-                                            );
-                                        } catch {
-                                            // Mantém os dados disponíveis sem chips de payload.
-                                        }
+                                        const payload =
+                                            obterPayloadEvento(evento);
+                                        const isTrackedInteraction =
+                                            evento.eventType ===
+                                            "TrackedInteraction";
 
                                         const isAcerto =
                                             evento.eventType === "CorrectMatch";
@@ -1275,6 +1306,7 @@ export default function DetalhesSessao() {
                                                         <div className="timeline-tipo">
                                                             {nomeEvento(
                                                                 evento.eventType,
+                                                                payload,
                                                             )}
                                                         </div>
                                                         <div className="timeline-tempo texto-leve">
@@ -1292,6 +1324,16 @@ export default function DetalhesSessao() {
                                                                 ([k]) =>
                                                                     !chavesOcultas.has(
                                                                         k,
+                                                                    ) &&
+                                                                    !(
+                                                                        isTrackedInteraction &&
+                                                                        [
+                                                                            "displayName",
+                                                                            "interactionKind",
+                                                                            "action",
+                                                                        ].includes(
+                                                                            k,
+                                                                        )
                                                                     ) &&
                                                                     k !==
                                                                         "options" &&
