@@ -33,6 +33,18 @@ const montarUrlImagem = (caminho) => {
     return `${BACKEND_ORIGIN}${caminho}`;
 };
 
+const obterPayloadEvento = (evento) => {
+    if (evento?.payload && typeof evento.payload === "object") {
+        return evento.payload;
+    }
+
+    try {
+        return JSON.parse(evento?.payload || "{}");
+    } catch {
+        return {};
+    }
+};
+
 const CAPACIDADES_LEGADAS = {
     clicks: true,
     mousePath: true,
@@ -49,7 +61,7 @@ const CAPACIDADES_LEGADAS = {
 const ROTULOS_CAPACIDADES = {
     clicks: "Cliques",
     mousePath: "Trajetória do ponteiro",
-    dragPath: "Trajetória de arraste",
+    dragPath: "Arrastes do ponteiro",
     screenshots: "Capturas visuais",
     inactivity: "Pausas registradas",
     focusEvents: "Eventos de foco",
@@ -129,6 +141,45 @@ export default function DetalhesSessao() {
         }));
     }, [heatmap, sessao?.capabilities, temFasesConfiaveis]);
 
+    const obterContextosCaptura = useCallback(() => {
+        const contextos = [];
+        const contextosAbertos = new Map();
+
+        (sessao?.gameEvents || []).forEach((evento) => {
+            const payload = obterPayloadEvento(evento);
+            const identificador = payload.contextInstanceId;
+
+            if (
+                evento.eventType === "CaptureContextStarted" &&
+                identificador
+            ) {
+                contextosAbertos.set(identificador, {
+                    identificador,
+                    nome: payload.displayName || "Recorte acompanhado",
+                    tipo: payload.contextKind || "other",
+                    timestamp: evento.timestamp ?? 0,
+                    endTimestamp: sessao?.durationMs ?? Infinity,
+                });
+            }
+
+            if (
+                evento.eventType === "CaptureContextEnded" &&
+                identificador &&
+                contextosAbertos.has(identificador)
+            ) {
+                const contexto = contextosAbertos.get(identificador);
+                contexto.endTimestamp =
+                    evento.timestamp ?? sessao?.durationMs ?? Infinity;
+                contextos.push(contexto);
+                contextosAbertos.delete(identificador);
+            }
+        });
+
+        contextosAbertos.forEach((contexto) => contextos.push(contexto));
+
+        return contextos.sort((a, b) => a.timestamp - b.timestamp);
+    }, [sessao]);
+
     const carregarImagem = (url) =>
         new Promise((resolve, reject) => {
             const img = new Image();
@@ -149,8 +200,22 @@ export default function DetalhesSessao() {
             const ctx = canvas.getContext("2d");
 
             const fases = obterFasesHeatmap();
+            const contextosCaptura = obterContextosCaptura();
             const visualizacaoGeral =
                 !temFasesConfiaveis || faseSelecionada === -1;
+
+            const intervalosMapa = temFasesConfiaveis
+                ? fases.map((fase, index) => ({
+                      inicio: fase?.timestamp ?? 0,
+                      fim:
+                          fases[index + 1]?.timestamp ??
+                          sessao?.durationMs ??
+                          Infinity,
+                  }))
+                : contextosCaptura.map((contexto) => ({
+                      inicio: contexto.timestamp,
+                      fim: contexto.endTimestamp,
+                  }));
 
             const faseAtual = visualizacaoGeral
                 ? null
@@ -238,14 +303,24 @@ export default function DetalhesSessao() {
             });
 
             const coordenadaFallback = (x, y) => {
-                const LARGURA_REFERENCIA = 1920;
-                const ALTURA_REFERENCIA = 1080;
+                const larguraReferencia = Math.max(
+                    1,
+                    sessao?.viewport?.widthPx ||
+                        heatmap?.viewport?.widthPx ||
+                        1920,
+                );
+                const alturaReferencia = Math.max(
+                    1,
+                    sessao?.viewport?.heightPx ||
+                        heatmap?.viewport?.heightPx ||
+                        1080,
+                );
 
                 return {
-                    x: Math.max(0, Math.min(W, (x / LARGURA_REFERENCIA) * W)),
+                    x: Math.max(0, Math.min(W, (x / larguraReferencia) * W)),
                     y: Math.max(
                         0,
-                        Math.min(H, H - (y / ALTURA_REFERENCIA) * H),
+                        Math.min(H, H - (y / alturaReferencia) * H),
                     ),
                 };
             };
@@ -258,13 +333,8 @@ export default function DetalhesSessao() {
             const obterFaseIndexPorTempo = (item) => {
                 const tempo = item.t ?? item.timestamp ?? 0;
 
-                const faseEncontrada = fases.findIndex((fase, index) => {
-                    const proxima = fases[index + 1];
-                    const inicio = fase?.timestamp ?? 0;
-                    const fim =
-                        proxima?.timestamp ?? sessao?.durationMs ?? Infinity;
-
-                    return tempo >= inicio && tempo < fim;
+                const faseEncontrada = intervalosMapa.findIndex((intervalo) => {
+                    return tempo >= intervalo.inicio && tempo < intervalo.fim;
                 });
 
                 return faseEncontrada >= 0 ? faseEncontrada : 0;
@@ -418,12 +488,10 @@ export default function DetalhesSessao() {
                 });
             };
 
-            if (visualizacaoGeral) {
-                fases.forEach((fase, index) => {
-                    const proxima = fases[index + 1];
-                    const inicio = fase?.timestamp ?? 0;
-                    const fim =
-                        proxima?.timestamp ?? sessao?.durationMs ?? Infinity;
+            if (visualizacaoGeral && intervalosMapa.length > 0) {
+                intervalosMapa.forEach((intervalo, index) => {
+                    const inicio = intervalo.inicio;
+                    const fim = intervalo.fim;
 
                     const pontosDaFase = pontosTodos.filter((p) => {
                         const tempo = p.t ?? p.timestamp ?? 0;
@@ -448,8 +516,13 @@ export default function DetalhesSessao() {
                     desenharArraste(arrastesDaFase, index);
                 });
             } else {
-                desenharCaminho(pontos, faseSelecionada);
-                desenharArraste(arrastes, faseSelecionada);
+                const indiceVisual = visualizacaoGeral ? 0 : faseSelecionada;
+
+                cliques.forEach((clique) =>
+                    registrarCliqueClicavel(clique, indiceVisual),
+                );
+                desenharCaminho(pontos, indiceVisual);
+                desenharArraste(arrastes, indiceVisual);
             }
             if (itemHover) {
                 const segmentosDestacados = segmentosHeatmapRef.current.filter(
@@ -579,7 +652,9 @@ export default function DetalhesSessao() {
                 ctx.font = `${Math.max(16, W * 0.016)}px sans-serif`;
                 ctx.textAlign = "center";
                 ctx.fillText(
-                    "Nenhuma interação registrada nesta fase",
+                    visualizacaoGeral
+                        ? "Nenhuma interação registrada nesta sessão"
+                        : "Nenhuma interação registrada nesta fase",
                     W / 2,
                     H / 2,
                 );
@@ -597,6 +672,7 @@ export default function DetalhesSessao() {
         faseSelecionada,
         itemHover,
         obterFasesHeatmap,
+        obterContextosCaptura,
         possuiCapacidade,
         temFasesConfiaveis,
     ]);
@@ -1021,6 +1097,28 @@ export default function DetalhesSessao() {
                                                         {fase.nome}
                                                     </span>
                                                 ))}
+                                            {!temFasesConfiaveis &&
+                                                obterContextosCaptura().map(
+                                                    (contexto, index) => (
+                                                        <span
+                                                            key={
+                                                                contexto.identificador
+                                                            }
+                                                            className="heatmap-legenda-item"
+                                                        >
+                                                            <span
+                                                                className="heatmap-legenda-cor"
+                                                                style={{
+                                                                    background:
+                                                                        obterCorFase(
+                                                                            index,
+                                                                        ).linha,
+                                                                }}
+                                                            />
+                                                            {contexto.nome}
+                                                        </span>
+                                                    ),
+                                                )}
                                             {possuiCapacidade("mousePath") && (
                                                 <span className="heatmap-legenda-item">
                                                     Linha contínua: movimento
@@ -1028,7 +1126,8 @@ export default function DetalhesSessao() {
                                             )}
                                             {possuiCapacidade("dragPath") && (
                                                 <span className="heatmap-legenda-item">
-                                                    Linha tracejada: arraste
+                                                    Linha tracejada: ponteiro
+                                                    pressionado
                                                 </span>
                                             )}
                                             {possuiCapacidade("clicks") && (

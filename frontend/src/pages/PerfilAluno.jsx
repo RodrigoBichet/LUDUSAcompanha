@@ -94,8 +94,15 @@ export default function PerfilAluno() {
         resumo?.evolucaoTemporal?.filter(
             (sessao) => sessao.temDadosDesempenho,
         ) || [];
-    const sessaoTemDadosDesempenho = (sessao) =>
-        sessao?.capabilities?.correctWrong !== false;
+    const sessaoTemDadosDesempenho = (sessao) => {
+        if (sessao?.capabilities) {
+            return sessao.capabilities.correctWrong === true;
+        }
+
+        return (sessao?.gameEvents || []).some((evento) =>
+            ["CorrectMatch", "WrongMatch"].includes(evento.eventType),
+        );
+    };
 
     const carregarDados = useCallback(async () => {
         try {
@@ -232,9 +239,9 @@ export default function PerfilAluno() {
             aluno.capturaSolicitadaOrigem === "unity"
         ) {
             setModalCaptura({
-                titulo: "Imagem já ativada no jogo",
+                titulo: "Captura visual já ativada no jogo",
                 mensagem:
-                    "A imagem no mapa de calor já foi ativada no jogo. Aguarde a próxima sessão ser registrada ou desative a opção no jogo.",
+                    "A captura visual já foi ativada no jogo. Aguarde a próxima sessão ser registrada ou desative a opção no jogo.",
             });
 
             return;
@@ -257,7 +264,7 @@ export default function PerfilAluno() {
                 titulo: "Não foi possível salvar",
                 mensagem:
                     erro.response?.data?.mensagem ||
-                    "Não foi possível atualizar a imagem no mapa de calor.",
+                    "Não foi possível atualizar a solicitação de captura visual.",
             });
         } finally {
             setSolicitandoCaptura(false);
@@ -423,20 +430,20 @@ export default function PerfilAluno() {
         aluno?.capturaSolicitada && aluno?.capturaSolicitadaOrigem === "unity";
 
     const textoCaptura = capturaAtivaPelaUnity
-        ? "Ativado no jogo: a próxima sessão deste aluno mostrará as imagens das fases junto ao mapa de calor."
+        ? "Solicitação ativada pelo jogo. Se a próxima sessão for compatível, as capturas visuais estarão disponíveis no mapa de interações."
         : aluno?.capturaSolicitada
-          ? "Ativado nesta tela: a próxima sessão deste aluno mostrará as imagens das fases junto ao mapa de calor."
-          : "Ative para mostrar as imagens da próxima sessão junto ao mapa de calor.";
+          ? "Solicitação ativada nesta tela. Ela será atendida somente por jogos compatíveis com capturas visuais."
+          : "Recurso opcional para jogos compatíveis com capturas visuais.";
 
     const textoBotaoCaptura = solicitandoCaptura
         ? "Salvando..."
         : capturaAtivaPelaUnity
           ? "Ativado no jogo"
           : aluno?.capturaSolicitada
-            ? "Desativar imagem"
-            : "Ativar imagem";
+            ? "Cancelar solicitação"
+            : "Solicitar captura";
 
-    const desempenho = indicadorDesempenho();
+    const desempenho = temDadosDesempenho ? indicadorDesempenho() : null;
 
     const traduzirCategoria = (cat) => {
         const mapa = {
@@ -632,7 +639,8 @@ export default function PerfilAluno() {
 
                                         <div className="captura-card-texto">
                                             <strong>
-                                                Salvar imagem da próxima sessão
+                                                Solicitar captura visual para a
+                                                próxima sessão
                                             </strong>
                                             <p className="texto-leve">
                                                 {textoCaptura}
