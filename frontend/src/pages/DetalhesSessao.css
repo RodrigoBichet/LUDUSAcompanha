@@ -322,6 +322,18 @@
     box-shadow: 0 0 0 1px rgba(180, 104, 0, 0.55);
 }
 
+.heatmap-legenda-semantica.texto {
+    border-radius: 2px;
+    background: #0ea5e9;
+    box-shadow: 0 0 0 1px rgba(3, 105, 161, 0.65);
+    transform: rotate(45deg) scale(0.78);
+}
+
+.heatmap-legenda-semantica.outro {
+    background: #a855f7;
+    box-shadow: 0 0 0 1px rgba(107, 33, 168, 0.65);
+}
+
 .heatmap-tooltip-semantico {
     position: absolute;
     z-index: 2;
@@ -344,6 +356,22 @@
 .heatmap-tooltip-semantico strong {
     color: #fbbf24;
     font-size: 0.8rem;
+}
+
+.heatmap-tooltip-semantico.texto {
+    border-color: rgba(14, 165, 233, 0.78);
+}
+
+.heatmap-tooltip-semantico.texto strong {
+    color: #38bdf8;
+}
+
+.heatmap-tooltip-semantico.outro {
+    border-color: rgba(168, 85, 247, 0.76);
+}
+
+.heatmap-tooltip-semantico.outro strong {
+    color: #c084fc;
 }
 
 .heatmap-tooltip-semantico span:last-child {

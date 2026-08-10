@@ -113,6 +113,18 @@ export default function DetalhesSessao() {
             );
         },
     );
+    const tiposInteracoesSemanticas = new Set(
+        (sessao?.gameEvents || [])
+            .filter((evento) => evento.eventType === "TrackedInteraction")
+            .map((evento) => obterPayloadEvento(evento).interactionKind)
+            .filter(Boolean),
+    );
+    const temBotoesAcompanhados = tiposInteracoesSemanticas.has("button");
+    const temCamposTextoAcompanhados =
+        tiposInteracoesSemanticas.has("text-input");
+    const temOutrasInteracoesAcompanhadas = [...tiposInteracoesSemanticas].some(
+        (tipo) => tipo !== "button" && tipo !== "text-input",
+    );
 
     useEffect(() => {
         Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
@@ -713,6 +725,8 @@ export default function DetalhesSessao() {
                     timestamp: interacao.timestamp,
                     interactionKind: interacao.interactionKind,
                     action: interacao.action,
+                    characterCount: interacao.characterCount,
+                    wasEmpty: interacao.wasEmpty,
                     tooltipX: Math.max(
                         14,
                         Math.min(86, (pos.x / Math.max(1, W)) * 100),
@@ -732,27 +746,56 @@ export default function DetalhesSessao() {
                 const raio = emHover
                     ? Math.max(17, W * 0.013)
                     : Math.max(13, W * 0.01);
+                const campoDeTexto =
+                    interacao.interactionKind === "text-input";
+                const botao = interacao.interactionKind === "button";
 
                 ctx.save();
-                ctx.shadowColor = "rgba(245, 158, 11, 0.85)";
+                ctx.shadowColor = campoDeTexto
+                    ? "rgba(14, 165, 233, 0.85)"
+                    : botao
+                      ? "rgba(245, 158, 11, 0.85)"
+                      : "rgba(168, 85, 247, 0.82)";
                 ctx.shadowBlur = emHover ? 20 : 12;
-                ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
+                ctx.fillStyle = campoDeTexto
+                    ? "rgba(14, 165, 233, 0.96)"
+                    : botao
+                      ? "rgba(245, 158, 11, 0.95)"
+                      : "rgba(168, 85, 247, 0.95)";
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.98)";
                 ctx.lineWidth = Math.max(2.5, W * 0.002);
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, raio, 0, Math.PI * 2);
+                if (campoDeTexto) {
+                    ctx.moveTo(pos.x, pos.y - raio);
+                    ctx.lineTo(pos.x + raio, pos.y);
+                    ctx.lineTo(pos.x, pos.y + raio);
+                    ctx.lineTo(pos.x - raio, pos.y);
+                    ctx.closePath();
+                } else {
+                    ctx.arc(pos.x, pos.y, raio, 0, Math.PI * 2);
+                }
                 ctx.fill();
                 ctx.stroke();
 
                 ctx.fillStyle = "rgba(28, 43, 58, 0.95)";
                 ctx.beginPath();
-                ctx.arc(
-                    pos.x,
-                    pos.y,
-                    Math.max(3.5, raio * 0.28),
-                    0,
-                    Math.PI * 2,
-                );
+                if (campoDeTexto) {
+                    const centro = Math.max(3.5, raio * 0.3);
+                    ctx.rect(
+                        pos.x - centro,
+                        pos.y - centro,
+                        centro * 2,
+                        centro * 2,
+                    );
+                } else {
+                    ctx.arc(
+                        pos.x,
+                        pos.y,
+                        Math.max(3.5, raio * 0.28),
+                        0,
+                        Math.PI * 2,
+                    );
+                }
                 ctx.fill();
                 ctx.restore();
             });
@@ -962,6 +1005,15 @@ export default function DetalhesSessao() {
                 return `${nome} acionado`;
             }
 
+            if (
+                payload.interactionKind === "text-input" &&
+                payload.action === "completed"
+            ) {
+                return payload.wasEmpty === true
+                    ? `${nome} concluído sem preenchimento`
+                    : `${nome} preenchido`;
+            }
+
             return `${nome}: interação registrada`;
         }
 
@@ -1009,6 +1061,8 @@ export default function DetalhesSessao() {
             observationPurpose: "Objetivo do recorte",
             interactionKind: "Tipo de interação",
             action: "Ação",
+            characterCount: "Quantidade de caracteres",
+            wasEmpty: "Campo vazio",
         };
         return mapa[chave] || chave;
     };
@@ -1027,6 +1081,7 @@ export default function DetalhesSessao() {
         if (chave === "interactionKind") {
             const tiposDeInteracao = {
                 button: "Botão",
+                "text-input": "Campo de texto",
             };
             return tiposDeInteracao[valor] || String(valor);
         }
@@ -1034,8 +1089,13 @@ export default function DetalhesSessao() {
         if (chave === "action") {
             const acoes = {
                 activated: "Acionado",
+                completed: "Preenchimento concluído",
             };
             return acoes[valor] || String(valor);
+        }
+
+        if (chave === "wasEmpty") {
+            return valor === true ? "Sim" : "Não";
         }
 
         return String(valor);
@@ -1312,12 +1372,28 @@ export default function DetalhesSessao() {
                                                     Branco/vermelho: cliques
                                                 </span>
                                             )}
-                                            {temInteracoesSemanticasPosicionadas && (
+                                            {temInteracoesSemanticasPosicionadas &&
+                                                temBotoesAcompanhados && (
                                                 <span className="heatmap-legenda-item">
-                                                    <span className="heatmap-legenda-semantica" />
-                                                    Âmbar: elemento acompanhado
+                                                    <span className="heatmap-legenda-semantica botao" />
+                                                    Círculo âmbar: botão
                                                 </span>
                                             )}
+                                            {temInteracoesSemanticasPosicionadas &&
+                                                temCamposTextoAcompanhados && (
+                                                    <span className="heatmap-legenda-item">
+                                                        <span className="heatmap-legenda-semantica texto" />
+                                                        Losango azul: campo de
+                                                        texto
+                                                    </span>
+                                                )}
+                                            {temInteracoesSemanticasPosicionadas &&
+                                                temOutrasInteracoesAcompanhadas && (
+                                                    <span className="heatmap-legenda-item">
+                                                        <span className="heatmap-legenda-semantica outro" />
+                                                        Roxo: outra interação
+                                                    </span>
+                                                )}
                                         </div>
                                     </div>
 
@@ -1396,7 +1472,7 @@ export default function DetalhesSessao() {
                                     {itemHover?.tipo ===
                                         "interacao-semantica" && (
                                         <div
-                                            className="heatmap-tooltip-semantico"
+                                            className={`heatmap-tooltip-semantico ${itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : "outro"}`}
                                             style={obterEstiloTooltipSemantico()}
                                             role="status"
                                         >
@@ -1406,7 +1482,15 @@ export default function DetalhesSessao() {
                                                     "button" &&
                                                 itemHover.action === "activated"
                                                     ? "Botão acionado"
-                                                    : "Interação registrada"}
+                                                    : itemHover.interactionKind ===
+                                                            "text-input" &&
+                                                        itemHover.action ===
+                                                            "completed"
+                                                      ? itemHover.wasEmpty ===
+                                                        true
+                                                          ? "Campo deixado vazio"
+                                                          : `${Number(itemHover.characterCount) || 0} caracteres informados`
+                                                      : "Interação registrada"}
                                             </span>
                                             <span>
                                                 {itemHover.contexto} • {(
