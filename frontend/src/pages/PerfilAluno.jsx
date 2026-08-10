@@ -80,6 +80,7 @@ export default function PerfilAluno() {
         useState(null);
     const [sucessoImportacao, setSucessoImportacao] = useState("");
     const [processandoImportacao, setProcessandoImportacao] = useState(false);
+    const [arrastandoArquivo, setArrastandoArquivo] = useState(false);
     const [modalOrientacaoImportacao, setModalOrientacaoImportacao] =
         useState(importacaoPronta);
 
@@ -280,10 +281,10 @@ export default function PerfilAluno() {
         setJogoIncompativel(null);
         setJogoDetectadoJaCadastrado(null);
         setSucessoImportacao("");
+        setArrastandoArquivo(false);
     };
 
-    const handleArquivoImportacao = async (evento) => {
-        const arquivo = evento.target.files?.[0];
+    const processarArquivoImportacao = async (arquivo) => {
         setPreviewImportacao(null);
         setErroImportacao("");
         setJogoIncompativel(null);
@@ -293,6 +294,11 @@ export default function PerfilAluno() {
         setNomeArquivoImportacao(arquivo?.name || "");
 
         if (!arquivo) return;
+
+        if (!arquivo.name.toLowerCase().endsWith(".json")) {
+            setErroImportacao("Selecione um arquivo com extensão .json.");
+            return;
+        }
 
         try {
             const conteudo = await arquivo.text();
@@ -315,6 +321,37 @@ export default function PerfilAluno() {
                     "Não foi possível ler o arquivo JSON selecionado.",
             );
         }
+    };
+
+    const handleArquivoImportacao = async (evento) => {
+        const input = evento.target;
+        await processarArquivoImportacao(input.files?.[0]);
+        input.value = "";
+    };
+
+    const handleArrastarArquivo = (evento) => {
+        evento.preventDefault();
+
+        if (!processandoImportacao) {
+            setArrastandoArquivo(true);
+        }
+    };
+
+    const handleSairDaZonaArquivo = (evento) => {
+        if (!evento.currentTarget.contains(evento.relatedTarget)) {
+            setArrastandoArquivo(false);
+        }
+    };
+
+    const handleSoltarArquivo = async (evento) => {
+        evento.preventDefault();
+        setArrastandoArquivo(false);
+
+        if (processandoImportacao) return;
+
+        await processarArquivoImportacao(
+            evento.dataTransfer.files?.[0],
+        );
     };
 
     const handlePrevisualizarImportacao = async () => {
@@ -1333,15 +1370,42 @@ export default function PerfilAluno() {
                                 </p>
                             </div>
 
-                            <label className="campo-arquivo-importacao">
-                                <span>Arquivo JSON</span>
+                            <div
+                                className={`zona-arquivo-importacao${
+                                    arrastandoArquivo ? " arrastando" : ""
+                                }${
+                                    processandoImportacao ? " desativada" : ""
+                                }`}
+                                onDragEnter={handleArrastarArquivo}
+                                onDragOver={handleArrastarArquivo}
+                                onDragLeave={handleSairDaZonaArquivo}
+                                onDrop={handleSoltarArquivo}
+                            >
+                                <span
+                                    className="zona-arquivo-icone"
+                                    aria-hidden="true"
+                                >
+                                    📄
+                                </span>
+                                <strong>Arraste o JSON para esta área</strong>
+                                <span className="texto-leve">
+                                    ou escolha o arquivo no computador
+                                </span>
+                                <label
+                                    className="btn-escolher-arquivo"
+                                    htmlFor="arquivo-telemetria"
+                                >
+                                    Escolher arquivo
+                                </label>
                                 <input
+                                    id="arquivo-telemetria"
+                                    className="input-arquivo-importacao"
                                     type="file"
                                     accept="application/json,.json"
                                     onChange={handleArquivoImportacao}
                                     disabled={processandoImportacao}
                                 />
-                            </label>
+                            </div>
 
                             {nomeArquivoImportacao && (
                                 <p className="texto-leve">

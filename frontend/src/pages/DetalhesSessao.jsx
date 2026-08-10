@@ -45,6 +45,9 @@ const obterPayloadEvento = (evento) => {
     }
 };
 
+const temCoordenadaNumerica = (valor) =>
+    valor !== null && valor !== "" && Number.isFinite(Number(valor));
+
 const CAPACIDADES_LEGADAS = {
     clicks: true,
     mousePath: true,
@@ -100,6 +103,16 @@ export default function DetalhesSessao() {
     const dadosDisponiveis = Object.entries(ROTULOS_CAPACIDADES)
         .filter(([capacidade]) => possuiCapacidade(capacidade))
         .map(([, rotulo]) => rotulo);
+    const temInteracoesSemanticasPosicionadas = (sessao?.gameEvents || []).some(
+        (evento) => {
+            if (evento.eventType !== "TrackedInteraction") return false;
+            const payload = obterPayloadEvento(evento);
+            return (
+                temCoordenadaNumerica(payload.x) &&
+                temCoordenadaNumerica(payload.y)
+            );
+        },
+    );
 
     useEffect(() => {
         Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
@@ -256,6 +269,25 @@ export default function DetalhesSessao() {
             const arrastesTodos = possuiCapacidade("dragPath")
                 ? heatmap.dragPath || []
                 : [];
+            const interacoesSemanticasTodas = (sessao?.gameEvents || [])
+                .filter((evento) => evento.eventType === "TrackedInteraction")
+                .map((evento) => {
+                    const payload = obterPayloadEvento(evento);
+                    return {
+                        ...payload,
+                        timestamp: evento.timestamp ?? 0,
+                    };
+                })
+                .filter(
+                    (interacao) =>
+                        temCoordenadaNumerica(interacao.x) &&
+                        temCoordenadaNumerica(interacao.y),
+                )
+                .map((interacao) => ({
+                    ...interacao,
+                    x: Number(interacao.x),
+                    y: Number(interacao.y),
+                }));
 
             const dentroDaFase = (item) => {
                 const tempo = item.t ?? item.timestamp ?? 0;
@@ -265,6 +297,8 @@ export default function DetalhesSessao() {
             const pontos = pontosTodos.filter(dentroDaFase);
             const cliques = cliquesTodos.filter(dentroDaFase);
             const arrastes = arrastesTodos.filter(dentroDaFase);
+            const interacoesSemanticas =
+                interacoesSemanticasTodas.filter(dentroDaFase);
 
             let imagemReferencia = imagemFundo;
 
@@ -338,6 +372,17 @@ export default function DetalhesSessao() {
                 });
 
                 return faseEncontrada >= 0 ? faseEncontrada : 0;
+            };
+
+            const obterNomeContexto = (interacao, faseIndex) => {
+                const contexto = contextosCaptura.find(
+                    (item) =>
+                        item.identificador === interacao.contextInstanceId,
+                );
+
+                if (contexto) return contexto.nome;
+                if (temFasesConfiaveis) return `Fase ${faseIndex + 1}`;
+                return "Recorte acompanhado";
             };
 
             // Desenha caminho do mouse
@@ -546,7 +591,12 @@ export default function DetalhesSessao() {
                 ctx.shadowBlur = faseSelecionada === -1 ? 14 : 24;
 
                 segmentosDestacados.forEach((s) => {
-                    if (s.tipo === "clique") return;
+                    if (
+                        s.tipo === "clique" ||
+                        s.tipo === "interacao-semantica"
+                    ) {
+                        return;
+                    }
 
                     ctx.setLineDash(
                         s.tipo === "arraste"
@@ -641,10 +691,77 @@ export default function DetalhesSessao() {
                 }
             });
 
+            // Destaca elementos que o desenvolvedor marcou semanticamente.
+            interacoesSemanticas.forEach((interacao) => {
+                const pos = mapearCoordenada(interacao.x, interacao.y);
+                const faseInteracaoIndex = visualizacaoGeral
+                    ? obterFaseIndexPorTempo(interacao)
+                    : faseSelecionada;
+                const nome = interacao.displayName || "Elemento acompanhado";
+                const contexto = obterNomeContexto(
+                    interacao,
+                    faseInteracaoIndex,
+                );
+                const marcador = {
+                    tipo: "interacao-semantica",
+                    faseIndex: faseInteracaoIndex,
+                    x: pos.x,
+                    y: pos.y,
+                    raio: Math.max(18, W * 0.014),
+                    nome,
+                    contexto,
+                    timestamp: interacao.timestamp,
+                    interactionKind: interacao.interactionKind,
+                    action: interacao.action,
+                    tooltipX: Math.max(
+                        14,
+                        Math.min(86, (pos.x / Math.max(1, W)) * 100),
+                    ),
+                    tooltipY: Math.max(
+                        18,
+                        Math.min(88, (pos.y / Math.max(1, H)) * 100),
+                    ),
+                };
+
+                segmentosHeatmapRef.current.push(marcador);
+
+                const emHover =
+                    itemHover?.tipo === "interacao-semantica" &&
+                    itemHover?.timestamp === interacao.timestamp &&
+                    itemHover?.nome === nome;
+                const raio = emHover
+                    ? Math.max(17, W * 0.013)
+                    : Math.max(13, W * 0.01);
+
+                ctx.save();
+                ctx.shadowColor = "rgba(245, 158, 11, 0.85)";
+                ctx.shadowBlur = emHover ? 20 : 12;
+                ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.98)";
+                ctx.lineWidth = Math.max(2.5, W * 0.002);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, raio, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "rgba(28, 43, 58, 0.95)";
+                ctx.beginPath();
+                ctx.arc(
+                    pos.x,
+                    pos.y,
+                    Math.max(3.5, raio * 0.28),
+                    0,
+                    Math.PI * 2,
+                );
+                ctx.fill();
+                ctx.restore();
+            });
+
             if (
                 pontos.length === 0 &&
                 cliques.length === 0 &&
-                arrastes.length === 0
+                arrastes.length === 0 &&
+                interacoesSemanticas.length === 0
             ) {
                 ctx.fillStyle = imagemFundo
                     ? "rgba(28,43,58,0.72)"
@@ -678,7 +795,10 @@ export default function DetalhesSessao() {
     ]);
 
     const distanciaPontoSegmento = (px, py, item) => {
-        if (item.tipo === "clique") {
+        if (
+            item.tipo === "clique" ||
+            item.tipo === "interacao-semantica"
+        ) {
             return Math.hypot(px - item.x, py - item.y);
         }
 
@@ -738,23 +858,33 @@ export default function DetalhesSessao() {
                 return distancia <= limite;
             });
 
+        const interacoesSemanticasCandidatas = candidatos.filter(
+            ({ segmento }) => segmento.tipo === "interacao-semantica",
+        );
         const cliquesCandidatos = candidatos.filter(
             ({ segmento }) => segmento.tipo === "clique",
         );
 
         const segmentoMaisProximo =
-            (cliquesCandidatos.length > 0
-                ? cliquesCandidatos
-                : candidatos
+            (interacoesSemanticasCandidatas.length > 0
+                ? interacoesSemanticasCandidatas
+                : cliquesCandidatos.length > 0
+                  ? cliquesCandidatos
+                  : candidatos
             ).sort((a, b) => a.distancia - b.distancia)[0] || null;
 
         return segmentoMaisProximo?.segmento || null;
     };
 
     const abrirFasePeloCanvas = (evento) => {
-        if (faseSelecionada !== -1) return;
-
         const item = obterSegmentoMaisProximo(evento);
+
+        if (item?.tipo === "interacao-semantica") {
+            setItemHover(item);
+            return;
+        }
+
+        if (faseSelecionada !== -1) return;
 
         if (item) {
             setFaseSelecionada(item.faseIndex);
@@ -772,7 +902,9 @@ export default function DetalhesSessao() {
             itemHover?.x2 !== item?.x2 ||
             itemHover?.y2 !== item?.y2 ||
             itemHover?.x !== item?.x ||
-            itemHover?.y !== item?.y;
+            itemHover?.y !== item?.y ||
+            itemHover?.nome !== item?.nome ||
+            itemHover?.timestamp !== item?.timestamp;
 
         if (mudouHover) {
             setItemHover(item);
@@ -783,6 +915,17 @@ export default function DetalhesSessao() {
     const limparHoverCanvas = () => {
         setItemHover(null);
         setCanvasClicavel(false);
+    };
+
+    const obterEstiloTooltipSemantico = () => {
+        if (itemHover?.tipo !== "interacao-semantica") {
+            return {};
+        }
+
+        return {
+            left: `${itemHover.tooltipX}%`,
+            top: `${itemHover.tooltipY}%`,
+        };
     };
 
     const formatarData = (iso) => {
@@ -1169,6 +1312,12 @@ export default function DetalhesSessao() {
                                                     Branco/vermelho: cliques
                                                 </span>
                                             )}
+                                            {temInteracoesSemanticasPosicionadas && (
+                                                <span className="heatmap-legenda-item">
+                                                    <span className="heatmap-legenda-semantica" />
+                                                    Âmbar: elemento acompanhado
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -1244,6 +1393,30 @@ export default function DetalhesSessao() {
                                                 : "default",
                                         }}
                                     />
+                                    {itemHover?.tipo ===
+                                        "interacao-semantica" && (
+                                        <div
+                                            className="heatmap-tooltip-semantico"
+                                            style={obterEstiloTooltipSemantico()}
+                                            role="status"
+                                        >
+                                            <strong>{itemHover.nome}</strong>
+                                            <span>
+                                                {itemHover.interactionKind ===
+                                                    "button" &&
+                                                itemHover.action === "activated"
+                                                    ? "Botão acionado"
+                                                    : "Interação registrada"}
+                                            </span>
+                                            <span>
+                                                {itemHover.contexto} • {(
+                                                    (itemHover.timestamp || 0) /
+                                                    1000
+                                                ).toFixed(1)}
+                                                s
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {(!temFasesConfiaveis ||

@@ -503,17 +503,60 @@
     color: var(--cor-texto-leve);
 }
 
-.campo-arquivo-importacao {
+.zona-arquivo-importacao {
     display: grid;
-    gap: 0.35rem;
+    justify-items: center;
+    gap: 0.4rem;
+    padding: 1.25rem 1rem;
+    border: 2px dashed rgba(77, 151, 255, 0.5);
+    border-radius: 10px;
+    background: rgba(77, 151, 255, 0.06);
+    text-align: center;
     font-size: 0.86rem;
-    font-weight: 700;
     color: var(--cor-texto);
+    transition:
+        border-color 0.15s,
+        background 0.15s,
+        transform 0.15s;
 }
 
-.campo-arquivo-importacao input {
-    font: inherit;
-    font-weight: 400;
+.zona-arquivo-importacao.arrastando {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.14);
+    transform: scale(1.01);
+}
+
+.zona-arquivo-importacao.desativada {
+    opacity: 0.6;
+}
+
+.zona-arquivo-icone {
+    font-size: 1.7rem;
+}
+
+.btn-escolher-arquivo {
+    margin-top: 0.2rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid rgba(77, 151, 255, 0.55);
+    border-radius: 8px;
+    background: var(--cor-card);
+    color: #3d7fd1;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.btn-escolher-arquivo:hover {
+    border-color: #3d7fd1;
+    background: rgba(77, 151, 255, 0.08);
+}
+
+.input-arquivo-importacao {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 .preview-importacao {
