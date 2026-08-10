@@ -32,11 +32,35 @@ import {
     solicitarCaptura,
     previsualizarImportacaoSessao,
     confirmarImportacaoSessao,
+    removerSessaoImportada,
     criarJogoDetectado,
 } from "../services/api";
 import "./PerfilAluno.css";
 import RelatorioPDF from "../components/shared/RelatorioPDF";
 import { MODO_ANONIMO } from "../config/modoAnonimo";
+
+const obterPayloadEvento = (evento) => {
+    if (evento?.payloadData && typeof evento.payloadData === "object") {
+        return evento.payloadData;
+    }
+    if (evento?.payload && typeof evento.payload === "object") {
+        return evento.payload;
+    }
+
+    try {
+        return JSON.parse(evento?.payload || "{}");
+    } catch {
+        return {};
+    }
+};
+
+const humanizarIdentificador = (valor) =>
+    String(valor || "")
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/([A-Za-zÀ-ÿ])(\d)/g, "$1 $2")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
 export default function PerfilAluno() {
     const { id } = useParams();
@@ -70,9 +94,7 @@ export default function PerfilAluno() {
     // Importação de telemetria: o arquivo permanece somente no estado do navegador
     // até a confirmação explícita da pessoa usuária.
     const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
-    const [sessaoParaImportar, setSessaoParaImportar] = useState(null);
-    const [nomeArquivoImportacao, setNomeArquivoImportacao] = useState("");
-    const [previewImportacao, setPreviewImportacao] = useState(null);
+    const [arquivosImportacao, setArquivosImportacao] = useState([]);
     const [erroImportacao, setErroImportacao] = useState("");
     const [jogoIncompativel, setJogoIncompativel] = useState(null);
     const [criandoJogoDetectado, setCriandoJogoDetectado] = useState(false);
@@ -83,6 +105,9 @@ export default function PerfilAluno() {
     const [arrastandoArquivo, setArrastandoArquivo] = useState(false);
     const [modalOrientacaoImportacao, setModalOrientacaoImportacao] =
         useState(importacaoPronta);
+    const [sessaoParaExcluir, setSessaoParaExcluir] = useState(null);
+    const [excluindoSessao, setExcluindoSessao] = useState(false);
+    const [erroExclusaoSessao, setErroExclusaoSessao] = useState("");
 
     //Alertas
     const [alertas, setAlertas] = useState([]);
@@ -177,6 +202,41 @@ export default function PerfilAluno() {
         const s = Math.floor(ms / 1000);
         if (s < 60) return `${s}s`;
         return `${Math.floor(s / 60)}m ${s % 60}s`;
+    };
+
+    const solicitarExclusaoSessao = (sessao) => {
+        setSessaoParaExcluir(sessao);
+        setErroExclusaoSessao("");
+    };
+
+    const cancelarExclusaoSessao = () => {
+        if (excluindoSessao) return;
+        setSessaoParaExcluir(null);
+        setErroExclusaoSessao("");
+    };
+
+    const confirmarExclusaoSessao = async () => {
+        if (!sessaoParaExcluir?.sessionId) return;
+
+        try {
+            setExcluindoSessao(true);
+            setErroExclusaoSessao("");
+            await removerSessaoImportada(sessaoParaExcluir.sessionId);
+            setSessaoParaExcluir(null);
+            await carregarDados();
+            setModalCaptura({
+                titulo: "Sessão removida",
+                mensagem:
+                    "A sessão importada por JSON foi removida do acompanhamento.",
+            });
+        } catch (erro) {
+            setErroExclusaoSessao(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível remover esta sessão.",
+            );
+        } finally {
+            setExcluindoSessao(false);
+        }
     };
 
     const indicadorDesempenho = () => {
@@ -274,9 +334,7 @@ export default function PerfilAluno() {
 
     const abrirImportacao = () => {
         setModalImportacaoAberto(true);
-        setSessaoParaImportar(null);
-        setNomeArquivoImportacao("");
-        setPreviewImportacao(null);
+        setArquivosImportacao([]);
         setErroImportacao("");
         setJogoIncompativel(null);
         setJogoDetectadoJaCadastrado(null);
@@ -284,49 +342,111 @@ export default function PerfilAluno() {
         setArrastandoArquivo(false);
     };
 
-    const processarArquivoImportacao = async (arquivo) => {
-        setPreviewImportacao(null);
+    const processarArquivosImportacao = async (listaArquivos) => {
         setErroImportacao("");
         setJogoIncompativel(null);
         setJogoDetectadoJaCadastrado(null);
         setSucessoImportacao("");
-        setSessaoParaImportar(null);
-        setNomeArquivoImportacao(arquivo?.name || "");
+        const arquivos = Array.from(listaArquivos || []);
+        if (arquivos.length === 0) return;
 
-        if (!arquivo) return;
+        const processados = await Promise.all(
+            arquivos.map(async (arquivo, indice) => {
+                const itemBase = {
+                    id: `${arquivo.name}-${arquivo.size}-${arquivo.lastModified}-${Date.now()}-${indice}`,
+                    nome: arquivo.name,
+                    sessao: null,
+                    preview: null,
+                    status: "invalido",
+                    mensagem: "",
+                };
 
-        if (!arquivo.name.toLowerCase().endsWith(".json")) {
-            setErroImportacao("Selecione um arquivo com extensão .json.");
-            return;
-        }
+                if (!arquivo.name.toLowerCase().endsWith(".json")) {
+                    return {
+                        ...itemBase,
+                        mensagem: "O arquivo precisa ter extensão .json.",
+                    };
+                }
 
-        try {
-            const conteudo = await arquivo.text();
-            const sessao = JSON.parse(conteudo);
+                try {
+                    const conteudo = await arquivo.text();
+                    const sessao = JSON.parse(conteudo);
 
-            if (
-                !sessao ||
-                Array.isArray(sessao) ||
-                typeof sessao !== "object"
-            ) {
-                throw new Error(
-                    "O arquivo deve conter um objeto JSON de sessão.",
-                );
-            }
+                    if (
+                        !sessao ||
+                        Array.isArray(sessao) ||
+                        typeof sessao !== "object"
+                    ) {
+                        throw new Error(
+                            "O arquivo deve conter um objeto JSON de sessão.",
+                        );
+                    }
 
-            setSessaoParaImportar(sessao);
-        } catch (erro) {
-            setErroImportacao(
-                erro.message ||
-                    "Não foi possível ler o arquivo JSON selecionado.",
+                    return {
+                        ...itemBase,
+                        sessao,
+                        status: "anexado",
+                    };
+                } catch (erro) {
+                    return {
+                        ...itemBase,
+                        mensagem:
+                            erro.message ||
+                            "Não foi possível ler o arquivo JSON.",
+                    };
+                }
+            }),
+        );
+
+        setArquivosImportacao((atuais) => {
+            const idsSessao = new Set(
+                atuais
+                    .map((item) => item.sessao?.sessionId)
+                    .filter(Boolean),
             );
-        }
+
+            const novos = processados.map((item) => {
+                const sessionId = item.sessao?.sessionId;
+                if (!sessionId || !idsSessao.has(sessionId)) {
+                    if (sessionId) idsSessao.add(sessionId);
+                    return item;
+                }
+
+                return {
+                    ...item,
+                    sessao: null,
+                    status: "invalido",
+                    mensagem:
+                        "Esta sessão já foi adicionada a esta seleção.",
+                };
+            });
+
+            return [...atuais, ...novos];
+        });
     };
 
     const handleArquivoImportacao = async (evento) => {
         const input = evento.target;
-        await processarArquivoImportacao(input.files?.[0]);
+        await processarArquivosImportacao(input.files);
         input.value = "";
+    };
+
+    const limparArquivoImportacao = () => {
+        setArquivosImportacao([]);
+        setErroImportacao("");
+        setJogoIncompativel(null);
+        setJogoDetectadoJaCadastrado(null);
+        setSucessoImportacao("");
+    };
+
+    const removerArquivoImportacao = (idArquivo) => {
+        setArquivosImportacao((atuais) =>
+            atuais.filter((item) => item.id !== idArquivo),
+        );
+        setErroImportacao("");
+        setJogoIncompativel(null);
+        setJogoDetectadoJaCadastrado(null);
+        setSucessoImportacao("");
     };
 
     const handleArrastarArquivo = (evento) => {
@@ -349,81 +469,211 @@ export default function PerfilAluno() {
 
         if (processandoImportacao) return;
 
-        await processarArquivoImportacao(
-            evento.dataTransfer.files?.[0],
-        );
+        await processarArquivosImportacao(evento.dataTransfer.files);
     };
 
     const handlePrevisualizarImportacao = async () => {
-        if (!sessaoParaImportar || !aluno?._id) return;
+        const pendentes = arquivosImportacao.filter(
+            (item) => item.status === "anexado",
+        );
+        if (pendentes.length === 0 || !aluno?._id) return;
 
         try {
             setProcessandoImportacao(true);
             setErroImportacao("");
             setJogoIncompativel(null);
             setJogoDetectadoJaCadastrado(null);
-            const resposta = await previsualizarImportacaoSessao(
-                aluno._id,
-                sessaoParaImportar,
-                gameIdSelecionado,
+            setSucessoImportacao("");
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.status === "anexado"
+                        ? { ...item, status: "validando", mensagem: "" }
+                        : item,
+                ),
             );
-            setPreviewImportacao(resposta.data.preview);
-        } catch (erro) {
-            setPreviewImportacao(null);
-            setJogoIncompativel(
-                erro.response?.data?.codigo === "JOGO_INCOMPATIVEL"
-                    ? erro.response.data.jogoDetectado
-                    : null,
+
+            const resultados = await Promise.all(
+                pendentes.map(async (item) => {
+                    try {
+                        const resposta = await previsualizarImportacaoSessao(
+                            aluno._id,
+                            item.sessao,
+                            gameIdSelecionado,
+                        );
+                        const preview = resposta.data.preview;
+                        return {
+                            id: item.id,
+                            preview,
+                            status: preview.jaRegistrada
+                                ? "ja-registrado"
+                                : "validado",
+                            mensagem: preview.jaRegistrada
+                                ? "Esta sessão já está registrada."
+                                : "Pronto para importar.",
+                        };
+                    } catch (erro) {
+                        return {
+                            id: item.id,
+                            preview: null,
+                            status: "erro-validacao",
+                            mensagem:
+                                erro.response?.data?.mensagem ||
+                                "Não foi possível validar esta sessão.",
+                            jogoIncompativel:
+                                erro.response?.data?.codigo ===
+                                "JOGO_INCOMPATIVEL"
+                                    ? erro.response.data.jogoDetectado
+                                    : null,
+                        };
+                    }
+                }),
             );
-            setErroImportacao(
-                erro.response?.data?.mensagem ||
-                    "Não foi possível validar a sessão para importação.",
+
+            const resultadosPorId = new Map(
+                resultados.map((resultado) => [resultado.id, resultado]),
             );
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) => {
+                    const resultado = resultadosPorId.get(item.id);
+                    return resultado ? { ...item, ...resultado } : item;
+                }),
+            );
+
+            if (arquivosImportacao.length === 1) {
+                setJogoIncompativel(
+                    resultados[0]?.jogoIncompativel || null,
+                );
+            }
+
+            const falhas = resultados.filter(
+                (resultado) => resultado.status === "erro-validacao",
+            ).length;
+            if (falhas > 0) {
+                setErroImportacao(
+                    falhas === 1
+                        ? "Um arquivo precisa de atenção antes da importação."
+                        : `${falhas} arquivos precisam de atenção antes da importação.`,
+                );
+            }
         } finally {
             setProcessandoImportacao(false);
         }
     };
 
     const handleConfirmarImportacao = async () => {
-        if (!sessaoParaImportar || !previewImportacao || !aluno?._id) return;
-
-        if (previewImportacao.jaRegistrada) {
-            setErroImportacao(
-                "Esta sessão já está registrada para este aluno.",
-            );
-            return;
-        }
+        const validados = arquivosImportacao.filter(
+            (item) => item.status === "validado" && item.preview,
+        );
+        if (validados.length === 0 || !aluno?._id) return;
 
         try {
             setProcessandoImportacao(true);
             setErroImportacao("");
-            const resposta = await confirmarImportacaoSessao(
-                aluno._id,
-                sessaoParaImportar,
-                gameIdSelecionado,
+            setSucessoImportacao("");
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.status === "validado"
+                        ? { ...item, status: "importando", mensagem: "" }
+                        : item,
+                ),
             );
 
-            await carregarDados();
-            const nomeJogoAssociado = resposta.data?.jogo?.name;
-            setSucessoImportacao(
-                nomeJogoAssociado
-                    ? `Sessão importada com sucesso. O aluno foi associado ao jogo “${nomeJogoAssociado}”.`
-                    : "Sessão importada com sucesso. O histórico do aluno foi atualizado.",
+            const resultados = [];
+            for (const item of validados) {
+                try {
+                    await confirmarImportacaoSessao(
+                        aluno._id,
+                        item.sessao,
+                        gameIdSelecionado,
+                    );
+                    resultados.push({
+                        id: item.id,
+                        status: "importado",
+                        mensagem: "Importado com sucesso.",
+                    });
+                } catch (erro) {
+                    resultados.push({
+                        id: item.id,
+                        status: "erro-importacao",
+                        mensagem:
+                            erro.response?.data?.mensagem ||
+                            "Não foi possível importar esta sessão.",
+                    });
+                }
+            }
+
+            const resultadosPorId = new Map(
+                resultados.map((resultado) => [resultado.id, resultado]),
             );
-        } catch (erro) {
-            setJogoIncompativel(
-                erro.response?.data?.codigo === "JOGO_INCOMPATIVEL"
-                    ? erro.response.data.jogoDetectado
-                    : null,
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) => {
+                    const resultado = resultadosPorId.get(item.id);
+                    return resultado ? { ...item, ...resultado } : item;
+                }),
             );
-            setErroImportacao(
-                erro.response?.data?.mensagem ||
-                    "Não foi possível confirmar a importação.",
-            );
+
+            const importados = resultados.filter(
+                (resultado) => resultado.status === "importado",
+            ).length;
+            const falhas = resultados.length - importados;
+
+            if (importados > 0) {
+                await carregarDados();
+                setSucessoImportacao(
+                    importados === 1
+                        ? "Uma sessão foi importada com sucesso."
+                        : `${importados} sessões foram importadas com sucesso.`,
+                );
+            }
+
+            if (falhas > 0) {
+                setErroImportacao(
+                    falhas === 1
+                        ? "Uma sessão não pôde ser importada."
+                        : `${falhas} sessões não puderam ser importadas.`,
+                );
+            }
         } finally {
             setProcessandoImportacao(false);
         }
     };
+
+    const descreverStatusArquivo = (item) => {
+        if (item.mensagem) return item.mensagem;
+
+        const descricoes = {
+            anexado: "Pronto para validar.",
+            validando: "Validando...",
+            validado: "Pronto para importar.",
+            "ja-registrado": "Esta sessão já está registrada.",
+            importando: "Importando...",
+            importado: "Importado com sucesso.",
+            invalido: "Arquivo inválido.",
+            "erro-validacao": "Não foi possível validar esta sessão.",
+            "erro-importacao": "Não foi possível importar esta sessão.",
+        };
+
+        return descricoes[item.status] || "Arquivo adicionado.";
+    };
+
+    const classeStatusArquivo = (status) => {
+        if (["validado", "importado"].includes(status)) return "sucesso";
+        if (["anexado", "validando", "importando"].includes(status)) {
+            return "pendente";
+        }
+        if (status === "ja-registrado") return "aviso";
+        return "erro";
+    };
+
+    const arquivosValidosImportacao = arquivosImportacao.filter(
+        (item) => item.sessao,
+    );
+    const arquivosPendentesImportacao = arquivosImportacao.filter(
+        (item) => item.status === "anexado",
+    );
+    const arquivosProntosImportacao = arquivosImportacao.filter(
+        (item) => item.status === "validado",
+    );
 
     const handleCriarJogoDetectado = async (evento) => {
         evento.preventDefault();
@@ -500,12 +750,46 @@ export default function PerfilAluno() {
             (e) => e.eventType === "CategorySelected",
         );
         if (!evento) return null;
-        try {
-            const payload = JSON.parse(evento.payload);
-            return payload.category || null;
-        } catch {
-            return null;
+        const payload = obterPayloadEvento(evento);
+        return payload.category || null;
+    };
+
+    const extrairTituloSessao = (sessao) => {
+        const categoria = extrairCategoria(sessao);
+        if (categoria) return traduzirCategoria(categoria);
+
+        const contextos = (sessao.gameEvents || [])
+            .filter((evento) => evento.eventType === "CaptureContextStarted")
+            .map((evento) =>
+                humanizarIdentificador(
+                    obterPayloadEvento(evento).displayName,
+                ),
+            )
+            .filter(Boolean)
+            .filter((nome, indice, todos) => todos.indexOf(nome) === indice);
+
+        if (contextos.length === 1) return contextos[0];
+        if (contextos.length > 1) {
+            return `${contextos[0]} → ${contextos[contextos.length - 1]}`;
         }
+
+        const eventoFase = (sessao.gameEvents || []).find(
+            (evento) => evento.eventType === "PhaseStarted",
+        );
+        if (eventoFase) {
+            const payload = obterPayloadEvento(eventoFase);
+            const fase =
+                payload.displayName || payload.phaseName || payload.phaseId;
+            if (fase) return humanizarIdentificador(fase);
+        }
+
+        if (sessao.captureMode === "observational") {
+            return "Sessão observacional";
+        }
+        if (sessao.captureMode === "sdk") {
+            return "Sessão instrumentada";
+        }
+        return "Sessão registrada";
     };
 
     const montarUrlSessao = (sessionId) => {
@@ -1126,70 +1410,117 @@ export default function PerfilAluno() {
                                 </div>
                             </div>
 
-                            {/* Histórico de sessões */}
+                            {/* Sessões registradas */}
                             {sessoes.length > 0 && (
                                 <div className="card secao-card">
-                                    <h3>Histórico de Sessões</h3>
+                                    <h3>Sessões registradas</h3>
+                                    <p className="texto-leve descricao-sessoes-registradas">
+                                        Telemetrias salvas para este aluno e
+                                        jogo. Importações por JSON podem ser
+                                        removidas em caso de engano.
+                                    </p>
                                     <div className="lista-sessoes">
                                         {sessoes.map((sessao) => {
-                                            const categoria =
-                                                extrairCategoria(sessao);
+                                            const tituloSessao =
+                                                extrairTituloSessao(sessao);
+                                            const importadaPorArquivo =
+                                                sessao.ingestionMethod ===
+                                                "file-import";
                                             return (
                                                 <div
                                                     key={sessao.sessionId}
                                                     className="item-sessao"
-                                                    onClick={() =>
-                                                        navegar(
-                                                            montarUrlSessao(
-                                                                sessao.sessionId,
-                                                            ),
-                                                        )
-                                                    }
                                                 >
-                                                    <div className="sessao-info">
-                                                        {/* Categoria em destaque ou fallback */}
-                                                        <span className="sessao-categoria">
-                                                            🎮{" "}
-                                                            {categoria ||
-                                                                "Sessão de jogo"}
-                                                        </span>
-                                                        {/* Data menor, secundária */}
-                                                        <span className="texto-leve sessao-data-menor">
-                                                            {formatarData(
-                                                                sessao.startedAt,
+                                                    <button
+                                                        type="button"
+                                                        className="btn-abrir-sessao"
+                                                        onClick={() =>
+                                                            navegar(
+                                                                montarUrlSessao(
+                                                                    sessao.sessionId,
+                                                                ),
+                                                            )
+                                                        }
+                                                    >
+                                                        <div className="sessao-info">
+                                                            <span className="sessao-categoria">
+                                                                🎮{" "}
+                                                                {tituloSessao}
+                                                            </span>
+                                                            <span className="texto-leve sessao-data-menor">
+                                                                {formatarData(
+                                                                    sessao.startedAt,
+                                                                )}
+                                                            </span>
+                                                            <span
+                                                                className={`origem-sessao ${
+                                                                    importadaPorArquivo
+                                                                        ? "arquivo"
+                                                                        : "jogo"
+                                                                }`}
+                                                            >
+                                                                {importadaPorArquivo
+                                                                    ? "JSON importado"
+                                                                    : "Enviada pelo jogo"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="sessao-metricas">
+                                                            <span className="chip-cliques">
+                                                                {sessao.metrics
+                                                                    ?.totalClicks ||
+                                                                    0}{" "}
+                                                                {sessao.metrics
+                                                                    ?.totalClicks ===
+                                                                1
+                                                                    ? "clique"
+                                                                    : "cliques"}
+                                                            </span>
+                                                            {sessaoTemDadosDesempenho(
+                                                                sessao,
+                                                            ) && (
+                                                                <>
+                                                                    <span className="chip-acerto">
+                                                                        ✅{" "}
+                                                                        {sessao
+                                                                            .metrics
+                                                                            ?.totalCorrect ||
+                                                                            0}
+                                                                    </span>
+                                                                    <span className="chip-erro">
+                                                                        ❌{" "}
+                                                                        {sessao
+                                                                            .metrics
+                                                                            ?.totalWrong ||
+                                                                            0}
+                                                                    </span>
+                                                                </>
                                                             )}
+                                                            <span className="texto-leve">
+                                                                {formatarDuracao(
+                                                                    sessao.durationMs,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <span className="jogador-seta">
+                                                            →
                                                         </span>
-                                                    </div>
-                                                    <div className="sessao-metricas">
-                                                        {sessaoTemDadosDesempenho(
-                                                            sessao,
-                                                        ) && (
-                                                            <>
-                                                                <span className="chip-acerto">
-                                                                    ✅{" "}
-                                                                    {sessao
-                                                                        .metrics
-                                                                        ?.totalCorrect ||
-                                                                        0}
-                                                                </span>
-                                                                <span className="chip-erro">
-                                                                    ❌{" "}
-                                                                    {sessao
-                                                                        .metrics
-                                                                        ?.totalWrong ||
-                                                                        0}
-                                                                </span>
-                                                            </>
+                                                    </button>
+                                                    {importadaPorArquivo &&
+                                                        !aluno?.deletionProtected && (
+                                                            <button
+                                                                type="button"
+                                                                className="btn-excluir-sessao"
+                                                                onClick={() =>
+                                                                    solicitarExclusaoSessao(
+                                                                        sessao,
+                                                                    )
+                                                                }
+                                                                aria-label="Remover sessão importada"
+                                                                title="Remover sessão importada"
+                                                            >
+                                                                🗑️
+                                                            </button>
                                                         )}
-                                                        <span className="texto-leve">
-                                                            {formatarDuracao(
-                                                                sessao.durationMs,
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                    <span className="jogador-seta">
-                                                        →
-                                                    </span>
                                                 </div>
                                             );
                                         })}
@@ -1325,6 +1656,66 @@ export default function PerfilAluno() {
                     </div>
                 )}
 
+                {sessaoParaExcluir && (
+                    <div className="modal-captura-backdrop" role="presentation">
+                        <div
+                            className="modal-exclusao-sessao"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="titulo-exclusao-sessao"
+                        >
+                            <div className="modal-exclusao-icone" aria-hidden="true">
+                                🗑️
+                            </div>
+                            <div>
+                                <h3 id="titulo-exclusao-sessao">
+                                    Remover sessão importada?
+                                </h3>
+                                <p>
+                                    Essa ação exclui permanentemente a sessão
+                                    adicionada por JSON.
+                                </p>
+                            </div>
+                            <div className="resumo-exclusao-sessao">
+                                <strong>
+                                    {extrairTituloSessao(sessaoParaExcluir)}
+                                </strong>
+                                <span>
+                                    {formatarData(sessaoParaExcluir.startedAt)} •{" "}
+                                    {formatarDuracao(
+                                        sessaoParaExcluir.durationMs,
+                                    )}
+                                </span>
+                            </div>
+                            {erroExclusaoSessao && (
+                                <p className="mensagem-importacao erro-importacao">
+                                    {erroExclusaoSessao}
+                                </p>
+                            )}
+                            <div className="acoes-exclusao-sessao">
+                                <button
+                                    type="button"
+                                    className="btn-cancelar-importacao"
+                                    onClick={cancelarExclusaoSessao}
+                                    disabled={excluindoSessao}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-confirmar-exclusao-sessao"
+                                    onClick={confirmarExclusaoSessao}
+                                    disabled={excluindoSessao}
+                                >
+                                    {excluindoSessao
+                                        ? "Removendo..."
+                                        : "Sim, remover sessão"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {modalOrientacaoImportacao && !carregando && !erro && aluno && (
                     <div className="modal-captura-backdrop" role="presentation">
                         <div
@@ -1365,8 +1756,9 @@ export default function PerfilAluno() {
                                     Importar telemetria
                                 </h3>
                                 <p>
-                                    Selecione um JSON de uma sessão. Primeiro, o
-                                    sistema valida o conteúdo sem salvar nada.
+                                    Selecione um ou mais JSONs de sessão. O
+                                    sistema valida todos antes de salvar qualquer
+                                    dado.
                                 </p>
                             </div>
 
@@ -1375,42 +1767,123 @@ export default function PerfilAluno() {
                                     arrastandoArquivo ? " arrastando" : ""
                                 }${
                                     processandoImportacao ? " desativada" : ""
+                                }${
+                                    arquivosValidosImportacao.length > 0
+                                        ? " arquivo-selecionado"
+                                        : ""
                                 }`}
                                 onDragEnter={handleArrastarArquivo}
                                 onDragOver={handleArrastarArquivo}
                                 onDragLeave={handleSairDaZonaArquivo}
                                 onDrop={handleSoltarArquivo}
+                                aria-live="polite"
                             >
                                 <span
                                     className="zona-arquivo-icone"
                                     aria-hidden="true"
                                 >
-                                    📄
+                                    {arquivosValidosImportacao.length > 0
+                                        ? "✓"
+                                        : "📄"}
                                 </span>
-                                <strong>Arraste o JSON para esta área</strong>
-                                <span className="texto-leve">
-                                    ou escolha o arquivo no computador
-                                </span>
-                                <label
-                                    className="btn-escolher-arquivo"
-                                    htmlFor="arquivo-telemetria"
-                                >
-                                    Escolher arquivo
-                                </label>
+                                <strong>
+                                    {arquivosImportacao.length > 0
+                                        ? arquivosImportacao.length === 1
+                                            ? "1 arquivo adicionado"
+                                            : `${arquivosImportacao.length} arquivos adicionados`
+                                        : "Arraste um ou mais JSONs para esta área"}
+                                </strong>
+                                {arquivosImportacao.length > 0 ? (
+                                    <span className="resumo-arquivos-importacao">
+                                        {arquivosValidosImportacao.length === 1
+                                            ? "1 JSON lido com sucesso"
+                                            : `${arquivosValidosImportacao.length} JSONs lidos com sucesso`}
+                                    </span>
+                                ) : (
+                                    <span className="texto-leve">
+                                        ou escolha os arquivos no computador
+                                    </span>
+                                )}
+                                <div className="acoes-arquivo-importacao">
+                                    <label
+                                        className="btn-escolher-arquivo"
+                                        htmlFor="arquivo-telemetria"
+                                    >
+                                        {arquivosImportacao.length > 0
+                                            ? "Adicionar arquivos"
+                                            : "Escolher arquivos"}
+                                    </label>
+                                    {arquivosImportacao.length > 0 && (
+                                        <button
+                                            type="button"
+                                            className="btn-remover-arquivo"
+                                            onClick={limparArquivoImportacao}
+                                            disabled={processandoImportacao}
+                                        >
+                                            Remover todos
+                                        </button>
+                                    )}
+                                </div>
                                 <input
                                     id="arquivo-telemetria"
                                     className="input-arquivo-importacao"
                                     type="file"
                                     accept="application/json,.json"
+                                    multiple
                                     onChange={handleArquivoImportacao}
                                     disabled={processandoImportacao}
                                 />
                             </div>
 
-                            {nomeArquivoImportacao && (
-                                <p className="texto-leve">
-                                    Selecionado: {nomeArquivoImportacao}
-                                </p>
+                            {arquivosImportacao.length > 0 && (
+                                <div className="lista-arquivos-importacao">
+                                    {arquivosImportacao.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className={`item-arquivo-importacao ${classeStatusArquivo(item.status)}`}
+                                        >
+                                            <div className="conteudo-arquivo-importacao">
+                                                <strong>{item.nome}</strong>
+                                                <span>
+                                                    {descreverStatusArquivo(
+                                                        item,
+                                                    )}
+                                                </span>
+                                                {item.preview && (
+                                                    <small>
+                                                        {item.preview.gameId} •{" "}
+                                                        {
+                                                            item.preview
+                                                                .totalClicks
+                                                        }{" "}
+                                                        cliques •{" "}
+                                                        {
+                                                            item.preview
+                                                                .totalEventos
+                                                        }{" "}
+                                                        eventos
+                                                    </small>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="btn-remover-item-arquivo"
+                                                onClick={() =>
+                                                    removerArquivoImportacao(
+                                                        item.id,
+                                                    )
+                                                }
+                                                disabled={
+                                                    processandoImportacao
+                                                }
+                                                aria-label={`Remover ${item.nome}`}
+                                                title="Remover arquivo"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
 
                             {erroImportacao && (
@@ -1483,95 +1956,48 @@ export default function PerfilAluno() {
                                 </p>
                             )}
 
-                            {previewImportacao && (
-                                <div className="preview-importacao">
-                                    <strong>Prévia validada</strong>
-                                    <span>
-                                        Sessão: {previewImportacao.sessionId}
-                                    </span>
-                                    <span>
-                                        Jogo: {previewImportacao.gameId}
-                                    </span>
-                                    <span>
-                                        Modo:{" "}
-                                        {previewImportacao.captureMode ===
-                                        "observational"
-                                            ? "observacional"
-                                            : "SDK instrumentado"}
-                                    </span>
-                                    <span>
-                                        Registros:{" "}
-                                        {previewImportacao.totalClicks} cliques
-                                        observados,{" "}
-                                        {previewImportacao.totalEventos} eventos
-                                    </span>
-                                    {previewImportacao.jaRegistrada && (
-                                        <p className="mensagem-importacao erro-importacao">
-                                            Esta sessão já está registrada e não
-                                            será duplicada.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
                             <div className="acoes-importacao">
-                                {sucessoImportacao ? (
+                                <button
+                                    type="button"
+                                    className="btn-cancelar-importacao"
+                                    onClick={() =>
+                                        setModalImportacaoAberto(false)
+                                    }
+                                    disabled={processandoImportacao}
+                                >
+                                    {sucessoImportacao ? "Fechar" : "Cancelar"}
+                                </button>
+                                {arquivosPendentesImportacao.length > 0 && (
                                     <button
                                         type="button"
                                         className="btn-captura"
-                                        onClick={() =>
-                                            setModalImportacaoAberto(false)
-                                        }
+                                        onClick={handlePrevisualizarImportacao}
+                                        disabled={processandoImportacao}
                                     >
-                                        Fechar
+                                        {processandoImportacao
+                                            ? "Validando..."
+                                            : arquivosPendentesImportacao.length ===
+                                                1
+                                              ? "Validar arquivo"
+                                              : `Validar ${arquivosPendentesImportacao.length} arquivos`}
                                     </button>
-                                ) : (
-                                    <>
+                                )}
+                                {arquivosPendentesImportacao.length === 0 &&
+                                    arquivosProntosImportacao.length > 0 && (
                                         <button
                                             type="button"
-                                            className="btn-cancelar-importacao"
-                                            onClick={() =>
-                                                setModalImportacaoAberto(false)
-                                            }
+                                            className="btn-captura"
+                                            onClick={handleConfirmarImportacao}
                                             disabled={processandoImportacao}
                                         >
-                                            Cancelar
+                                            {processandoImportacao
+                                                ? "Importando..."
+                                                : arquivosProntosImportacao.length ===
+                                                    1
+                                                  ? "Importar sessão"
+                                                  : `Importar ${arquivosProntosImportacao.length} sessões`}
                                         </button>
-                                        {!previewImportacao ? (
-                                            <button
-                                                type="button"
-                                                className="btn-captura"
-                                                onClick={
-                                                    handlePrevisualizarImportacao
-                                                }
-                                                disabled={
-                                                    !sessaoParaImportar ||
-                                                    processandoImportacao
-                                                }
-                                            >
-                                                {processandoImportacao
-                                                    ? "Validando..."
-                                                    : "Validar prévia"}
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className="btn-captura"
-                                                onClick={
-                                                    handleConfirmarImportacao
-                                                }
-                                                disabled={
-                                                    previewImportacao.jaRegistrada ||
-                                                    processandoImportacao
-                                                }
-                                            >
-                                                {processandoImportacao
-                                                    ? "Importando..."
-                                                    : "Confirmar importação"}
-                                            </button>
-                                        )}
-                                    </>
-                                )}
+                                    )}
                             </div>
                         </div>
                     </div>

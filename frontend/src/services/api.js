@@ -45,6 +45,8 @@ export const confirmarImportacaoSessao = (studentId, sessao, gameId) =>
         sessao,
         gameId,
     });
+export const removerSessaoImportada = (sessionId) =>
+    api.delete(`/sessions/${encodeURIComponent(sessionId)}`);
 
 // -------------------------------------------------------------------------
 // Institutions (Instituições)

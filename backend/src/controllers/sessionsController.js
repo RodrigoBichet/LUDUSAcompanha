@@ -27,6 +27,7 @@ const {
     adaptarRelatorioMonitorLegado,
 } = require("../services/legacyMonitorAdapter");
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
+const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
 
 // Pasta onde os screenshots das fases serão salvos
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
@@ -519,6 +520,79 @@ const buscarSessao = async (req, res) => {
 };
 
 // -------------------------------------------------------------------------
+// removerSessaoImportada — DELETE /api/sessions/:sessionId
+// Remove somente sessões criadas pelo fluxo autenticado de importação JSON.
+// Sessões enviadas diretamente pelo jogo e alunos protegidos são preservados.
+// -------------------------------------------------------------------------
+
+const removerSessaoImportada = async (req, res) => {
+    try {
+        const sessao = await Session.findOne({
+            sessionId: req.params.sessionId,
+        }).select("_id studentId ingestionMethod");
+
+        if (!sessao) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada.",
+            });
+        }
+
+        const aluno = await buscarAlunoComAcesso(
+            req.usuarioId,
+            sessao.studentId,
+        );
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada.",
+            });
+        }
+
+        if (aluno.deletionProtected) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem:
+                    "As sessões deste aluno estão protegidas contra exclusão.",
+            });
+        }
+
+        if (sessao.ingestionMethod !== "file-import") {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem:
+                    "Somente sessões adicionadas por importação de JSON podem ser removidas por esta ação.",
+            });
+        }
+
+        const resultado = await removerSessoesPorFiltro({ _id: sessao._id });
+
+        if (resultado.sessoesRemovidas !== 1) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada.",
+            });
+        }
+
+        console.log(
+            `[LUDUS] Sessão importada removida: ${req.params.sessionId} | Imagens: ${resultado.arquivosRemovidos}`,
+        );
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Sessão importada removida com sucesso.",
+            arquivosRemovidos: resultado.arquivosRemovidos,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao remover sessão importada:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao remover sessão importada.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
 // sessoesPorAluno — GET /api/sessions/student/:studentId
 // -------------------------------------------------------------------------
 
@@ -572,5 +646,6 @@ module.exports = {
     confirmarImportacao,
     listarSessoes,
     buscarSessao,
+    removerSessaoImportada,
     sessoesPorAluno,
 };

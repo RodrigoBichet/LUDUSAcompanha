@@ -34,4 +34,7 @@ router.get("/student/:studentId", autenticar, controller.sessoesPorAluno);
 // GET  /api/sessions/:id   — busca sessão completa
 router.get("/:sessionId", autenticar, controller.buscarSessao);
 
+// DELETE /api/sessions/:id — remove somente sessão importada por JSON
+router.delete("/:sessionId", autenticar, controller.removerSessaoImportada);
+
 module.exports = router;

@@ -290,6 +290,57 @@ test("importacao de JSON sem vinculo tecnico associa ao aluno selecionado", asyn
     assert.equal(sessao.playerId, alunoA.name);
 });
 
+test("remove somente sessao JSON autorizada e preserva registros protegidos", async () => {
+    const {
+        professoraA,
+        professoraB,
+        alunoA,
+        alunoProtegido,
+    } = await criarCenarioEscolar();
+    const authorizationA = `Bearer ${tokenDe(professoraA)}`;
+    const authorizationB = `Bearer ${tokenDe(professoraB)}`;
+
+    const importada = await Session.create({
+        ...sessaoDeTeste(alunoA, "importada-removivel"),
+        ingestionMethod: "file-import",
+    });
+    const direta = await Session.create({
+        ...sessaoDeTeste(alunoA, "direta-preservada"),
+        ingestionMethod: "direct-api",
+    });
+    const protegida = await Session.create({
+        ...sessaoDeTeste(alunoProtegido, "importada-protegida"),
+        ingestionMethod: "file-import",
+    });
+
+    await request(app)
+        .delete(`/api/sessions/${importada.sessionId}`)
+        .expect(401);
+
+    await request(app)
+        .delete(`/api/sessions/${importada.sessionId}`)
+        .set("Authorization", authorizationB)
+        .expect(404);
+
+    await request(app)
+        .delete(`/api/sessions/${direta.sessionId}`)
+        .set("Authorization", authorizationA)
+        .expect(409);
+    assert.ok(await Session.findById(direta._id));
+
+    await request(app)
+        .delete(`/api/sessions/${protegida.sessionId}`)
+        .set("Authorization", authorizationA)
+        .expect(403);
+    assert.ok(await Session.findById(protegida._id));
+
+    await request(app)
+        .delete(`/api/sessions/${importada.sessionId}`)
+        .set("Authorization", authorizationA)
+        .expect(200);
+    assert.equal(await Session.countDocuments({ _id: importada._id }), 0);
+});
+
 test("recebe sessao WebGL do SDK e disponibiliza dados para heatmap", async () => {
     const { professoraA, alunoA } = await criarCenarioEscolar();
     const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
