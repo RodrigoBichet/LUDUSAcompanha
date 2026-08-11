@@ -122,8 +122,18 @@ export default function DetalhesSessao() {
     const temBotoesAcompanhados = tiposInteracoesSemanticas.has("button");
     const temCamposTextoAcompanhados =
         tiposInteracoesSemanticas.has("text-input");
+    const temObjetosClicaveisAcompanhados =
+        tiposInteracoesSemanticas.has("clickable-object");
+    const temObjetosArrastaveisAcompanhados =
+        tiposInteracoesSemanticas.has("draggable-object");
     const temOutrasInteracoesAcompanhadas = [...tiposInteracoesSemanticas].some(
-        (tipo) => tipo !== "button" && tipo !== "text-input",
+        (tipo) =>
+            ![
+                "button",
+                "text-input",
+                "clickable-object",
+                "draggable-object",
+            ].includes(tipo),
     );
 
     useEffect(() => {
@@ -714,6 +724,103 @@ export default function DetalhesSessao() {
                     interacao,
                     faseInteracaoIndex,
                 );
+                const emHover =
+                    itemHover?.tipo === "interacao-semantica" &&
+                    itemHover?.timestamp === interacao.timestamp &&
+                    itemHover?.nome === nome;
+                const campoDeTexto =
+                    interacao.interactionKind === "text-input";
+                const botao = interacao.interactionKind === "button";
+                const objetoClicavel =
+                    interacao.interactionKind === "clickable-object";
+                const objetoArrastavel =
+                    interacao.interactionKind === "draggable-object";
+
+                if (objetoArrastavel) {
+                    const fimArraste = Number(interacao.timestamp) || 0;
+                    const duracaoArraste = Number(interacao.durationMs) || 0;
+                    const inicioArraste = fimArraste - duracaoArraste;
+                    const toleranciaMs = 100;
+                    let pontosArrasteSemantico = arrastes
+                        .filter((ponto) => {
+                            const tempo = ponto.t ?? ponto.timestamp ?? 0;
+                            return (
+                                tempo >= inicioArraste - toleranciaMs &&
+                                tempo <= fimArraste + toleranciaMs
+                            );
+                        })
+                        .map((ponto) =>
+                            mapearCoordenada(ponto.x, ponto.y),
+                        );
+
+                    if (
+                        pontosArrasteSemantico.length < 2 &&
+                        temCoordenadaNumerica(interacao.startX) &&
+                        temCoordenadaNumerica(interacao.startY) &&
+                        temCoordenadaNumerica(interacao.endX) &&
+                        temCoordenadaNumerica(interacao.endY)
+                    ) {
+                        pontosArrasteSemantico = [
+                            mapearCoordenada(
+                                Number(interacao.startX),
+                                Number(interacao.startY),
+                            ),
+                            mapearCoordenada(
+                                Number(interacao.endX),
+                                Number(interacao.endY),
+                            ),
+                        ];
+                    }
+
+                    if (pontosArrasteSemantico.length > 1) {
+                        ctx.save();
+                        ctx.strokeStyle = emHover
+                            ? "rgba(196, 181, 253, 1)"
+                            : "rgba(139, 92, 246, 0.58)";
+                        ctx.lineWidth = emHover
+                            ? Math.max(9, W * 0.006)
+                            : Math.max(4, W * 0.0025);
+                        ctx.lineCap = "round";
+                        ctx.lineJoin = "round";
+                        ctx.setLineDash(
+                            emHover
+                                ? []
+                                : [Math.max(8, W * 0.007), Math.max(5, W * 0.004)],
+                        );
+                        ctx.shadowColor = "rgba(139, 92, 246, 0.95)";
+                        ctx.shadowBlur = emHover ? 22 : 8;
+                        ctx.beginPath();
+                        pontosArrasteSemantico.forEach((ponto, index) => {
+                            if (index === 0) {
+                                ctx.moveTo(ponto.x, ponto.y);
+                            } else {
+                                ctx.lineTo(ponto.x, ponto.y);
+                            }
+                        });
+                        ctx.stroke();
+
+                        const inicio = pontosArrasteSemantico[0];
+                        const tamanhoInicio = Math.max(7, W * 0.006);
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = "rgba(28, 43, 58, 0.96)";
+                        ctx.strokeStyle = "rgba(196, 181, 253, 1)";
+                        ctx.lineWidth = Math.max(2.5, W * 0.002);
+                        ctx.fillRect(
+                            inicio.x - tamanhoInicio,
+                            inicio.y - tamanhoInicio,
+                            tamanhoInicio * 2,
+                            tamanhoInicio * 2,
+                        );
+                        ctx.strokeRect(
+                            inicio.x - tamanhoInicio,
+                            inicio.y - tamanhoInicio,
+                            tamanhoInicio * 2,
+                            tamanhoInicio * 2,
+                        );
+                        ctx.restore();
+                    }
+                }
+
                 const marcador = {
                     tipo: "interacao-semantica",
                     faseIndex: faseInteracaoIndex,
@@ -727,6 +834,12 @@ export default function DetalhesSessao() {
                     action: interacao.action,
                     characterCount: interacao.characterCount,
                     wasEmpty: interacao.wasEmpty,
+                    startX: interacao.startX,
+                    startY: interacao.startY,
+                    endX: interacao.endX,
+                    endY: interacao.endY,
+                    durationMs: interacao.durationMs,
+                    distancePx: interacao.distancePx,
                     tooltipX: Math.max(
                         14,
                         Math.min(86, (pos.x / Math.max(1, W)) * 100),
@@ -739,29 +852,30 @@ export default function DetalhesSessao() {
 
                 segmentosHeatmapRef.current.push(marcador);
 
-                const emHover =
-                    itemHover?.tipo === "interacao-semantica" &&
-                    itemHover?.timestamp === interacao.timestamp &&
-                    itemHover?.nome === nome;
                 const raio = emHover
                     ? Math.max(17, W * 0.013)
                     : Math.max(13, W * 0.01);
-                const campoDeTexto =
-                    interacao.interactionKind === "text-input";
-                const botao = interacao.interactionKind === "button";
 
                 ctx.save();
                 ctx.shadowColor = campoDeTexto
                     ? "rgba(14, 165, 233, 0.85)"
                     : botao
                       ? "rgba(245, 158, 11, 0.85)"
-                      : "rgba(168, 85, 247, 0.82)";
+                      : objetoClicavel
+                        ? "rgba(236, 72, 153, 0.88)"
+                        : objetoArrastavel
+                          ? "rgba(139, 92, 246, 0.9)"
+                          : "rgba(100, 116, 139, 0.82)";
                 ctx.shadowBlur = emHover ? 20 : 12;
                 ctx.fillStyle = campoDeTexto
                     ? "rgba(14, 165, 233, 0.96)"
                     : botao
                       ? "rgba(245, 158, 11, 0.95)"
-                      : "rgba(168, 85, 247, 0.95)";
+                      : objetoClicavel
+                        ? "rgba(236, 72, 153, 0.96)"
+                        : objetoArrastavel
+                          ? "rgba(139, 92, 246, 0.97)"
+                          : "rgba(100, 116, 139, 0.95)";
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.98)";
                 ctx.lineWidth = Math.max(2.5, W * 0.002);
                 ctx.beginPath();
@@ -771,6 +885,18 @@ export default function DetalhesSessao() {
                     ctx.lineTo(pos.x, pos.y + raio);
                     ctx.lineTo(pos.x - raio, pos.y);
                     ctx.closePath();
+                } else if (objetoClicavel) {
+                    for (let lado = 0; lado < 6; lado += 1) {
+                        const angulo = (Math.PI / 3) * lado - Math.PI / 2;
+                        const x = pos.x + Math.cos(angulo) * raio;
+                        const y = pos.y + Math.sin(angulo) * raio;
+                        if (lado === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                } else if (objetoArrastavel) {
+                    const lado = raio * 1.55;
+                    ctx.rect(pos.x - lado / 2, pos.y - lado / 2, lado, lado);
                 } else {
                     ctx.arc(pos.x, pos.y, raio, 0, Math.PI * 2);
                 }
@@ -779,7 +905,7 @@ export default function DetalhesSessao() {
 
                 ctx.fillStyle = "rgba(28, 43, 58, 0.95)";
                 ctx.beginPath();
-                if (campoDeTexto) {
+                if (campoDeTexto || objetoArrastavel) {
                     const centro = Math.max(3.5, raio * 0.3);
                     ctx.rect(
                         pos.x - centro,
@@ -960,17 +1086,6 @@ export default function DetalhesSessao() {
         setCanvasClicavel(false);
     };
 
-    const obterEstiloTooltipSemantico = () => {
-        if (itemHover?.tipo !== "interacao-semantica") {
-            return {};
-        }
-
-        return {
-            left: `${itemHover.tooltipX}%`,
-            top: `${itemHover.tooltipY}%`,
-        };
-    };
-
     const formatarData = (iso) => {
         if (!iso) return "—";
         return new Date(iso).toLocaleString("pt-BR", {
@@ -1012,6 +1127,20 @@ export default function DetalhesSessao() {
                 return payload.wasEmpty === true
                     ? `${nome} concluído sem preenchimento`
                     : `${nome} preenchido`;
+            }
+
+            if (
+                payload.interactionKind === "clickable-object" &&
+                payload.action === "activated"
+            ) {
+                return `${nome} clicado`;
+            }
+
+            if (
+                payload.interactionKind === "draggable-object" &&
+                payload.action === "completed"
+            ) {
+                return `${nome} arrastado`;
             }
 
             return `${nome}: interação registrada`;
@@ -1063,6 +1192,12 @@ export default function DetalhesSessao() {
             action: "Ação",
             characterCount: "Quantidade de caracteres",
             wasEmpty: "Campo vazio",
+            startX: "Início X",
+            startY: "Início Y",
+            endX: "Fim X",
+            endY: "Fim Y",
+            durationMs: "Duração do arraste",
+            distancePx: "Distância percorrida",
         };
         return mapa[chave] || chave;
     };
@@ -1082,6 +1217,8 @@ export default function DetalhesSessao() {
             const tiposDeInteracao = {
                 button: "Botão",
                 "text-input": "Campo de texto",
+                "clickable-object": "Objeto clicável",
+                "draggable-object": "Objeto arrastável",
             };
             return tiposDeInteracao[valor] || String(valor);
         }
@@ -1096,6 +1233,24 @@ export default function DetalhesSessao() {
 
         if (chave === "wasEmpty") {
             return valor === true ? "Sim" : "Não";
+        }
+
+        if (["startX", "startY", "endX", "endY"].includes(chave)) {
+            return Number(valor).toLocaleString("pt-BR", {
+                maximumFractionDigits: 1,
+            });
+        }
+
+        if (chave === "durationMs") {
+            return `${(Number(valor) / 1000).toLocaleString("pt-BR", {
+                maximumFractionDigits: 2,
+            })} s`;
+        }
+
+        if (chave === "distancePx") {
+            return `${Number(valor).toLocaleString("pt-BR", {
+                maximumFractionDigits: 1,
+            })} px`;
         }
 
         return String(valor);
@@ -1388,6 +1543,22 @@ export default function DetalhesSessao() {
                                                     </span>
                                                 )}
                                             {temInteracoesSemanticasPosicionadas &&
+                                                temObjetosClicaveisAcompanhados && (
+                                                    <span className="heatmap-legenda-item">
+                                                        <span className="heatmap-legenda-semantica clicavel" />
+                                                        Hexágono rosa: objeto
+                                                        clicável
+                                                    </span>
+                                                )}
+                                            {temInteracoesSemanticasPosicionadas &&
+                                                temObjetosArrastaveisAcompanhados && (
+                                                    <span className="heatmap-legenda-item">
+                                                        <span className="heatmap-legenda-semantica arrastavel" />
+                                                        Quadrado roxo: objeto
+                                                        arrastável
+                                                    </span>
+                                                )}
+                                            {temInteracoesSemanticasPosicionadas &&
                                                 temOutrasInteracoesAcompanhadas && (
                                                     <span className="heatmap-legenda-item">
                                                         <span className="heatmap-legenda-semantica outro" />
@@ -1466,42 +1637,71 @@ export default function DetalhesSessao() {
                                         style={{
                                             cursor: canvasClicavel
                                                 ? "pointer"
-                                                : "default",
+                                            : "default",
                                         }}
                                     />
-                                    {itemHover?.tipo ===
-                                        "interacao-semantica" && (
-                                        <div
-                                            className={`heatmap-tooltip-semantico ${itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : "outro"}`}
-                                            style={obterEstiloTooltipSemantico()}
-                                            role="status"
-                                        >
-                                            <strong>{itemHover.nome}</strong>
-                                            <span>
-                                                {itemHover.interactionKind ===
-                                                    "button" &&
-                                                itemHover.action === "activated"
-                                                    ? "Botão acionado"
-                                                    : itemHover.interactionKind ===
-                                                            "text-input" &&
-                                                        itemHover.action ===
-                                                            "completed"
-                                                      ? itemHover.wasEmpty ===
-                                                        true
-                                                          ? "Campo deixado vazio"
-                                                          : `${Number(itemHover.characterCount) || 0} caracteres informados`
-                                                      : "Interação registrada"}
-                                            </span>
-                                            <span>
-                                                {itemHover.contexto} • {(
-                                                    (itemHover.timestamp || 0) /
-                                                    1000
-                                                ).toFixed(1)}
-                                                s
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
+
+                                {temInteracoesSemanticasPosicionadas && (
+                                    <div
+                                        className={`heatmap-detalhe-semantico ${itemHover?.tipo === "interacao-semantica" ? (itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : itemHover.interactionKind === "clickable-object" ? "clicavel" : itemHover.interactionKind === "draggable-object" ? "arrastavel" : "outro") : "vazio"}`}
+                                        role="status"
+                                        aria-live="polite"
+                                    >
+                                        {itemHover?.tipo ===
+                                        "interacao-semantica" ? (
+                                            <>
+                                                <div className="heatmap-detalhe-topo">
+                                                    <strong>
+                                                        {itemHover.nome}
+                                                    </strong>
+                                                    <span>
+                                                        {itemHover.contexto} •{" "}
+                                                        {(
+                                                            (itemHover.timestamp ||
+                                                                0) / 1000
+                                                        ).toFixed(1)}
+                                                        s
+                                                    </span>
+                                                </div>
+                                                <span>
+                                                    {itemHover.interactionKind ===
+                                                        "button" &&
+                                                    itemHover.action ===
+                                                        "activated"
+                                                        ? "Botão acionado"
+                                                        : itemHover.interactionKind ===
+                                                                "text-input" &&
+                                                            itemHover.action ===
+                                                                "completed"
+                                                          ? itemHover.wasEmpty ===
+                                                            true
+                                                              ? "Campo deixado vazio"
+                                                              : `${Number(itemHover.characterCount) || 0} caracteres informados`
+                                                          : itemHover.interactionKind ===
+                                                              "clickable-object"
+                                                            ? "Objeto clicado"
+                                                            : itemHover.interactionKind ===
+                                                                "draggable-object"
+                                                              ? `Arraste de ${Number(itemHover.distancePx || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} px em ${(Number(itemHover.durationMs || 0) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} s`
+                                                              : "Interação registrada"}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <strong>
+                                                    Detalhes da interação
+                                                </strong>
+                                                <span>
+                                                    Passe o mouse sobre um
+                                                    marcador colorido para ver
+                                                    suas informações sem cobrir
+                                                    o mapa.
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
 
                                 {(!temFasesConfiaveis ||
                                     faseSelecionada === -1) && (
@@ -1588,6 +1788,17 @@ export default function DetalhesSessao() {
                                                                             "displayName",
                                                                             "interactionKind",
                                                                             "action",
+                                                                        ].includes(
+                                                                            k,
+                                                                        )
+                                                                    ) &&
+                                                                    !(
+                                                                        isTrackedInteraction &&
+                                                                        payload.interactionKind ===
+                                                                            "draggable-object" &&
+                                                                        [
+                                                                            "x",
+                                                                            "y",
                                                                         ].includes(
                                                                             k,
                                                                         )
