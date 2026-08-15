@@ -5,6 +5,50 @@
     align-items: start;
 }
 
+.jogos-aluno-card {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.jogos-aluno-card h2 {
+    margin-bottom: 0.25rem;
+}
+
+.jogos-aluno-opcoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.jogo-aluno-filtro {
+    display: grid;
+    gap: 0.05rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-family: var(--fonte-corpo);
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left;
+}
+
+.jogo-aluno-filtro:hover,
+.jogo-aluno-filtro.ativo {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.13);
+}
+
+.jogo-aluno-filtro small {
+    color: var(--cor-texto-leve);
+    font-weight: 600;
+}
+
 /* Cabeçalho do perfil */
 .perfil-cabecalho {
     display: flex;
@@ -372,6 +416,17 @@
 .origem-sessao.jogo {
     background: rgba(78, 203, 160, 0.12);
     color: #1f6b53;
+}
+
+.jogo-sessao-identificacao {
+    width: fit-content;
+    margin-top: 0.15rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(111, 85, 214, 0.12);
+    color: #5741a8;
+    font-size: 0.68rem;
+    font-weight: 800;
 }
 
 .chip-cliques {
@@ -843,6 +898,24 @@
     background: rgba(78, 203, 160, 0.09);
     font-size: 0.86rem;
     color: var(--cor-texto);
+}
+
+.acoes-jogo-incompativel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.35rem;
+}
+
+@media (max-width: 760px) {
+    .jogos-aluno-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .jogos-aluno-opcoes {
+        justify-content: flex-start;
+    }
 }
 
 .mensagem-importacao {

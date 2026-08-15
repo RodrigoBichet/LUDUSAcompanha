@@ -40,6 +40,16 @@ export default function Sidebar() {
                     <span className="nav-icone">📚</span>
                     <span>Instituições</span>
                 </NavLink>
+
+                <NavLink
+                    to="/alunos"
+                    className={({ isActive }) =>
+                        isActive ? "nav-item ativo" : "nav-item"
+                    }
+                >
+                    <span className="nav-icone">👥</span>
+                    <span>Alunos</span>
+                </NavLink>
             </nav>
 
             {/* Menu exclusivo para admin */}

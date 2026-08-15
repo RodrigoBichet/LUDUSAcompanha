@@ -34,7 +34,9 @@ import {
     confirmarImportacaoSessao,
     removerSessaoImportada,
     criarJogoDetectado,
+    listarJogos,
 } from "../services/api";
+import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./PerfilAluno.css";
 import RelatorioPDF from "../components/shared/RelatorioPDF";
 import { MODO_ANONIMO } from "../config/modoAnonimo";
@@ -76,6 +78,8 @@ export default function PerfilAluno() {
     const [carregando, setCarregando] = useState(true);
     const [agora] = useState(() => Date.now());
     const [erro, setErro] = useState(null);
+    const [jogosDoAluno, setJogosDoAluno] = useState([]);
+    const [nomesJogos, setNomesJogos] = useState(new Map());
 
     // Edição de dados
     const [editando, setEditando] = useState(false);
@@ -98,6 +102,8 @@ export default function PerfilAluno() {
     const [erroImportacao, setErroImportacao] = useState("");
     const [jogoIncompativel, setJogoIncompativel] = useState(null);
     const [criandoJogoDetectado, setCriandoJogoDetectado] = useState(false);
+    const [importandoJogoDetectado, setImportandoJogoDetectado] =
+        useState(false);
     const [jogoDetectadoJaCadastrado, setJogoDetectadoJaCadastrado] =
         useState(null);
     const [sucessoImportacao, setSucessoImportacao] = useState("");
@@ -133,9 +139,40 @@ export default function PerfilAluno() {
     const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
-            const resAluno = await buscarAluno(id);
+            const [resAluno, resJogos] = await Promise.all([
+                buscarAluno(id),
+                listarJogos().catch(() => null),
+            ]);
             const aluno = resAluno.data.aluno;
             setAluno(aluno);
+            setNomesJogos(
+                criarMapaNomesJogos(resJogos?.data?.jogos || []),
+            );
+
+            const jogosAgrupados = new Map();
+            for (const sessao of resAluno.data.sessoes || []) {
+                if (!sessao.gameId) continue;
+                const atual = jogosAgrupados.get(sessao.gameId) || {
+                    gameId: sessao.gameId,
+                    totalSessoes: 0,
+                    ultimaSessao: null,
+                };
+                atual.totalSessoes += 1;
+                if (
+                    !atual.ultimaSessao ||
+                    new Date(sessao.startedAt) > new Date(atual.ultimaSessao)
+                ) {
+                    atual.ultimaSessao = sessao.startedAt;
+                }
+                jogosAgrupados.set(sessao.gameId, atual);
+            }
+            setJogosDoAluno(
+                [...jogosAgrupados.values()].sort(
+                    (a, b) =>
+                        new Date(b.ultimaSessao).getTime() -
+                        new Date(a.ultimaSessao).getTime(),
+                ),
+            );
             setFormAluno({
                 name: aluno.name,
                 birthDate: aluno.birthDate?.split("T")[0] || "",
@@ -703,6 +740,114 @@ export default function PerfilAluno() {
         }
     };
 
+    const handleVincularEImportarJogoDetectado = async () => {
+        if (!jogoIncompativel || !aluno?._id) return;
+        const gameIdDetectado = jogoIncompativel.gameId;
+
+        const arquivo = arquivosImportacao.find(
+            (item) =>
+                item.sessao &&
+                item.jogoIncompativel?.gameId === gameIdDetectado,
+        );
+        if (!arquivo) {
+            setErroImportacao(
+                "Não foi possível localizar o arquivo que identificou este jogo.",
+            );
+            return;
+        }
+
+        try {
+            setImportandoJogoDetectado(true);
+            setProcessandoImportacao(true);
+            setErroImportacao("");
+            setSucessoImportacao("");
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.id === arquivo.id
+                        ? { ...item, status: "validando", mensagem: "" }
+                        : item,
+                ),
+            );
+
+            const respostaPreview = await previsualizarImportacaoSessao(
+                aluno._id,
+                arquivo.sessao,
+                gameIdDetectado,
+            );
+            if (respostaPreview.data.preview?.jaRegistrada) {
+                setArquivosImportacao((atuais) =>
+                    atuais.map((item) =>
+                        item.id === arquivo.id
+                            ? {
+                                  ...item,
+                                  status: "ja-registrado",
+                                  preview: respostaPreview.data.preview,
+                                  mensagem:
+                                      "Esta sessão já está registrada para este aluno.",
+                              }
+                            : item,
+                    ),
+                );
+                setErroImportacao(
+                    "Esta sessão já está registrada para este aluno e jogo.",
+                );
+                return;
+            }
+
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.id === arquivo.id
+                        ? { ...item, status: "importando", mensagem: "" }
+                        : item,
+                ),
+            );
+            await confirmarImportacaoSessao(
+                aluno._id,
+                arquivo.sessao,
+                gameIdDetectado,
+            );
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.id === arquivo.id
+                        ? {
+                              ...item,
+                              status: "importado",
+                              mensagem: "Importado com sucesso.",
+                          }
+                        : item,
+                ),
+            );
+            setModalImportacaoAberto(false);
+            setJogoIncompativel(null);
+            navegar(
+                `/aluno/${aluno._id}?gameId=${encodeURIComponent(
+                    gameIdDetectado,
+                )}`,
+            );
+        } catch (erro) {
+            setArquivosImportacao((atuais) =>
+                atuais.map((item) =>
+                    item.id === arquivo.id
+                        ? {
+                              ...item,
+                              status: "erro-importacao",
+                              mensagem:
+                                  erro.response?.data?.mensagem ||
+                                  "Não foi possível importar esta sessão.",
+                          }
+                        : item,
+                ),
+            );
+            setErroImportacao(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível vincular o aluno e importar a sessão.",
+            );
+        } finally {
+            setImportandoJogoDetectado(false);
+            setProcessandoImportacao(false);
+        }
+    };
+
     const continuarParaCadastroNoJogo = (jogo) => {
         const parametros = new URLSearchParams({
             novoAluno: aluno.name,
@@ -711,6 +856,13 @@ export default function PerfilAluno() {
         navegar(
             `/jogos/${encodeURIComponent(jogo.gameId)}/alunos?${parametros.toString()}`,
         );
+    };
+
+    const selecionarJogoDoAluno = (gameId = null) => {
+        const parametros = new URLSearchParams();
+        if (gameId) parametros.set("gameId", gameId);
+        const query = parametros.toString();
+        navegar(`/aluno/${id}${query ? `?${query}` : ""}`);
     };
 
     const capturaAtivaPelaUnity =
@@ -865,6 +1017,58 @@ export default function PerfilAluno() {
 
                 {!carregando && !erro && aluno && (
                     <div className="perfil-layout">
+                        <section className="card jogos-aluno-card">
+                            <div>
+                                <h2>Jogos acompanhados</h2>
+                                <p className="texto-leve">
+                                    Veja o conjunto do acompanhamento ou filtre
+                                    as sessões por jogo.
+                                </p>
+                            </div>
+                            <div className="jogos-aluno-opcoes">
+                                <button
+                                    type="button"
+                                    className={`jogo-aluno-filtro${
+                                        !gameIdSelecionado ? " ativo" : ""
+                                    }`}
+                                    onClick={() => selecionarJogoDoAluno()}
+                                >
+                                    Todos os jogos
+                                </button>
+                                {jogosDoAluno.map((jogo) => (
+                                    <button
+                                        type="button"
+                                        className={`jogo-aluno-filtro${
+                                            gameIdSelecionado === jogo.gameId
+                                                ? " ativo"
+                                                : ""
+                                        }`}
+                                        key={jogo.gameId}
+                                        onClick={() =>
+                                            selecionarJogoDoAluno(jogo.gameId)
+                                        }
+                                    >
+                                        <span>
+                                            {obterNomeJogo(
+                                                jogo.gameId,
+                                                nomesJogos,
+                                            )}
+                                        </span>
+                                        <small>
+                                            {jogo.totalSessoes === 1
+                                                ? "1 sessão"
+                                                : `${jogo.totalSessoes} sessões`}
+                                        </small>
+                                    </button>
+                                ))}
+                                {jogosDoAluno.length === 0 && (
+                                    <span className="texto-leve">
+                                        Nenhuma sessão registrada até o momento.
+                                    </span>
+                                )}
+                            </div>
+                        </section>
+
                         {/* ===== COLUNA ESQUERDA ===== */}
                         <div className="perfil-coluna">
                             {/* Dados do aluno */}
@@ -1415,9 +1619,11 @@ export default function PerfilAluno() {
                                 <div className="card secao-card">
                                     <h3>Sessões registradas</h3>
                                     <p className="texto-leve descricao-sessoes-registradas">
-                                        Telemetrias salvas para este aluno e
-                                        jogo. Importações por JSON podem ser
-                                        removidas em caso de engano.
+                                        {gameIdSelecionado
+                                            ? "Telemetrias salvas para este aluno e jogo."
+                                            : "Telemetrias de todos os jogos acompanhados por este aluno."}{" "}
+                                        Importações por JSON podem ser removidas
+                                        em caso de engano.
                                     </p>
                                     <div className="lista-sessoes">
                                         {sessoes.map((sessao) => {
@@ -1452,6 +1658,14 @@ export default function PerfilAluno() {
                                                                     sessao.startedAt,
                                                                 )}
                                                             </span>
+                                                            {!gameIdSelecionado && (
+                                                                <span className="jogo-sessao-identificacao">
+                                                                    {obterNomeJogo(
+                                                                        sessao.gameId,
+                                                                        nomesJogos,
+                                                                    )}
+                                                                </span>
+                                                            )}
                                                             <span
                                                                 className={`origem-sessao ${
                                                                     importadaPorArquivo
@@ -1905,48 +2119,65 @@ export default function PerfilAluno() {
                                         {jogoIncompativel.nome}”, não ao jogo
                                         aberto neste momento.
                                     </span>
+                                    <p className="texto-leve">
+                                        Você pode manter este mesmo aluno no
+                                        novo jogo e concluir a importação agora,
+                                        ou criar outro perfil com um nome
+                                        diferente.
+                                    </p>
+                                    {jogoDetectadoJaCadastrado && (
+                                        <p className="mensagem-importacao sucesso-importacao">
+                                            Este jogo já está registrado como “
+                                            {jogoDetectadoJaCadastrado.name}”.
+                                        </p>
+                                    )}
+                                    <div className="acoes-jogo-incompativel">
+                                        <button
+                                            type="button"
+                                            className="btn-captura"
+                                            onClick={
+                                                handleVincularEImportarJogoDetectado
+                                            }
+                                            disabled={
+                                                importandoJogoDetectado ||
+                                                criandoJogoDetectado
+                                            }
+                                        >
+                                            {importandoJogoDetectado
+                                                ? "Importando..."
+                                                : "Vincular este aluno e importar agora"}
+                                        </button>
                                     {!jogoDetectadoJaCadastrado && (
-                                        <>
-                                            <p className="texto-leve">
-                                                Usaremos o jogo identificado no
-                                                JSON e abriremos o cadastro de
-                                                um perfil individual para “
-                                                {aluno?.name}”.
-                                            </p>
                                             <button
                                                 type="submit"
-                                                className="btn-captura"
-                                                disabled={criandoJogoDetectado}
+                                                className="btn-cancelar-importacao"
+                                                disabled={
+                                                    criandoJogoDetectado ||
+                                                    importandoJogoDetectado
+                                                }
                                             >
                                                 {criandoJogoDetectado
                                                     ? "Preparando..."
-                                                    : `Usar ${jogoIncompativel.nome} e continuar`}
+                                                    : "Criar outro perfil neste jogo"}
                                             </button>
-                                        </>
                                     )}
                                     {jogoDetectadoJaCadastrado && (
-                                        <>
-                                            <p className="mensagem-importacao sucesso-importacao">
-                                                Este jogo já está registrado
-                                                como “
-                                                {jogoDetectadoJaCadastrado.name}
-                                                ”. Vamos usá-lo para manter as
-                                                sessões reunidas no mesmo
-                                                acompanhamento.
-                                            </p>
                                             <button
                                                 type="button"
-                                                className="btn-captura"
+                                                className="btn-cancelar-importacao"
                                                 onClick={() =>
                                                     continuarParaCadastroNoJogo(
                                                         jogoDetectadoJaCadastrado,
                                                     )
                                                 }
+                                                disabled={
+                                                    importandoJogoDetectado
+                                                }
                                             >
-                                                Continuar com aluno
+                                                Criar outro perfil neste jogo
                                             </button>
-                                        </>
                                     )}
+                                    </div>
                                 </form>
                             )}
 

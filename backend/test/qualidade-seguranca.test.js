@@ -13,6 +13,7 @@ const Institution = require("../src/models/Institution");
 const Group = require("../src/models/Group");
 const Student = require("../src/models/Student");
 const Session = require("../src/models/Session");
+const Game = require("../src/models/Game");
 
 let mongo;
 
@@ -226,6 +227,53 @@ test("protege leituras por autenticacao e isola professoras", async () => {
     assert.equal(respostaAdmin.body.total, 1);
 });
 
+test("lista alunos acessiveis com os jogos realmente registrados", async () => {
+    const { professoraA, alunoA, segundoAlunoA, alunoB } =
+        await criarCenarioEscolar();
+    await Session.create([
+        sessaoDeTeste(alunoA, "visao-jogo-a-1"),
+        sessaoDeTeste(alunoA, "visao-jogo-a-2"),
+        {
+            ...sessaoDeTeste(alunoA, "visao-jogo-b"),
+            gameId: "outro-jogo",
+        },
+        sessaoDeTeste(alunoB, "visao-inacessivel"),
+    ]);
+
+    const resposta = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+
+    const aluno = resposta.body.alunos.find(
+        (item) => item._id === String(alunoA._id),
+    );
+    const segundoAluno = resposta.body.alunos.find(
+        (item) => item._id === String(segundoAlunoA._id),
+    );
+
+    assert.ok(aluno);
+    assert.equal(aluno.totalSessoes, 3);
+    assert.deepEqual(
+        aluno.jogos
+            .map((jogo) => [jogo.gameId, jogo.totalSessoes])
+            .sort(),
+        [
+            ["jogo-teste", 2],
+            ["outro-jogo", 1],
+        ],
+    );
+    assert.ok(segundoAluno);
+    assert.equal(segundoAluno.totalSessoes, 0);
+    assert.deepEqual(segundoAluno.jogos, []);
+    assert.equal(
+        resposta.body.alunos.some(
+            (item) => item._id === String(alunoB._id),
+        ),
+        false,
+    );
+});
+
 test("preview nao grava e confirmacao impede importacao duplicada", async () => {
     const { professoraA, alunoA, segundoAlunoA } = await criarCenarioEscolar();
     const authorization = `Bearer ${tokenDe(professoraA)}`;
@@ -288,6 +336,54 @@ test("importacao de JSON sem vinculo tecnico associa ao aluno selecionado", asyn
     });
     assert.equal(String(sessao.studentId), String(alunoA._id));
     assert.equal(sessao.playerId, alunoA.name);
+});
+
+test("importa outro jogo no mesmo aluno sem duplicar seu perfil", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const authorization = `Bearer ${tokenDe(professoraA)}`;
+    const dados = {
+        ...jsonImportavel(),
+        sessionId: "arquivo-de-outro-jogo",
+        gameId: "jogo-observacional",
+        studentId: "000000000000000000000000",
+    };
+
+    const incompatibilidade = await request(app)
+        .post(`/api/sessions/import/${alunoA._id}/preview`)
+        .set("Authorization", authorization)
+        .send({ sessao: dados, gameId: "jogo-teste" })
+        .expect(409);
+    assert.equal(incompatibilidade.body.codigo, "JOGO_INCOMPATIVEL");
+    assert.equal(
+        incompatibilidade.body.jogoDetectado.gameId,
+        "jogo-observacional",
+    );
+
+    await request(app)
+        .post(`/api/sessions/import/${alunoA._id}/preview`)
+        .set("Authorization", authorization)
+        .send({ sessao: dados, gameId: "jogo-observacional" })
+        .expect(200);
+    await request(app)
+        .post(`/api/sessions/import/${alunoA._id}/confirm`)
+        .set("Authorization", authorization)
+        .send({ sessao: dados, gameId: "jogo-observacional" })
+        .expect(201);
+
+    const alunoAtualizado = await Student.findById(alunoA._id);
+    assert.ok(alunoAtualizado.assignedGameIds.includes("jogo-observacional"));
+    assert.equal(await Student.countDocuments({ name: alunoA.name }), 1);
+    assert.equal(
+        await Session.countDocuments({
+            studentId: alunoA._id,
+            gameId: "jogo-observacional",
+        }),
+        1,
+    );
+    assert.equal(
+        await Game.countDocuments({ gameId: "jogo-observacional" }),
+        1,
+    );
 });
 
 test("remove somente sessao JSON autorizada e preserva registros protegidos", async () => {

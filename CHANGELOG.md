@@ -13,12 +13,17 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - importação autenticada de JSON com prévia, validação, normalização e prevenção de duplicidade por aluno;
 - adaptador para telemetria observacional externa e metadados de capacidades;
 - alunos individuais por jogo e associação automática de alunos escolares ao jogo identificado no JSON;
+- visão geral de alunos com os jogos e totais de sessões realmente registrados;
+- filtro de jogos no perfil do aluno e importação direta de JSON de outro jogo
+  para o mesmo perfil, sem duplicar a identidade do estudante;
+- identificação do jogo em cada sessão quando o perfil reúne todos os jogos;
 - criação de instituições por professor, com escopo de acesso às próprias instituições, turmas e alunos;
 - trava persistente para perfis reais protegidos contra exclusão e backups JSON externos antes de limpezas de demonstração.
 
 ### Alterado
 
-- a navegação principal passou a separar **Jogos** de **Instituições**;
+- a navegação principal passou a oferecer **Jogos**, **Instituições** e
+  **Alunos** como pontos de entrada complementares;
 - jogos abrem diretamente seus alunos, sem listar instituições na tela de catálogo;
 - exclusão permanente de aluno remove também sessões e imagens vinculadas; turmas e instituições com alunos permanecem protegidas;
 - a URL legada `/jogos` redireciona para o catálogo atual.

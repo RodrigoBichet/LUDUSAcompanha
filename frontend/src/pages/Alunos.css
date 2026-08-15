@@ -1,0 +1,105 @@
+.alunos-visao-intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.alunos-visao-intro h2 {
+    margin-bottom: 0.3rem;
+}
+
+.alunos-busca {
+    display: grid;
+    width: min(100%, 320px);
+    gap: 0.35rem;
+}
+
+.alunos-visao-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.aluno-visao-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.aluno-visao-principal {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem;
+    border: 0;
+    background: transparent;
+    color: var(--cor-texto);
+    cursor: pointer;
+    text-align: left;
+}
+
+.aluno-visao-principal:hover {
+    background: rgba(78, 203, 160, 0.08);
+}
+
+.aluno-visao-identificacao {
+    display: grid;
+    flex: 1;
+    gap: 0.15rem;
+}
+
+.aluno-visao-resumo {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.85rem 1rem 1rem;
+    border-top: 1px solid var(--cor-borda);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.aluno-visao-jogos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.aluno-visao-jogo {
+    display: grid;
+    gap: 0.05rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid rgba(78, 203, 160, 0.45);
+    border-radius: 8px;
+    background: rgba(78, 203, 160, 0.1);
+    color: var(--cor-texto);
+    font-family: var(--fonte-corpo);
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left;
+}
+
+.aluno-visao-jogo:hover {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.18);
+}
+
+.aluno-visao-jogo small {
+    color: var(--cor-texto-leve);
+    font-weight: 600;
+}
+
+@media (max-width: 700px) {
+    .alunos-visao-intro {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .alunos-busca {
+        width: 100%;
+    }
+
+    .alunos-visao-grid {
+        grid-template-columns: 1fr;
+    }
+}

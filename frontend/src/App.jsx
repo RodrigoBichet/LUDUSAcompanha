@@ -9,6 +9,7 @@ import Turmas from "./pages/Turmas";
 import DetalheTurma from "./pages/DetalheTurma";
 import PerfilAluno from "./pages/PerfilAluno";
 import AlunosJogo from "./pages/AlunosJogo";
+import Alunos from "./pages/Alunos";
 import RotaAdmin from "./components/shared/RotaAdmin";
 import GerenciarInstituicoes from "./pages/GerenciarInstituicoes";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
@@ -69,6 +70,16 @@ function App() {
                             <RotaProtegida>
                                 <Layout>
                                     <DetalheTurma />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/alunos"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <Alunos />
                                 </Layout>
                             </RotaProtegida>
                         }

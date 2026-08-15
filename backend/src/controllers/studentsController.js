@@ -99,6 +99,90 @@ const listarAlunosPorJogo = async (req, res) => {
 };
 
 // -------------------------------------------------------------------------
+// listarVisaoGeralAlunos — GET /api/students/overview
+// Retorna somente os dados necessários para a navegação centrada no aluno.
+// Os jogos são derivados das sessões registradas, sem inferir participação a
+// partir de um simples vínculo administrativo.
+// -------------------------------------------------------------------------
+
+const listarVisaoGeralAlunos = async (req, res) => {
+    try {
+        const filtroAcesso = await montarFiltroAcessoAlunos(req.usuarioId);
+        if (!filtroAcesso) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "Usuário autenticado não foi encontrado.",
+            });
+        }
+
+        const alunos = await Student.find(filtroAcesso)
+            .select("name groupId enrollmentMode")
+            .populate("groupId", "name")
+            .sort({ name: 1 });
+        const idsAlunos = alunos.map((aluno) => aluno._id);
+
+        const sessoesPorJogo = idsAlunos.length
+            ? await Session.aggregate([
+                  { $match: { studentId: { $in: idsAlunos } } },
+                  {
+                      $group: {
+                          _id: {
+                              studentId: "$studentId",
+                              gameId: "$gameId",
+                          },
+                          totalSessoes: { $sum: 1 },
+                          ultimaSessao: { $max: "$startedAt" },
+                      },
+                  },
+                  { $sort: { ultimaSessao: -1 } },
+              ])
+            : [];
+
+        const jogosPorAluno = new Map();
+        for (const item of sessoesPorJogo) {
+            const studentId = String(item._id.studentId);
+            const jogos = jogosPorAluno.get(studentId) || [];
+            jogos.push({
+                gameId: item._id.gameId,
+                totalSessoes: item.totalSessoes,
+                ultimaSessao: item.ultimaSessao,
+            });
+            jogosPorAluno.set(studentId, jogos);
+        }
+
+        const visaoGeral = alunos.map((aluno) => {
+            const jogos = jogosPorAluno.get(String(aluno._id)) || [];
+            return {
+                _id: aluno._id,
+                name: aluno.name,
+                groupId: aluno.groupId,
+                enrollmentMode: aluno.enrollmentMode,
+                totalSessoes: jogos.reduce(
+                    (total, jogo) => total + jogo.totalSessoes,
+                    0,
+                ),
+                jogos,
+            };
+        });
+
+        return res.json({
+            sucesso: true,
+            total: visaoGeral.length,
+            alunos: visaoGeral,
+        });
+    } catch (erro) {
+        console.error(
+            "[LUDUS] Erro ao listar visão geral dos alunos:",
+            erro.message,
+        );
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao listar alunos.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
 // listarAlunosIndividuais — GET /api/students/individual
 // Lista somente os alunos individuais do usuário autenticado.
 // -------------------------------------------------------------------------
@@ -354,7 +438,7 @@ const buscarAluno = async (req, res) => {
 
         // Busca sessões vinculadas ao ID do aluno
         const sessoes = await Session.find({ studentId: aluno._id })
-            .select("sessionId startedAt durationMs metrics")
+            .select("sessionId gameId startedAt durationMs metrics")
             .sort({ startedAt: -1 });
 
         return res.json({
@@ -635,6 +719,7 @@ const solicitarCaptura = async (req, res) => {
 
 module.exports = {
     listarAlunosPorJogo,
+    listarVisaoGeralAlunos,
     listarAlunosIndividuais,
     criarAlunoIndividual,
     removerAlunoIndividualDoJogo,

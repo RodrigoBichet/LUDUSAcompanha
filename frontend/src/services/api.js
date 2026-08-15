@@ -71,6 +71,7 @@ export const deletarTurma = (id) => api.delete(`/groups/${id}`);
 // -------------------------------------------------------------------------
 export const listarAlunos = (groupId) =>
     api.get(`/students?groupId=${groupId}`);
+export const listarVisaoGeralAlunos = () => api.get("/students/overview");
 export const criarAluno = (dados) => api.post("/students", dados);
 export const listarAlunosIndividuais = () => api.get("/students/individual");
 export const criarAlunoIndividual = (dados) =>

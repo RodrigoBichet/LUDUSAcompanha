@@ -241,6 +241,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | ---------------------- | --------------------- | ------------------------------------------------------------------------- |
 | Login                  | `/login`              | Autenticacao JWT                                                          |
 | Jogos                  | `/`                   | Catálogo de jogos e acesso direto aos alunos associados                    |
+| Alunos                 | `/alunos`             | Visão geral dos alunos e dos jogos com sessões registradas                 |
 | Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
 | Instituições           | `/turmas`             | Cadastro de instituições, seleção e gerenciamento de turmas               |
 | Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos vinculados à turma                              |
@@ -254,7 +255,18 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 
 ## Fluxos de jogos, instituições e alunos
 
-A entrada principal é **Jogos**. Cada jogo abre diretamente a lista de alunos associados e permite cadastrar um aluno individual quando não for necessário informar instituição ou turma.
+A navegação permite começar por **Jogos** ou por **Alunos**. Cada jogo abre
+diretamente sua lista de alunos associados. A visão por aluno reúne os jogos
+que possuem sessões realmente registradas e permite filtrar o acompanhamento
+sem criar perfis duplicados.
+
+Ao importar um JSON pertencente a outro jogo, a interface preserva duas ações:
+
+- vincular o aluno atual ao jogo detectado e importar a sessão imediatamente;
+- criar outro perfil no jogo, quando a separação for consciente e necessária.
+
+O primeiro fluxo reutiliza o mesmo `studentId`, cria ou reaproveita o cadastro
+do jogo e mantém o histórico longitudinal no perfil original.
 
 O fluxo escolar é independente e começa em **Instituições**:
 
