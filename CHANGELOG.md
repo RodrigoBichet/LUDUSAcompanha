@@ -9,6 +9,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- guia definitivo de importação end to end para JSONs do SDK Unity e do LUDUS
+  Observa, com validação, vínculo multi-jogo e conferência da sessão;
 - cadastro, edição, arquivamento e reativação de jogos no catálogo pessoal;
 - importação autenticada de JSON com prévia, validação, normalização e prevenção de duplicidade por aluno;
 - adaptador para telemetria observacional externa e metadados de capacidades;

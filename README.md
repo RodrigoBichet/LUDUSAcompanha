@@ -12,6 +12,12 @@ O **LUDUS Acompanha** e uma ferramenta computacional de monitoramento e analise 
 
 > **Principio fundamental:** O LUDUS Acompanha e uma ferramenta de apoio pedagogico. Fornece dados e indicadores para auxiliar professores e tutores nas suas observacoes. **Nunca substitui avaliacao profissional e nunca emite diagnosticos.**
 
+## Passo a passo de importacao
+
+O roteiro unico para validar um JSON do SDK ou do LUDUS Observa, vincular o
+jogo ao participante e conferir a sessao no mapa esta em
+[Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md).
+
 ---
 
 ## Arquitetura geral
