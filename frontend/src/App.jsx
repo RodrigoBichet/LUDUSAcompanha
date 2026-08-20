@@ -14,6 +14,7 @@ import RotaAdmin from "./components/shared/RotaAdmin";
 import GerenciarInstituicoes from "./pages/GerenciarInstituicoes";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import Perfil from "./pages/Perfil";
+import PrivacidadeLudusObserva from "./pages/PrivacidadeLudusObserva";
 import "./index.css";
 
 function Layout({ children }) {
@@ -32,6 +33,10 @@ function App() {
                 <Routes>
                     {/* Rota pública */}
                     <Route path="/login" element={<Login />} />
+                    <Route
+                        path="/privacidade/ludus-observa"
+                        element={<PrivacidadeLudusObserva />}
+                    />
 
                     {/* Rotas protegidas */}
                     <Route

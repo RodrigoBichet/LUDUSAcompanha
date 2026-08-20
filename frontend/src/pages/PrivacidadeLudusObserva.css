@@ -1,0 +1,211 @@
+.privacidade-observa {
+    min-height: 100vh;
+    padding: 3rem 1.5rem;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(78, 203, 160, 0.18), transparent 28rem),
+        var(--cor-fundo);
+}
+
+.privacidade-observa > * {
+    width: min(1080px, 100%);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.privacidade-observa-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.privacidade-observa-marca {
+    width: 76px;
+    height: 76px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    background: #5444ed;
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 800;
+    box-shadow: 0 14px 30px rgba(84, 68, 237, 0.24);
+}
+
+.privacidade-observa-projeto,
+.privacidade-observa-etiqueta {
+    color: #4b3ce2;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.privacidade-observa-cabecalho h1 {
+    margin-top: 0.2rem;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1.05;
+}
+
+.privacidade-observa-resumo {
+    margin-top: 0.5rem;
+    color: var(--cor-texto-leve);
+    font-size: 1.05rem;
+}
+
+.privacidade-observa-destaque,
+.privacidade-observa-contato {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+    align-items: center;
+    gap: 2rem;
+    padding: 1.75rem;
+    border: 1px solid rgba(84, 68, 237, 0.22);
+    border-radius: 18px;
+    background: #f0eeff;
+}
+
+.privacidade-observa-destaque {
+    margin-bottom: 1.25rem;
+}
+
+.privacidade-observa-destaque h2,
+.privacidade-observa-contato h2 {
+    margin-top: 0.35rem;
+    font-family: var(--fonte-corpo);
+    font-size: 1.45rem;
+    line-height: 1.25;
+}
+
+.privacidade-observa-destaque > p,
+.privacidade-observa-contato p {
+    color: #4b5563;
+    line-height: 1.65;
+}
+
+.privacidade-observa-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.privacidade-observa-card {
+    padding: 1.75rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 18px;
+    background: var(--cor-card);
+    box-shadow: var(--sombra);
+}
+
+.privacidade-observa-card-negativo {
+    border-color: #f1c7c7;
+    background: #fffafa;
+}
+
+.privacidade-observa-card h2 {
+    margin-bottom: 0.9rem;
+    font-family: var(--fonte-corpo);
+    font-size: 1.2rem;
+}
+
+.privacidade-observa-card p,
+.privacidade-observa-card li,
+.privacidade-observa-card dd {
+    color: #4b5563;
+    line-height: 1.65;
+}
+
+.privacidade-observa-card p + p {
+    margin-top: 0.85rem;
+}
+
+.privacidade-observa-card ul {
+    padding-left: 1.25rem;
+}
+
+.privacidade-observa-card li + li {
+    margin-top: 0.35rem;
+}
+
+.privacidade-observa-card dl > div + div {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--cor-borda);
+}
+
+.privacidade-observa-card dt {
+    font-weight: 800;
+}
+
+.privacidade-observa-card dd {
+    margin-top: 0.2rem;
+}
+
+.privacidade-observa-contato {
+    margin-top: 1.25rem;
+    background: #eefbf6;
+    border-color: rgba(78, 203, 160, 0.45);
+}
+
+.privacidade-observa-email {
+    justify-self: end;
+    padding: 0.9rem 1.1rem;
+    border-radius: 10px;
+    background: var(--cor-primaria-esc);
+    color: #fff;
+    font-weight: 800;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.privacidade-observa-email:hover,
+.privacidade-observa-email:focus-visible {
+    background: #318f70;
+}
+
+.privacidade-observa-rodape {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem 0 0;
+    color: var(--cor-texto-leve);
+    font-size: 0.88rem;
+}
+
+.privacidade-observa-rodape a {
+    color: #4b3ce2;
+    font-weight: 800;
+}
+
+@media (max-width: 760px) {
+    .privacidade-observa {
+        padding: 2rem 1rem;
+    }
+
+    .privacidade-observa-cabecalho {
+        align-items: flex-start;
+    }
+
+    .privacidade-observa-marca {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        font-size: 2rem;
+    }
+
+    .privacidade-observa-destaque,
+    .privacidade-observa-contato,
+    .privacidade-observa-grade {
+        grid-template-columns: 1fr;
+    }
+
+    .privacidade-observa-email {
+        justify-self: stretch;
+        text-align: center;
+    }
+
+    .privacidade-observa-rodape {
+        flex-direction: column;
+    }
+}

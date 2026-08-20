@@ -18,6 +18,11 @@ O roteiro unico para validar um JSON do SDK ou do LUDUS Observa, vincular o
 jogo ao participante e conferir a sessao no mapa esta em
 [Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md).
 
+A política pública de privacidade do capturador observacional foi preparada em
+`https://ludus-acompanha.netlify.app/privacidade/ludus-observa` e passará a
+responder após o próximo deploy autorizado. Ela já pode ser conferida
+localmente em `/privacidade/ludus-observa`, sem autenticação.
+
 ---
 
 ## Arquitetura geral
