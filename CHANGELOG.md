@@ -10,7 +10,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ### Adicionado
 
 - página pública e responsiva com a política de privacidade do LUDUS Observa,
-  disponível sem autenticação em `/privacidade/ludus-observa`;
+  disponível sem autenticação em `/privacidade/ludus-observa` e validada no
+  ambiente publicado do Netlify;
 - guia definitivo de importação end to end para JSONs do SDK Unity e do LUDUS
   Observa, com validação, vínculo multi-jogo e conferência da sessão;
 - cadastro, edição, arquivamento e reativação de jogos no catálogo pessoal;
