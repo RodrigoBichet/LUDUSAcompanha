@@ -73,6 +73,28 @@ export default function Coletas() {
         iniciarCarregamento();
     }, [carregarDados]);
 
+    useEffect(() => {
+        if (!codigoCopiado) return undefined;
+
+        const restaurarRotulo = () => setCodigoCopiado(false);
+        const aoMudarVisibilidade = () => {
+            if (document.hidden) restaurarRotulo();
+        };
+        const temporizador = window.setTimeout(restaurarRotulo, 2500);
+
+        window.addEventListener("blur", restaurarRotulo);
+        document.addEventListener("visibilitychange", aoMudarVisibilidade);
+
+        return () => {
+            window.clearTimeout(temporizador);
+            window.removeEventListener("blur", restaurarRotulo);
+            document.removeEventListener(
+                "visibilitychange",
+                aoMudarVisibilidade,
+            );
+        };
+    }, [codigoCopiado]);
+
     const handleCriar = async (evento) => {
         evento.preventDefault();
         setErro("");

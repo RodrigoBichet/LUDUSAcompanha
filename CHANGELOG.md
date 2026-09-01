@@ -9,6 +9,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- Feedback de cópia do código da turma volta ao estado normal após 2,5
+  segundos ou quando a professora troca de guia.
+
 - página pública e responsiva com a política de privacidade do LUDUS Observa,
   disponível sem autenticação em `/privacidade/ludus-observa` e validada no
   ambiente publicado do Netlify;
@@ -32,7 +35,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - código de sala reduzido para seis caracteres sem símbolos ambíguos e modo de
   apresentação com instruções ampliadas para a turma;
 - pareamento público por nome e código, com participante temporário pendente,
-  credencial observacional de até 30 minutos e sem criação precoce de aluno;
+  credencial observacional limitada à validade da coleta, por no máximo 8
+  horas, e sem criação precoce de aluno;
 - limitação de falhas de pareamento por IP assinado e código, sem conservar o
   endereço IP legível na memória do processo;
 - adaptador para telemetria observacional externa e metadados de capacidades;

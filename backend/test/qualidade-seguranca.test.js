@@ -317,6 +317,11 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
     );
     assert.equal(Object.hasOwn(credencialDecodificada, "id"), false);
     assert.equal(Object.hasOwn(credencialDecodificada, "displayName"), false);
+    assert.ok(credencialDecodificada.exp - credencialDecodificada.iat > 60 * 60);
+    assert.ok(
+        credencialDecodificada.exp * 1000 <=
+            new Date(criada.body.coleta.expiresAt).getTime(),
+    );
 
     const repetida = await request(app)
         .post("/api/collections/pair")

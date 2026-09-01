@@ -24,7 +24,7 @@ export default function PrivacidadeLudusObserva() {
                     <p className="privacidade-observa-projeto">LUDUS Acompanha</p>
                     <h1>Política de privacidade do LUDUS Observa</h1>
                     <p className="privacidade-observa-resumo">
-                        Captura observacional local e consciente para jogos Web.
+                        Pareamento escolar consciente e captura observacional local para jogos Web.
                     </p>
                 </div>
             </header>
@@ -35,9 +35,9 @@ export default function PrivacidadeLudusObserva() {
                     <h2 id="resumo-politica">A extensão não envia sua telemetria para servidores.</h2>
                 </div>
                 <p>
-                    Os registros permanecem localmente no navegador durante o acompanhamento.
-                    Somente a pessoa usuária decide quando baixar o lote JSON ou descartar os
-                    dados locais.
+                    Nome completo e código temporário são enviados somente para validar a coleta
+                    escolar. Os registros das interações permanecem localmente no navegador, e
+                    somente a pessoa usuária decide quando baixar ou descartar o lote JSON.
                 </p>
             </section>
 
@@ -53,6 +53,19 @@ export default function PrivacidadeLudusObserva() {
                         O recurso oferece apoio à observação e à mediação pedagógica. Ele não
                         realiza diagnóstico, classificação clínica ou avaliação conclusiva de
                         aprendizagem.
+                    </p>
+                </section>
+
+                <section className="privacidade-observa-card">
+                    <h2>Identificação enviada conscientemente</h2>
+                    <p>
+                        Antes da captura, a pessoa informa o nome completo do aluno e o código
+                        temporário mostrado pelo professor. Esses dois valores são enviados à API
+                        do LUDUS Acompanha somente para conferir a coleta, a turma e o participante.
+                    </p>
+                    <p>
+                        O código é descartado após a confirmação. A credencial temporária recebida
+                        não permite entrar no Dashboard, consultar a turma ou agir como professor.
                     </p>
                 </section>
 
@@ -74,10 +87,10 @@ export default function PrivacidadeLudusObserva() {
                     <h2>O que não é coletado</h2>
                     <ul>
                         <li>conteúdo digitado ou eventos de teclado;</li>
-                        <li>campos de texto, senhas ou elementos editáveis;</li>
-                        <li>credenciais, cookies, tokens ou cabeçalhos;</li>
+                        <li>conteúdo dos campos de texto, senhas ou elementos editáveis do jogo;</li>
+                        <li>credenciais, cookies, tokens ou cabeçalhos dos sites observados;</li>
                         <li>histórico de navegação ou conteúdo de outras abas;</li>
-                        <li>requisições ou respostas de rede;</li>
+                        <li>requisições ou respostas de rede dos sites observados;</li>
                         <li>áudio, vídeo ou screenshots;</li>
                         <li>regras internas, acertos, erros ou objetivos do jogo.</li>
                     </ul>
@@ -92,8 +105,9 @@ export default function PrivacidadeLudusObserva() {
                         gerar um único lote JSON ao final da atividade.
                     </p>
                     <p>
-                        A extensão não transmite telemetria, analytics ou identificadores ao
-                        desenvolvedor, ao LUDUS Acompanha ou a terceiros. A pessoa usuária pode
+                        A extensão envia ao LUDUS Acompanha somente o nome completo e o código
+                        temporário no pareamento consciente. Não transmite cliques, trajetórias,
+                        ponteiro pressionado, conteúdo do jogo ou analytics. A pessoa usuária pode
                         exportar o lote, encerrar o acompanhamento e apagar os dados locais. Depois
                         do download, o controle do arquivo pertence à pessoa que o baixou.
                     </p>
@@ -122,8 +136,11 @@ export default function PrivacidadeLudusObserva() {
                             <dd>Localiza a área do jogo sem ler histórico ou tráfego de rede.</dd>
                         </div>
                         <div>
-                            <dt>Acesso opcional ao endereço do jogo</dt>
-                            <dd>É solicitado somente quando necessário e após confirmação explícita.</dd>
+                            <dt>Acesso opcional a endereços</dt>
+                            <dd>
+                                É solicitado após confirmação para validar a coleta na API ou
+                                observar um jogo incorporado em outro endereço.
+                            </dd>
                         </div>
                     </dl>
                 </section>
@@ -131,8 +148,8 @@ export default function PrivacidadeLudusObserva() {
                 <section className="privacidade-observa-card">
                     <h2>Controle da pessoa usuária</h2>
                     <p>
-                        Nenhuma captura começa automaticamente. A pessoa inicia conscientemente o
-                        acompanhamento, localiza cada jogo e inicia suas sessões. Ela pode encerrar
+                        Nenhuma captura começa automaticamente. A pessoa confirma nome e código,
+                        localiza cada jogo e inicia conscientemente suas sessões. Ela pode encerrar
                         uma sessão, gerar o lote JSON, trocar o participante ou apagar os registros
                         locais.
                     </p>

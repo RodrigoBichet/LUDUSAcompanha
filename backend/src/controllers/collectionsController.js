@@ -30,7 +30,7 @@ const DURACAO_PADRAO_MINUTOS = 120;
 const DURACAO_MINIMA_MINUTOS = 15;
 const DURACAO_MAXIMA_MINUTOS = 480;
 const LIMITE_ORIGENS = 20;
-const DURACAO_MAXIMA_CREDENCIAL_SEGUNDOS = 30 * 60;
+const DURACAO_MAXIMA_CREDENCIAL_SEGUNDOS = 8 * 60 * 60;
 
 const resumirColeta = (coleta) => ({
     collectionId: coleta.collectionId,
