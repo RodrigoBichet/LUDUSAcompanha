@@ -24,6 +24,9 @@ const {
     normalizarSessaoTelemetria,
 } = require("../services/telemetryNormalizer");
 const {
+    validarLoteTelemetria,
+} = require("../services/batchTelemetryValidator");
+const {
     adaptarRelatorioMonitorLegado,
 } = require("../services/legacyMonitorAdapter");
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
@@ -166,11 +169,6 @@ const buscarSessaoDuplicadaImportada = (dados) => {
     return Session.findOne({ $or: filtros });
 };
 
-const usuarioPodeImportarParaAluno = async (usuarioId, aluno) => {
-    const alunoComAcesso = await buscarAlunoComAcesso(usuarioId, aluno._id);
-    return Boolean(alunoComAcesso);
-};
-
 // A importação é uma evidência de que este aluno participou do jogo indicado
 // pelo próprio JSON. O vínculo é feito sem criar outro perfil, inclusive para
 // alunos que já pertencem a uma turma.
@@ -204,8 +202,29 @@ const registrarJogoEAssociarAluno = async ({
     return jogo;
 };
 
-const prepararImportacao = async (req) => {
-    const dadosBrutos = req.body?.sessao;
+const buscarAlunoParaImportacao = async (studentId, usuarioId) => {
+    if (!mongoose.isValidObjectId(studentId)) {
+        throw new ErroValidacaoTelemetria(
+            "studentId inválido na rota de importação.",
+        );
+    }
+
+    const aluno = await buscarAlunoComAcesso(usuarioId, studentId);
+
+    if (!aluno) {
+        const erro = new Error("Aluno não encontrado");
+        erro.status = 404;
+        throw erro;
+    }
+
+    return aluno;
+};
+
+const prepararDadosImportacao = ({
+    dadosBrutos,
+    aluno,
+    gameIdSelecionado = "",
+}) => {
 
     if (!dadosBrutos || typeof dadosBrutos !== "object") {
         throw new ErroValidacaoTelemetria(
@@ -218,47 +237,24 @@ const prepararImportacao = async (req) => {
     if (
         dadosBrutos.studentId &&
         dadosBrutos.studentId !== studentIdPendenteDeImportacao &&
-        String(dadosBrutos.studentId) !== String(req.params.studentId)
+        String(dadosBrutos.studentId) !== String(aluno._id)
     ) {
         throw new ErroValidacaoTelemetria(
             "O studentId do JSON não corresponde ao aluno selecionado.",
         );
     }
 
-    if (!mongoose.isValidObjectId(req.params.studentId)) {
-        throw new ErroValidacaoTelemetria("studentId inválido na rota de importação.");
-    }
-
-    const aluno = await Student.findById(req.params.studentId);
-
-    if (!aluno) {
-        const erro = new Error("Aluno não encontrado");
-        erro.status = 404;
-        throw erro;
-    }
-
-    const autorizado = await usuarioPodeImportarParaAluno(
-        req.usuarioId,
-        aluno,
-    );
-
-    if (!autorizado) {
-        const erro = new Error("Sem permissão para importar sessões deste aluno");
-        erro.status = 403;
-        throw erro;
-    }
-
     const dadosAdaptados = adaptarRelatorioMonitorLegado(dadosBrutos);
-    const gameIdSelecionado = String(req.body?.gameId || "").trim();
+    const gameIdNormalizado = String(gameIdSelecionado || "").trim();
     const nomeJogoDetectado = String(
         dadosBrutos.app || dadosAdaptados.gameId,
     ).trim();
 
-    if (gameIdSelecionado && !/^[a-z0-9][a-z0-9-]{0,99}$/.test(gameIdSelecionado)) {
+    if (gameIdNormalizado && !/^[a-z0-9][a-z0-9-]{0,99}$/.test(gameIdNormalizado)) {
         throw new ErroValidacaoTelemetria("gameId inválido no contexto da importação.");
     }
 
-    if (gameIdSelecionado && gameIdSelecionado !== dadosAdaptados.gameId) {
+    if (gameIdNormalizado && gameIdNormalizado !== dadosAdaptados.gameId) {
         const erro = new Error(
             `Este JSON pertence ao jogo \"${nomeJogoDetectado}\", não ao jogo selecionado.`,
         );
@@ -293,6 +289,43 @@ const prepararImportacao = async (req) => {
     return { aluno, dados, nomeJogoDetectado };
 };
 
+const prepararImportacao = async (req) => {
+    const aluno = await buscarAlunoParaImportacao(
+        req.params.studentId,
+        req.usuarioId,
+    );
+
+    return prepararDadosImportacao({
+        dadosBrutos: req.body?.sessao,
+        aluno,
+        gameIdSelecionado: req.body?.gameId,
+    });
+};
+
+const normalizarNomeParaComparacao = (valor) =>
+    String(valor || "")
+        .normalize("NFKD")
+        .replace(/\p{M}/gu, "")
+        .toLocaleLowerCase("pt-BR")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const prepararLoteImportacao = async (req) => {
+    const lote = validarLoteTelemetria(req.body?.lote);
+    const aluno = await buscarAlunoParaImportacao(
+        req.params.studentId,
+        req.usuarioId,
+    );
+    const itens = lote.sessions.map((sessao) =>
+        prepararDadosImportacao({ dadosBrutos: sessao, aluno }),
+    );
+    const nomeCoincide =
+        normalizarNomeParaComparacao(lote.participant.displayName) ===
+        normalizarNomeParaComparacao(aluno.name);
+
+    return { lote, aluno, itens, nomeCoincide };
+};
+
 const resumirImportacao = (dados, jaRegistrada) => ({
     sessionId: dados.sessionId,
     gameId: dados.gameId,
@@ -306,6 +339,49 @@ const resumirImportacao = (dados, jaRegistrada) => ({
     totalScreenshots: dados.screenshots?.length || 0,
     jaRegistrada,
 });
+
+const resumirLoteImportacao = async ({ lote, aluno, itens, nomeCoincide }) => {
+    const sessoes = await Promise.all(
+        itens.map(async ({ dados }) =>
+            resumirImportacao(
+                dados,
+                Boolean(await buscarSessaoDuplicadaImportada(dados)),
+            ),
+        ),
+    );
+    const jogos = new Map();
+
+    for (const sessao of sessoes) {
+        const atual = jogos.get(sessao.gameId) || {
+            gameId: sessao.gameId,
+            totalSessoes: 0,
+            jaRegistradas: 0,
+        };
+        atual.totalSessoes += 1;
+        if (sessao.jaRegistrada) atual.jaRegistradas += 1;
+        jogos.set(sessao.gameId, atual);
+    }
+
+    return {
+        tipo: "lote-observacional",
+        batchId: lote.batchId,
+        createdAt: lote.createdAt,
+        participante: {
+            participantRef: lote.participant.participantRef,
+            nomeInformado: lote.participant.displayName,
+            alunoSelecionado: aluno.name,
+            nomeCoincide,
+            requerConfirmacao: !nomeCoincide,
+        },
+        totalSessoes: sessoes.length,
+        totalImportaveis: sessoes.filter((sessao) => !sessao.jaRegistrada)
+            .length,
+        totalJaRegistradas: sessoes.filter((sessao) => sessao.jaRegistrada)
+            .length,
+        jogos: [...jogos.values()],
+        sessoes,
+    };
+};
 
 // -------------------------------------------------------------------------
 // criarSessao — POST /api/sessions
@@ -449,6 +525,146 @@ const confirmarImportacao = async (req, res) => {
         return res.status(500).json({
             sucesso: false,
             mensagem: "Erro interno ao confirmar importação",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// previewImportacaoLote — POST /api/sessions/import-batch/:studentId/preview
+// Valida o envelope e todas as sessões sem persistir qualquer dado.
+// -------------------------------------------------------------------------
+
+const previewImportacaoLote = async (req, res) => {
+    try {
+        const preparado = await prepararLoteImportacao(req);
+        const preview = await resumirLoteImportacao(preparado);
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Lote validado para importação.",
+            preview,
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes || [],
+            });
+        }
+
+        console.error("[LUDUS] Erro ao pré-visualizar lote:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao pré-visualizar lote",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// confirmarImportacaoLote — POST /api/sessions/import-batch/:studentId/confirm
+// Revalida todo o lote e importa somente após a confirmação autenticada.
+// -------------------------------------------------------------------------
+
+const confirmarImportacaoLote = async (req, res) => {
+    try {
+        const preparado = await prepararLoteImportacao(req);
+
+        if (
+            !preparado.nomeCoincide &&
+            req.body?.confirmarNomeDiferente !== true
+        ) {
+            return res.status(409).json({
+                sucesso: false,
+                codigo: "PARTICIPANTE_DIVERGENTE",
+                mensagem:
+                    "O nome do participante no lote difere do aluno selecionado. Confirme conscientemente antes de importar.",
+                participante: {
+                    nomeInformado: preparado.lote.participant.displayName,
+                    alunoSelecionado: preparado.aluno.name,
+                },
+            });
+        }
+
+        const resultados = [];
+
+        for (const { dados, nomeJogoDetectado } of preparado.itens) {
+            if (await buscarSessaoDuplicadaImportada(dados)) {
+                resultados.push({
+                    sourceSessionId: dados.sourceSessionId,
+                    gameId: dados.gameId,
+                    status: "ja-registrada",
+                });
+                continue;
+            }
+
+            try {
+                await registrarJogoEAssociarAluno({
+                    usuarioId: req.usuarioId,
+                    aluno: preparado.aluno,
+                    dados,
+                    nomeJogoDetectado,
+                });
+                const sessao = await salvarSessaoNormalizada(dados);
+                resultados.push({
+                    sourceSessionId: dados.sourceSessionId,
+                    sessionId: sessao.sessionId,
+                    gameId: sessao.gameId,
+                    status: "importada",
+                });
+            } catch (erroItem) {
+                resultados.push({
+                    sourceSessionId: dados.sourceSessionId,
+                    gameId: dados.gameId,
+                    status:
+                        erroItem.status === 409 ? "ja-registrada" : "erro",
+                    mensagem:
+                        erroItem.status === 409
+                            ? undefined
+                            : "Não foi possível persistir esta sessão.",
+                });
+            }
+        }
+
+        const totalImportadas = resultados.filter(
+            (item) => item.status === "importada",
+        ).length;
+        const totalJaRegistradas = resultados.filter(
+            (item) => item.status === "ja-registrada",
+        ).length;
+        const totalErros = resultados.filter(
+            (item) => item.status === "erro",
+        ).length;
+        const statusHttp =
+            totalErros > 0 ? 207 : totalImportadas > 0 ? 201 : 200;
+
+        return res.status(statusHttp).json({
+            sucesso: totalErros === 0,
+            mensagem:
+                totalErros > 0
+                    ? "O lote foi processado com itens que precisam de atenção."
+                    : totalImportadas > 0
+                      ? "Lote importado com sucesso."
+                      : "Todas as sessões deste lote já estavam registradas.",
+            batchId: preparado.lote.batchId,
+            totalImportadas,
+            totalJaRegistradas,
+            totalErros,
+            resultados,
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes || [],
+            });
+        }
+
+        console.error("[LUDUS] Erro ao importar lote:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao importar lote",
         });
     }
 };
@@ -644,6 +860,8 @@ module.exports = {
     criarSessao,
     previewImportacao,
     confirmarImportacao,
+    previewImportacaoLote,
+    confirmarImportacaoLote,
     listarSessoes,
     buscarSessao,
     removerSessaoImportada,

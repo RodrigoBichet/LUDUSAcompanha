@@ -25,6 +25,16 @@ router.post(
     autenticar,
     controller.confirmarImportacao,
 );
+router.post(
+    "/import-batch/:studentId/preview",
+    autenticar,
+    controller.previewImportacaoLote,
+);
+router.post(
+    "/import-batch/:studentId/confirm",
+    autenticar,
+    controller.confirmarImportacaoLote,
+);
 
 // GET  /api/sessions       — lista sessões (debug)
 router.get("/", autenticar, apenasAdmin, controller.listarSessoes);

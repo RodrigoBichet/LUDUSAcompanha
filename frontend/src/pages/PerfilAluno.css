@@ -860,6 +860,39 @@
     color: var(--cor-texto-leve);
 }
 
+.resumo-lote-importacao {
+    display: grid;
+    gap: 0.25rem;
+    margin-top: 0.2rem;
+}
+
+.confirmacao-participante-lote {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(246, 173, 85, 0.55);
+    border-radius: 8px;
+    background: rgba(246, 173, 85, 0.1);
+}
+
+.confirmacao-participante-lote button {
+    justify-self: start;
+    border: 1px solid rgba(123, 78, 14, 0.35);
+    border-radius: 7px;
+    padding: 0.45rem 0.65rem;
+    background: var(--cor-card);
+    color: #7b4e0e;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.confirmacao-participante-lote button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .btn-remover-item-arquivo {
     flex: 0 0 auto;
     width: 1.8rem;

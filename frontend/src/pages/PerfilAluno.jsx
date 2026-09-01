@@ -32,6 +32,8 @@ import {
     solicitarCaptura,
     previsualizarImportacaoSessao,
     confirmarImportacaoSessao,
+    previsualizarImportacaoLote,
+    confirmarImportacaoLote,
     removerSessaoImportada,
     criarJogoDetectado,
     listarJogos,
@@ -393,6 +395,8 @@ export default function PerfilAluno() {
                     id: `${arquivo.name}-${arquivo.size}-${arquivo.lastModified}-${Date.now()}-${indice}`,
                     nome: arquivo.name,
                     sessao: null,
+                    lote: null,
+                    tipo: "sessao",
                     preview: null,
                     status: "invalido",
                     mensagem: "",
@@ -407,21 +411,27 @@ export default function PerfilAluno() {
 
                 try {
                     const conteudo = await arquivo.text();
-                    const sessao = JSON.parse(conteudo);
+                    const dados = JSON.parse(conteudo);
 
                     if (
-                        !sessao ||
-                        Array.isArray(sessao) ||
-                        typeof sessao !== "object"
+                        !dados ||
+                        Array.isArray(dados) ||
+                        typeof dados !== "object"
                     ) {
                         throw new Error(
-                            "O arquivo deve conter um objeto JSON de sessão.",
+                            "O arquivo deve conter um objeto JSON de sessão ou lote.",
                         );
                     }
 
+                    const ehLote =
+                        Object.hasOwn(dados, "batchSchemaVersion") ||
+                        Object.hasOwn(dados, "batchType");
+
                     return {
                         ...itemBase,
-                        sessao,
+                        sessao: ehLote ? null : dados,
+                        lote: ehLote ? dados : null,
+                        tipo: ehLote ? "lote" : "sessao",
                         status: "anexado",
                     };
                 } catch (erro) {
@@ -437,24 +447,45 @@ export default function PerfilAluno() {
 
         setArquivosImportacao((atuais) => {
             const idsSessao = new Set(
-                atuais
-                    .map((item) => item.sessao?.sessionId)
-                    .filter(Boolean),
+                atuais.flatMap((item) =>
+                    item.lote
+                        ? (Array.isArray(item.lote.sessions)
+                              ? item.lote.sessions
+                              : []
+                          )
+                              .map((sessao) => sessao?.sessionId)
+                              .filter(Boolean)
+                        : [item.sessao?.sessionId].filter(Boolean),
+                ),
             );
 
             const novos = processados.map((item) => {
-                const sessionId = item.sessao?.sessionId;
-                if (!sessionId || !idsSessao.has(sessionId)) {
-                    if (sessionId) idsSessao.add(sessionId);
+                const idsDoItem = item.lote
+                    ? (Array.isArray(item.lote.sessions)
+                          ? item.lote.sessions
+                          : []
+                      )
+                          .map((sessao) => sessao?.sessionId)
+                          .filter(Boolean)
+                    : [item.sessao?.sessionId].filter(Boolean);
+                const possuiRepeticaoInterna =
+                    new Set(idsDoItem).size !== idsDoItem.length;
+                const jaAdicionada = idsDoItem.some((sessionId) =>
+                    idsSessao.has(sessionId),
+                );
+
+                if (!possuiRepeticaoInterna && !jaAdicionada) {
+                    idsDoItem.forEach((sessionId) => idsSessao.add(sessionId));
                     return item;
                 }
 
                 return {
                     ...item,
                     sessao: null,
+                    lote: null,
                     status: "invalido",
                     mensagem:
-                        "Esta sessão já foi adicionada a esta seleção.",
+                        "Este arquivo repete uma sessão já adicionada à seleção.",
                 };
             });
 
@@ -532,21 +563,42 @@ export default function PerfilAluno() {
             const resultados = await Promise.all(
                 pendentes.map(async (item) => {
                     try {
-                        const resposta = await previsualizarImportacaoSessao(
-                            aluno._id,
-                            item.sessao,
-                            gameIdSelecionado,
-                        );
+                        const resposta = item.lote
+                            ? await previsualizarImportacaoLote(
+                                  aluno._id,
+                                  item.lote,
+                              )
+                            : await previsualizarImportacaoSessao(
+                                  aluno._id,
+                                  item.sessao,
+                                  gameIdSelecionado,
+                              );
                         const preview = resposta.data.preview;
+                        const nomeDivergente = Boolean(
+                            item.lote &&
+                                preview.participante?.requerConfirmacao,
+                        );
+                        const tudoRegistrado = item.lote
+                            ? preview.totalImportaveis === 0
+                            : preview.jaRegistrada;
                         return {
                             id: item.id,
                             preview,
-                            status: preview.jaRegistrada
+                            status: tudoRegistrado
                                 ? "ja-registrado"
-                                : "validado",
-                            mensagem: preview.jaRegistrada
-                                ? "Esta sessão já está registrada."
-                                : "Pronto para importar.",
+                                : nomeDivergente
+                                  ? "conflito-participante"
+                                  : "validado",
+                            mensagem: tudoRegistrado
+                                ? item.lote
+                                    ? "Todas as sessões deste lote já estão registradas."
+                                    : "Esta sessão já está registrada."
+                                : nomeDivergente
+                                  ? "Confira o participante antes de importar."
+                                  : item.lote
+                                    ? `${preview.totalImportaveis} sessões prontas para importar.`
+                                    : "Pronto para importar.",
+                            confirmarNomeDiferente: false,
                         };
                     } catch (erro) {
                         return {
@@ -583,7 +635,9 @@ export default function PerfilAluno() {
             }
 
             const falhas = resultados.filter(
-                (resultado) => resultado.status === "erro-validacao",
+                (resultado) =>
+                    resultado.status === "erro-validacao" ||
+                    resultado.status === "conflito-participante",
             ).length;
             if (falhas > 0) {
                 setErroImportacao(
@@ -618,20 +672,51 @@ export default function PerfilAluno() {
             const resultados = [];
             for (const item of validados) {
                 try {
-                    await confirmarImportacaoSessao(
-                        aluno._id,
-                        item.sessao,
-                        gameIdSelecionado,
-                    );
+                    const resposta = item.lote
+                        ? await confirmarImportacaoLote(
+                              aluno._id,
+                              item.lote,
+                              item.confirmarNomeDiferente,
+                          )
+                        : await confirmarImportacaoSessao(
+                              aluno._id,
+                              item.sessao,
+                              gameIdSelecionado,
+                          );
+                    const totalImportadas = item.lote
+                        ? resposta.data.totalImportadas
+                        : 1;
+                    const totalJaRegistradas = item.lote
+                        ? resposta.data.totalJaRegistradas
+                        : 0;
+                    const totalErros = item.lote
+                        ? resposta.data.totalErros
+                        : 0;
                     resultados.push({
                         id: item.id,
-                        status: "importado",
-                        mensagem: "Importado com sucesso.",
+                        status:
+                            totalErros > 0
+                                ? "erro-importacao"
+                                : "importado",
+                        quantidadeImportada: totalImportadas,
+                        quantidadeFalhas: totalErros,
+                        mensagem: item.lote
+                            ? `${totalImportadas} sessões importadas${
+                                  totalJaRegistradas > 0
+                                      ? ` e ${totalJaRegistradas} já registradas`
+                                      : ""
+                              }${
+                                  totalErros > 0
+                                      ? `; ${totalErros} não puderam ser importadas`
+                                      : ""
+                              }.`
+                            : "Importado com sucesso.",
                     });
                 } catch (erro) {
                     resultados.push({
                         id: item.id,
                         status: "erro-importacao",
+                        quantidadeFalhas: 1,
                         mensagem:
                             erro.response?.data?.mensagem ||
                             "Não foi possível importar esta sessão.",
@@ -649,10 +734,18 @@ export default function PerfilAluno() {
                 }),
             );
 
-            const importados = resultados.filter(
-                (resultado) => resultado.status === "importado",
-            ).length;
-            const falhas = resultados.length - importados;
+            const importados = resultados
+                .filter((resultado) => resultado.quantidadeImportada > 0)
+                .reduce(
+                    (total, resultado) =>
+                        total + resultado.quantidadeImportada,
+                    0,
+                );
+            const falhas = resultados.reduce(
+                (total, resultado) =>
+                    total + (resultado.quantidadeFalhas || 0),
+                0,
+            );
 
             if (importados > 0) {
                 await carregarDados();
@@ -686,6 +779,8 @@ export default function PerfilAluno() {
             importando: "Importando...",
             importado: "Importado com sucesso.",
             invalido: "Arquivo inválido.",
+            "conflito-participante":
+                "O nome do lote difere do aluno selecionado.",
             "erro-validacao": "Não foi possível validar esta sessão.",
             "erro-importacao": "Não foi possível importar esta sessão.",
         };
@@ -698,12 +793,14 @@ export default function PerfilAluno() {
         if (["anexado", "validando", "importando"].includes(status)) {
             return "pendente";
         }
-        if (status === "ja-registrado") return "aviso";
+        if (["ja-registrado", "conflito-participante"].includes(status)) {
+            return "aviso";
+        }
         return "erro";
     };
 
     const arquivosValidosImportacao = arquivosImportacao.filter(
-        (item) => item.sessao,
+        (item) => item.sessao || item.lote,
     );
     const arquivosPendentesImportacao = arquivosImportacao.filter(
         (item) => item.status === "anexado",
@@ -711,6 +808,24 @@ export default function PerfilAluno() {
     const arquivosProntosImportacao = arquivosImportacao.filter(
         (item) => item.status === "validado",
     );
+
+    const confirmarParticipanteDoLote = (idArquivo) => {
+        setArquivosImportacao((atuais) =>
+            atuais.map((item) =>
+                item.id === idArquivo &&
+                item.status === "conflito-participante"
+                    ? {
+                          ...item,
+                          status: "validado",
+                          confirmarNomeDiferente: true,
+                          mensagem:
+                              "Associação confirmada para o aluno selecionado.",
+                      }
+                    : item,
+            ),
+        );
+        setErroImportacao("");
+    };
 
     const handleCriarJogoDetectado = async (evento) => {
         evento.preventDefault();
@@ -1970,9 +2085,9 @@ export default function PerfilAluno() {
                                     Importar telemetria
                                 </h3>
                                 <p>
-                                    Selecione um ou mais JSONs de sessão. O
-                                    sistema valida todos antes de salvar qualquer
-                                    dado.
+                                    Selecione JSONs de sessão ou um lote
+                                    multi-jogo do LUDUS Observa. O sistema
+                                    valida tudo antes de salvar qualquer dado.
                                 </p>
                             </div>
 
@@ -2063,7 +2178,84 @@ export default function PerfilAluno() {
                                                         item,
                                                     )}
                                                 </span>
-                                                {item.preview && (
+                                                {item.preview?.tipo ===
+                                                "lote-observacional" ? (
+                                                    <div className="resumo-lote-importacao">
+                                                        <small>
+                                                            Participante: {" "}
+                                                            <strong>
+                                                                {
+                                                                    item.preview
+                                                                        .participante
+                                                                        .nomeInformado
+                                                                }
+                                                            </strong>
+                                                        </small>
+                                                        <small>
+                                                            {
+                                                                item.preview
+                                                                    .totalSessoes
+                                                            }{" "}
+                                                            sessões • {" "}
+                                                            {
+                                                                item.preview
+                                                                    .jogos.length
+                                                            }{" "}
+                                                            jogos • {" "}
+                                                            {
+                                                                item.preview
+                                                                    .totalJaRegistradas
+                                                            }{" "}
+                                                            já registradas
+                                                        </small>
+                                                        <small>
+                                                            {item.preview.jogos
+                                                                .map(
+                                                                    (jogo) =>
+                                                                        `${jogo.gameId} (${jogo.totalSessoes})`,
+                                                                )
+                                                                .join(" • ")}
+                                                        </small>
+                                                        {item.status ===
+                                                            "conflito-participante" && (
+                                                            <div className="confirmacao-participante-lote">
+                                                                <span>
+                                                                    O lote informa
+                                                                    “
+                                                                    {
+                                                                        item
+                                                                            .preview
+                                                                            .participante
+                                                                            .nomeInformado
+                                                                    }
+                                                                    ”, mas o perfil
+                                                                    aberto é “
+                                                                    {
+                                                                        item
+                                                                            .preview
+                                                                            .participante
+                                                                            .alunoSelecionado
+                                                                    }
+                                                                    ”.
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        confirmarParticipanteDoLote(
+                                                                            item.id,
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        processandoImportacao
+                                                                    }
+                                                                >
+                                                                    Usar este perfil
+                                                                    mesmo assim
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : item.preview ? (
                                                     <small>
                                                         {item.preview.gameId} •{" "}
                                                         {
@@ -2077,7 +2269,7 @@ export default function PerfilAluno() {
                                                         }{" "}
                                                         eventos
                                                     </small>
-                                                )}
+                                                ) : null}
                                             </div>
                                             <button
                                                 type="button"

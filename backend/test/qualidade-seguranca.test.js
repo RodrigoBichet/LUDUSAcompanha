@@ -111,6 +111,79 @@ const jsonImportavel = () => ({
     screenshots: [],
 });
 
+const sessaoObservacionalDeLote = (sessionId, gameId) => ({
+    schemaVersion: "1.0.0",
+    captureMode: "observational",
+    source: "ludus-observa-webextension",
+    sourceVersion: "0.1.0",
+    ingestionMethod: "file-import",
+    capabilities: {
+        clicks: true,
+        mousePath: true,
+        dragPath: true,
+        screenshots: false,
+        inactivity: false,
+        focusEvents: false,
+        phaseEvents: false,
+        correctWrong: false,
+        categoryEvents: false,
+        customEvents: false,
+    },
+    sessionId,
+    studentId: "000000000000000000000000",
+    playerId: "Participante pendente de importação",
+    gameId,
+    gameVersion: "externo-desconhecido",
+    platform: "browser",
+    startedAt: "2026-08-31T20:00:00.000Z",
+    endedAt: "2026-08-31T20:00:05.000Z",
+    durationMs: 5000,
+    viewport: {
+        widthPx: 800,
+        heightPx: 450,
+        coordinateUnit: "pixel",
+        coordinateOrigin: "bottom-left",
+    },
+    metrics: {
+        totalClicks: 0,
+        firstActionMs: -1,
+        avgTimeBetweenActionsMs: 0,
+        inactivityCount: 0,
+        totalInactivityMs: 0,
+    },
+    clicks: [],
+    mousePath: [],
+    dragPath: [],
+    gameEvents: [],
+    screenshots: [],
+});
+
+const loteObservacionalDeTeste = (nomeParticipante) => ({
+    batchSchemaVersion: "1.0.0",
+    batchType: "ludus-observa-batch",
+    source: "ludus-observa-webextension",
+    sourceVersion: "0.1.0",
+    batchId: "batch-teste-multi-jogo-001",
+    collectionRef: null,
+    createdAt: "2026-08-31T20:01:00.000Z",
+    participant: {
+        participantRef: "participant-ficticio-001",
+        displayName: nomeParticipante,
+        resolutionStatus: "local-pending",
+        requiresReview: true,
+    },
+    sessions: [
+        sessaoObservacionalDeLote(
+            "observa-lote-sessao-a",
+            "jogo-observacional-a",
+        ),
+        sessaoObservacionalDeLote(
+            "observa-lote-sessao-b",
+            "jogo-observacional-b",
+        ),
+    ],
+});
+
 // Representa a forma canônica produzida pelo LUDUS Unity SDK em um build WebGL.
 // Os valores são inteiramente fictícios e mantêm coordenadas dentro do viewport.
 const sessaoSdkWebglDeTeste = (aluno) => ({
@@ -384,6 +457,106 @@ test("importa outro jogo no mesmo aluno sem duplicar seu perfil", async () => {
         await Game.countDocuments({ gameId: "jogo-observacional" }),
         1,
     );
+});
+
+test("previsualiza e importa lote multi-jogo sem fundir sessoes", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const authorization = `Bearer ${tokenDe(professoraA)}`;
+    const lote = loteObservacionalDeTeste(alunoA.name);
+
+    const preview = await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/preview`)
+        .set("Authorization", authorization)
+        .send({ lote })
+        .expect(200);
+
+    assert.equal(preview.body.preview.totalSessoes, 2);
+    assert.equal(preview.body.preview.totalImportaveis, 2);
+    assert.equal(preview.body.preview.totalJaRegistradas, 0);
+    assert.equal(preview.body.preview.participante.nomeCoincide, true);
+    assert.deepEqual(
+        preview.body.preview.jogos.map((jogo) => jogo.gameId).sort(),
+        ["jogo-observacional-a", "jogo-observacional-b"],
+    );
+    assert.equal(await Session.countDocuments(), 0);
+
+    const confirmacao = await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/confirm`)
+        .set("Authorization", authorization)
+        .send({ lote })
+        .expect(201);
+
+    assert.equal(confirmacao.body.totalImportadas, 2);
+    assert.equal(confirmacao.body.totalErros, 0);
+    assert.equal(await Session.countDocuments({ studentId: alunoA._id }), 2);
+    assert.equal(await Student.countDocuments({ name: alunoA.name }), 1);
+    assert.equal(
+        await Game.countDocuments({
+            gameId: { $in: ["jogo-observacional-a", "jogo-observacional-b"] },
+        }),
+        2,
+    );
+
+    const repeticao = await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/confirm`)
+        .set("Authorization", authorization)
+        .send({ lote })
+        .expect(200);
+
+    assert.equal(repeticao.body.totalImportadas, 0);
+    assert.equal(repeticao.body.totalJaRegistradas, 2);
+    assert.equal(await Session.countDocuments({ studentId: alunoA._id }), 2);
+});
+
+test("lote com participante divergente exige confirmacao explicita", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const authorization = `Bearer ${tokenDe(professoraA)}`;
+    const lote = loteObservacionalDeTeste("Outro Aluno Fictício");
+
+    const preview = await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/preview`)
+        .set("Authorization", authorization)
+        .send({ lote })
+        .expect(200);
+
+    assert.equal(preview.body.preview.participante.nomeCoincide, false);
+    assert.equal(preview.body.preview.participante.requerConfirmacao, true);
+
+    const bloqueada = await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/confirm`)
+        .set("Authorization", authorization)
+        .send({ lote })
+        .expect(409);
+
+    assert.equal(bloqueada.body.codigo, "PARTICIPANTE_DIVERGENTE");
+    assert.equal(await Session.countDocuments(), 0);
+
+    await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/confirm`)
+        .set("Authorization", authorization)
+        .send({ lote, confirmarNomeDiferente: true })
+        .expect(201);
+    assert.equal(await Session.countDocuments({ studentId: alunoA._id }), 2);
+});
+
+test("recusa lote adulterado e acesso a aluno de outra professora", async () => {
+    const { professoraA, professoraB, alunoA } = await criarCenarioEscolar();
+    const lote = loteObservacionalDeTeste(alunoA.name);
+
+    await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/preview`)
+        .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+        .send({ lote })
+        .expect(404);
+
+    lote.campoNaoPermitido = "não deve ser aceito";
+    await request(app)
+        .post(`/api/sessions/import-batch/${alunoA._id}/preview`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ lote })
+        .expect(400);
+
+    assert.equal(await Session.countDocuments(), 0);
 });
 
 test("remove somente sessao JSON autorizada e preserva registros protegidos", async () => {

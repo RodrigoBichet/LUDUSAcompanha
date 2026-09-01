@@ -14,8 +14,9 @@ O **LUDUS Acompanha** e uma ferramenta computacional de monitoramento e analise 
 
 ## Passo a passo de importacao
 
-O roteiro unico para validar um JSON do SDK ou do LUDUS Observa, vincular o
-jogo ao participante e conferir a sessao no mapa esta em
+O roteiro unico para validar um JSON do SDK, uma sessao do LUDUS Observa ou um
+lote multi-jogo do capturador, vincular os jogos ao participante e conferir as
+sessoes no mapa esta em
 [Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md).
 
 A política pública de privacidade do capturador observacional está disponível
@@ -132,6 +133,11 @@ npm run dev
 
 Acesse em `http://localhost:5173` — sera redirecionado para a tela de login.
 
+Para validar manualmente a importação de lote sem ler o `.env` e sem acessar o
+Atlas, use `npm run dev:lote:temp` dentro de `backend` e siga o
+[Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md). O banco
+fica somente em memória e é apagado ao encerrar o processo.
+
 ## Ambiente publicado
 
 O ambiente inicial de demonstracao esta publicado desde **20/07/2026**:
@@ -237,6 +243,8 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Metodo | Rota                                | Observacao                    |
 | ------ | ----------------------------------- | ----------------------------- |
 | POST   | `/api/sessions`                     | Recebe sessoes do SDK Unity   |
+| POST   | `/api/sessions/import-batch/:studentId/preview` | Valida e resume um lote observacional sem gravar |
+| POST   | `/api/sessions/import-batch/:studentId/confirm` | Confirma e separa o lote por jogo e sessao |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
 | GET    | `/api/sessions/student/:studentId`  | Historico por aluno real      |
 | GET    | `/api/dashboard/summary/:studentId` | Aceita `?gameId=...`          |
@@ -285,6 +293,18 @@ Instituição -> Turma -> Aluno -> Importar JSON -> Jogo detectado e associado a
 ```
 
 Ao importar um JSON, o backend valida e normaliza a telemetria. O `gameId` vem do próprio arquivo: o sistema cria ou reutiliza o jogo no catálogo da professora e associa o aluno existente a ele, sem duplicar perfil. Quando o JSON é enviado no contexto de outro jogo, a interface orienta a continuidade no jogo identificado.
+
+O importador também aceita o lote diário gerado pelo LUDUS Observa. Antes de
+gravar, o Dashboard mostra o participante informado, os jogos encontrados, o
+número de sessões e possíveis duplicidades. Na confirmação, cada sessão é
+persistida separadamente no jogo indicado pelo próprio arquivo. Sessões de
+jogos distintos nunca são fundidas.
+
+Nesta etapa, o lote é importado no perfil que a professora abriu
+conscientemente. Se o nome informado na extensão for diferente do nome desse
+perfil, a interface exige confirmação explícita. A criação ou resolução
+automática de alunos por turma e coleta será tratada em uma etapa posterior,
+quando houver contexto suficiente para evitar vínculos escolares incorretos.
 
 As sessões continuam vinculadas canonicamente por `studentId`; `playerId` é apenas exibição. Um aluno pode ter sessões de mais de um jogo, e resumos, histórico e alertas aceitam filtro opcional por `gameId`.
 

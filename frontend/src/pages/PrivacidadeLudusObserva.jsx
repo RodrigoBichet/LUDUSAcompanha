@@ -35,8 +35,9 @@ export default function PrivacidadeLudusObserva() {
                     <h2 id="resumo-politica">A extensão não envia sua telemetria para servidores.</h2>
                 </div>
                 <p>
-                    Os registros permanecem no navegador durante a captura. Somente a pessoa
-                    usuária decide se deseja baixar o arquivo JSON ao encerrar a sessão.
+                    Os registros permanecem localmente no navegador durante o acompanhamento.
+                    Somente a pessoa usuária decide quando baixar o lote JSON ou descartar os
+                    dados locais.
                 </p>
             </section>
 
@@ -65,6 +66,7 @@ export default function PrivacidadeLudusObserva() {
                         <li>amostras do ponteiro pressionado;</li>
                         <li>início, encerramento e duração da sessão;</li>
                         <li>nome técnico da atividade informado pela pessoa usuária.</li>
+                        <li>nome de exibição do participante informado para organizar o lote.</li>
                     </ul>
                 </section>
 
@@ -84,16 +86,16 @@ export default function PrivacidadeLudusObserva() {
                 <section className="privacidade-observa-card">
                     <h2>Armazenamento e transmissão</h2>
                     <p>
-                        A telemetria permanece em memória enquanto a sessão está ativa. O
-                        armazenamento temporário da sessão do navegador é usado somente para o
-                        estado técnico necessário à autorização de um jogo incorporado em outro
-                        endereço. Cliques e trajetórias não são guardados nesse armazenamento.
+                        A sessão ativa é processada localmente. Ao encerrá-la, suas interações
+                        ficam no armazenamento local da extensão e compõem o acompanhamento
+                        multi-jogo do participante. Isso permite percorrer jogos diferentes e
+                        gerar um único lote JSON ao final da atividade.
                     </p>
                     <p>
                         A extensão não transmite telemetria, analytics ou identificadores ao
-                        desenvolvedor, ao LUDUS Acompanha ou a terceiros. Cancelar descarta os
-                        registros. Depois do download, o controle do arquivo pertence à pessoa que
-                        o baixou.
+                        desenvolvedor, ao LUDUS Acompanha ou a terceiros. A pessoa usuária pode
+                        exportar o lote, encerrar o acompanhamento e apagar os dados locais. Depois
+                        do download, o controle do arquivo pertence à pessoa que o baixou.
                     </p>
                 </section>
 
@@ -109,8 +111,11 @@ export default function PrivacidadeLudusObserva() {
                             <dd>Instala e consulta o observador somente na página escolhida.</dd>
                         </div>
                         <div>
-                            <dt>Armazenamento da sessão</dt>
-                            <dd>Mantém apenas o estado técnico temporário de jogos incorporados.</dd>
+                            <dt>Armazenamento local</dt>
+                            <dd>
+                                Mantém o participante e as sessões concluídas necessárias para
+                                montar o lote multi-jogo até a exportação ou o descarte.
+                            </dd>
                         </div>
                         <div>
                             <dt>Navegação por frames</dt>
@@ -126,9 +131,10 @@ export default function PrivacidadeLudusObserva() {
                 <section className="privacidade-observa-card">
                     <h2>Controle da pessoa usuária</h2>
                     <p>
-                        Nenhuma captura começa automaticamente. A pessoa precisa localizar o jogo,
-                        informar a atividade e iniciar a sessão. Ela pode encerrar e baixar o JSON
-                        ou cancelar e descartar os registros.
+                        Nenhuma captura começa automaticamente. A pessoa inicia conscientemente o
+                        acompanhamento, localiza cada jogo e inicia suas sessões. Ela pode encerrar
+                        uma sessão, gerar o lote JSON, trocar o participante ou apagar os registros
+                        locais.
                     </p>
                     <p>
                         Sem informações fornecidas pelo próprio jogo, o LUDUS Observa não infere
@@ -144,7 +150,7 @@ export default function PrivacidadeLudusObserva() {
                     <p>
                         Responsável: Rodrigo Leitzke Bichet, projeto LUDUS Acompanha.
                         <br />
-                        Vigência desta versão: 19 de agosto de 2026.
+                        Vigência desta versão: 1º de setembro de 2026.
                     </p>
                 </div>
                 <a className="privacidade-observa-email" href={`mailto:${EMAIL_CONTATO}`}>

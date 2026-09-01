@@ -45,6 +45,19 @@ export const confirmarImportacaoSessao = (studentId, sessao, gameId) =>
         sessao,
         gameId,
     });
+export const previsualizarImportacaoLote = (studentId, lote) =>
+    api.post(`/sessions/import-batch/${encodeURIComponent(studentId)}/preview`, {
+        lote,
+    });
+export const confirmarImportacaoLote = (
+    studentId,
+    lote,
+    confirmarNomeDiferente = false,
+) =>
+    api.post(`/sessions/import-batch/${encodeURIComponent(studentId)}/confirm`, {
+        lote,
+        confirmarNomeDiferente,
+    });
 export const removerSessaoImportada = (sessionId) =>
     api.delete(`/sessions/${encodeURIComponent(sessionId)}`);
 

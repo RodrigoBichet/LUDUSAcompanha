@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
+        "dev:lote:temp": "node src/scripts/iniciarAmbienteLoteTemporario.js",
         "test": "node --test --test-concurrency=1",
         "validate:telemetry": "node src/scripts/validarTelemetriaExemplos.js",
         "seed:demo": "node src/scripts/seedDemo.js",

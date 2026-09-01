@@ -16,6 +16,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   Observa, com validação, vínculo multi-jogo e conferência da sessão;
 - cadastro, edição, arquivamento e reativação de jogos no catálogo pessoal;
 - importação autenticada de JSON com prévia, validação, normalização e prevenção de duplicidade por aluno;
+- importação autenticada de lotes multi-jogo do LUDUS Observa, com validação
+  integral antes da gravação, prévia do participante, jogos e sessões,
+  confirmação explícita para nomes divergentes e persistência independente de
+  cada sessão;
+- schema JSON estrito e versionado para o envelope de lote observacional;
+- ambiente manual efêmero com MongoDB em memória e dados exclusivamente
+  fictícios para validar o lote sem ler o `.env` nem acessar o Atlas;
 - adaptador para telemetria observacional externa e metadados de capacidades;
 - alunos individuais por jogo e associação automática de alunos escolares ao jogo identificado no JSON;
 - visão geral de alunos com os jogos e totais de sessões realmente registrados;
@@ -32,11 +39,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - jogos abrem diretamente seus alunos, sem listar instituições na tela de catálogo;
 - exclusão permanente de aluno remove também sessões e imagens vinculadas; turmas e instituições com alunos permanecem protegidas;
 - a URL legada `/jogos` redireciona para o catálogo atual.
+- a política pública de privacidade passou a descrever o acompanhamento local
+  multi-jogo e o armazenamento local de sessões concluídas até a exportação ou
+  o descarte consciente pela pessoa usuária.
 
 ### Compatibilidade
 
 - sessões legadas e alunos escolares existentes permanecem legíveis;
 - o SDK Unity não foi alterado nesta etapa.
+
+### Validado
+
+- lote fictício com duas sessões de dois jogos importado pelo perfil do aluno
+  no Dashboard local;
+- cada sessão permaneceu vinculada ao respectivo jogo em **Todos os jogos** e
+  nos filtros individuais;
+- reimportação do mesmo lote reconhecida sem criar sessões duplicadas;
+- ambiente manual efêmero encerrado com descarte do MongoDB em memória;
+- backend com 11/11 testes aprovados, além de lint e build do frontend.
 
 ---
 
