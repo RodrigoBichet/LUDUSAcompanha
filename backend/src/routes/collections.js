@@ -4,6 +4,7 @@ const controller = require("../controllers/collectionsController");
 const { autenticar } = require("../middleware/auth");
 
 router.post("/", autenticar, controller.criarColeta);
+router.post("/pair", controller.parearParticipante);
 router.get("/", autenticar, controller.listarColetas);
 router.patch(
     "/:collectionId/revoke",

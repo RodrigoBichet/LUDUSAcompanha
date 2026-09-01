@@ -4,19 +4,33 @@
 // =============================================================================
 
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Group = require("../models/Group");
+const CollectionParticipant = require("../models/CollectionParticipant");
 const ObservationCollection = require("../models/ObservationCollection");
 const {
     obterContextoEscolar,
     podeAcessarInstituicao,
 } = require("../services/schoolAccess");
-const { gerarCredencialColeta } = require("../services/collectionCode");
+const {
+    calcularHashCodigoColeta,
+    codigoColetaTemFormatoValido,
+    gerarCredencialColeta,
+} = require("../services/collectionCode");
+const {
+    pareamentoEstaLimitado,
+    registrarFalhaPareamento,
+} = require("../services/pairingAttemptLimiter");
+const {
+    normalizarIdentidadeParticipante,
+} = require("../services/participantIdentity");
 
 const DURACAO_PADRAO_MINUTOS = 120;
 const DURACAO_MINIMA_MINUTOS = 15;
 const DURACAO_MAXIMA_MINUTOS = 480;
 const LIMITE_ORIGENS = 20;
+const DURACAO_MAXIMA_CREDENCIAL_SEGUNDOS = 30 * 60;
 
 const resumirColeta = (coleta) => ({
     collectionId: coleta.collectionId,
@@ -217,8 +231,143 @@ const revogarColeta = async (req, res) => {
     }
 };
 
+const responderCodigoIndisponivel = (res) =>
+    res.status(401).json({
+        sucesso: false,
+        mensagem: "Código inválido, expirado ou indisponível.",
+    });
+
+const obterOuCriarParticipante = async (coleta, identidade) => {
+    const filtro = {
+        collectionRef: coleta._id,
+        normalizedName: identidade.normalizedName,
+    };
+    const existente = await CollectionParticipant.findOne(filtro);
+    if (existente) return existente;
+
+    try {
+        return await CollectionParticipant.create({
+            participantRef: `participant-${crypto.randomUUID()}`,
+            collectionRef: coleta._id,
+            displayName: identidade.displayName,
+            normalizedName: identidade.normalizedName,
+            resolutionStatus: "pending",
+        });
+    } catch (erro) {
+        if (erro?.code === 11000) {
+            const criadoEmParalelo = await CollectionParticipant.findOne(filtro);
+            if (criadoEmParalelo) return criadoEmParalelo;
+        }
+        throw erro;
+    }
+};
+
+const parearParticipante = async (req, res) => {
+    const codigo = req.body?.code;
+    const ip = req.ip;
+
+    try {
+        let identidade;
+        try {
+            identidade = normalizarIdentidadeParticipante(
+                req.body?.participantName,
+            );
+        } catch (erroValidacao) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: erroValidacao.message,
+            });
+        }
+
+        if (pareamentoEstaLimitado(ip, codigo)) {
+            return res.status(429).json({
+                sucesso: false,
+                mensagem:
+                    "Muitas tentativas de pareamento. Aguarde alguns minutos.",
+            });
+        }
+
+        if (
+            String(codigo || "").length > 32 ||
+            !codigoColetaTemFormatoValido(codigo)
+        ) {
+            registrarFalhaPareamento(ip, codigo);
+            return responderCodigoIndisponivel(res);
+        }
+
+        const coleta = await ObservationCollection.findOne({
+            pairingCodeHash: calcularHashCodigoColeta(codigo),
+        });
+        const agora = new Date();
+        const coletaDisponivel =
+            coleta?.status === "active" &&
+            new Date(coleta.startsAt) <= agora &&
+            new Date(coleta.expiresAt) > agora;
+
+        if (!coletaDisponivel) {
+            registrarFalhaPareamento(ip, codigo);
+            return responderCodigoIndisponivel(res);
+        }
+
+        const participante = await obterOuCriarParticipante(coleta, identidade);
+        const segundosRestantes = Math.floor(
+            (new Date(coleta.expiresAt).getTime() - agora.getTime()) / 1000,
+        );
+        const duracaoCredencial = Math.min(
+            DURACAO_MAXIMA_CREDENCIAL_SEGUNDOS,
+            segundosRestantes,
+        );
+        if (duracaoCredencial < 1) {
+            return responderCodigoIndisponivel(res);
+        }
+
+        const token = jwt.sign(
+            {
+                tokenType: "observation-upload",
+                collectionId: coleta.collectionId,
+                participantRef: participante.participantRef,
+            },
+            process.env.JWT_SECRET,
+            {
+                audience: "ludus-observa",
+                issuer: "ludus-acompanha",
+                subject: participante.participantRef,
+                expiresIn: duracaoCredencial,
+            },
+        );
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Participante vinculado à coleta.",
+            participante: {
+                participantRef: participante.participantRef,
+                displayName: participante.displayName,
+                resolutionStatus: participante.resolutionStatus,
+            },
+            coleta: {
+                collectionId: coleta.collectionId,
+                title: coleta.title,
+                expiresAt: coleta.expiresAt,
+            },
+            credencial: {
+                token,
+                expiresAt: new Date(
+                    agora.getTime() + duracaoCredencial * 1000,
+                ),
+            },
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao parear participante:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao parear participante.",
+        });
+    }
+};
+
 module.exports = {
     criarColeta,
     listarColetas,
+    parearParticipante,
     revogarColeta,
 };

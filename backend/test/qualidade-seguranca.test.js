@@ -14,10 +14,14 @@ const Group = require("../src/models/Group");
 const Student = require("../src/models/Student");
 const Session = require("../src/models/Session");
 const Game = require("../src/models/Game");
+const CollectionParticipant = require("../src/models/CollectionParticipant");
 const ObservationCollection = require("../src/models/ObservationCollection");
 const {
     compararCodigoColeta,
 } = require("../src/services/collectionCode");
+const {
+    limparTentativasPareamento,
+} = require("../src/services/pairingAttemptLimiter");
 
 let mongo;
 
@@ -115,6 +119,7 @@ before(async () => {
 
 beforeEach(async () => {
     await mongoose.connection.db.dropDatabase();
+    limparTentativasPareamento();
 });
 
 after(async () => {
@@ -265,6 +270,129 @@ test("recusa validade, origem e turma invalidas ao criar coleta", async () => {
         .expect(400);
 
     assert.equal(await ObservationCollection.countDocuments(), 0);
+});
+
+test("pareia nome e codigo sem criar aluno e emite credencial limitada", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const quantidadeAlunosAntes = await Student.countDocuments();
+    const criada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ title: "Coleta para pareamento", groupId: String(turmaA._id) })
+        .expect(201);
+
+    const pareada = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario.toLowerCase(),
+            participantName: "  Aluna Fictícia  ",
+        })
+        .expect(200);
+
+    assert.equal(pareada.body.participante.displayName, "Aluna Fictícia");
+    assert.equal(pareada.body.participante.resolutionStatus, "pending");
+    assert.equal(
+        pareada.body.coleta.collectionId,
+        criada.body.coleta.collectionId,
+    );
+    assert.equal(await Student.countDocuments(), quantidadeAlunosAntes);
+    assert.equal(await CollectionParticipant.countDocuments(), 1);
+
+    const credencialDecodificada = jwt.verify(
+        pareada.body.credencial.token,
+        process.env.JWT_SECRET,
+        {
+            audience: "ludus-observa",
+            issuer: "ludus-acompanha",
+        },
+    );
+    assert.equal(credencialDecodificada.tokenType, "observation-upload");
+    assert.equal(
+        credencialDecodificada.collectionId,
+        criada.body.coleta.collectionId,
+    );
+    assert.equal(
+        credencialDecodificada.participantRef,
+        pareada.body.participante.participantRef,
+    );
+    assert.equal(Object.hasOwn(credencialDecodificada, "id"), false);
+    assert.equal(Object.hasOwn(credencialDecodificada, "displayName"), false);
+
+    const repetida = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario.replace("-", " "),
+            participantName: "aluna ficticia",
+        })
+        .expect(200);
+    assert.equal(
+        repetida.body.participante.participantRef,
+        pareada.body.participante.participantRef,
+    );
+    assert.equal(await CollectionParticipant.countDocuments(), 1);
+
+    await request(app)
+        .get("/api/collections")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .expect(401);
+});
+
+test("recusa pareamento indisponivel e limita tentativas de codigo", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const autorizacao = `Bearer ${tokenDe(professoraA)}`;
+    const criar = (title) =>
+        request(app)
+            .post("/api/collections")
+            .set("Authorization", autorizacao)
+            .send({ title, groupId: String(turmaA._id) });
+
+    await request(app)
+        .post("/api/collections/pair")
+        .send({ code: "AAA-AAA", participantName: " " })
+        .expect(400);
+    await request(app)
+        .post("/api/collections/pair")
+        .send({ code: "AAA-AAA", participantName: "Aluno fictício" })
+        .expect(401);
+
+    const revogada = await criar("Coleta revogada").expect(201);
+    await request(app)
+        .patch(`/api/collections/${revogada.body.coleta.collectionId}/revoke`)
+        .set("Authorization", autorizacao)
+        .expect(200);
+    await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: revogada.body.codigoTemporario,
+            participantName: "Aluno fictício",
+        })
+        .expect(401);
+
+    const expirada = await criar("Coleta expirada").expect(201);
+    await ObservationCollection.updateOne(
+        { collectionId: expirada.body.coleta.collectionId },
+        { $set: { expiresAt: new Date(Date.now() - 1000) } },
+    );
+    await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: expirada.body.codigoTemporario,
+            participantName: "Aluno fictício",
+        })
+        .expect(401);
+
+    for (let tentativa = 0; tentativa < 20; tentativa += 1) {
+        await request(app)
+            .post("/api/collections/pair")
+            .send({ code: "BBB-BBB", participantName: "Aluno fictício" })
+            .expect(401);
+    }
+    await request(app)
+        .post("/api/collections/pair")
+        .send({ code: "BBB-BBB", participantName: "Aluno fictício" })
+        .expect(429);
+
+    assert.equal(await CollectionParticipant.countDocuments(), 0);
 });
 
 const jsonImportavel = () => ({

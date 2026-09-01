@@ -31,6 +31,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   coleta com confirmação explícita;
 - código de sala reduzido para seis caracteres sem símbolos ambíguos e modo de
   apresentação com instruções ampliadas para a turma;
+- pareamento público por nome e código, com participante temporário pendente,
+  credencial observacional de até 30 minutos e sem criação precoce de aluno;
+- limitação de falhas de pareamento por IP assinado e código, sem conservar o
+  endereço IP legível na memória do processo;
 - adaptador para telemetria observacional externa e metadados de capacidades;
 - alunos individuais por jogo e associação automática de alunos escolares ao jogo identificado no JSON;
 - visão geral de alunos com os jogos e totais de sessões realmente registrados;
@@ -74,6 +78,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   cópia e apresentação, sem depender de recarregar a página;
 - backend ampliado para 14/14 testes aprovados; lint e build do frontend
   permaneceram aprovados.
+- backend ampliado para 16/16 testes: pareamento idempotente por nome,
+  revogação, expiração, limitação de tentativas e isolamento da credencial em
+  relação às rotas comuns do Dashboard.
 
 ---
 

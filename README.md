@@ -246,6 +246,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | POST   | `/api/sessions/import-batch/:studentId/preview` | Valida e resume um lote observacional sem gravar |
 | POST   | `/api/sessions/import-batch/:studentId/confirm` | Confirma e separa o lote por jogo e sessao |
 | POST   | `/api/collections`                 | Cria coleta e exibe seu código temporário uma vez |
+| POST   | `/api/collections/pair`            | Valida nome e código e emite credencial observacional limitada |
 | GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
 | PATCH  | `/api/collections/:collectionId/revoke` | Revoga o código de uma coleta |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
@@ -330,6 +331,15 @@ de sala: cada estudante informa o próprio nome e o mesmo código uma única vez
 no computador que utilizará. A tela **Coletas** oferece um modo de apresentação
 com instruções ampliadas. O futuro portal Mais LUDUS também poderá embutir esse
 mesmo código em um link de entrada, sem criar uma segunda credencial.
+
+O endpoint público de pareamento aceita somente nome e código. Ele valida se a
+coleta está ativa, dentro da validade e não revogada, aplica limite de
+tentativas e cria uma referência temporária de participante pendente. Nenhum
+aluno definitivo é criado nessa etapa. A credencial retornada dura no máximo
+30 minutos, não contém o nome nem a identidade da professora e é recusada pelas
+rotas autenticadas comuns do Dashboard. O limite de tentativas usa memória da
+instância no piloto; uma implantação horizontal deverá adotar armazenamento
+compartilhado, como Redis.
 
 ---
 

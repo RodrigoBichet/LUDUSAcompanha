@@ -24,6 +24,9 @@ const autenticar = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded.id || decoded.tokenType) {
+            throw new Error("Tipo de credencial incompatível com o Dashboard.");
+        }
         req.usuarioId = decoded.id;
         next();
     } catch (erro) {
