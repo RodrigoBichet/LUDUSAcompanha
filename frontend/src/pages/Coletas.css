@@ -1,0 +1,392 @@
+.pagina-coletas {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 1120px;
+    width: 100%;
+}
+
+.introducao-coletas {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    background: linear-gradient(135deg, #eefcf7, #f7f5ff);
+}
+
+.introducao-coletas p,
+.cabecalho-lista-coletas p {
+    margin-top: 0.35rem;
+    color: var(--cor-texto-leve);
+}
+
+.introducao-coletas > span {
+    font-size: 2.5rem;
+}
+
+.formulario-coleta {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr) minmax(150px, 0.6fr);
+    align-items: start;
+    gap: 1rem;
+}
+
+.formulario-coleta label {
+    display: grid;
+    gap: 0.45rem;
+    font-weight: 700;
+}
+
+.formulario-coleta input,
+.formulario-coleta select,
+.formulario-coleta textarea {
+    width: 100%;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: white;
+    color: var(--cor-texto);
+    font: inherit;
+}
+
+.formulario-coleta input:focus,
+.formulario-coleta select:focus,
+.formulario-coleta textarea:focus {
+    border-color: var(--cor-primaria);
+    outline: 3px solid rgba(78, 203, 160, 0.15);
+}
+
+.campo-origens-coleta,
+.formulario-coleta > .mensagem-coleta,
+.formulario-coleta > .btn-primario {
+    grid-column: 1 / -1;
+}
+
+.campo-origens-coleta small {
+    color: var(--cor-texto-leve);
+    font-weight: 400;
+}
+
+.formulario-coleta > .btn-primario {
+    justify-self: start;
+}
+
+.mensagem-coleta {
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+}
+
+.mensagem-coleta.erro {
+    background: #fff0f0;
+    color: #9f2424;
+}
+
+.mensagem-coleta.sucesso {
+    background: #eafaf4;
+    color: #17634d;
+}
+
+.mensagem-coleta.aviso {
+    background: #fff7dc;
+    color: #785400;
+}
+
+.codigo-coleta {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    border: 2px solid #5546eb;
+    border-radius: var(--raio);
+    padding: 1.5rem;
+    background: #f3f1ff;
+    text-align: center;
+}
+
+.codigo-coleta p {
+    color: #30258b;
+    font-weight: 700;
+}
+
+.codigo-coleta strong {
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+    letter-spacing: 0.12em;
+    color: #241a76;
+    user-select: all;
+}
+
+.codigo-coleta button {
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    background: #5546eb;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.acoes-codigo-coleta {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.codigo-coleta .btn-apresentar-coleta {
+    border: 1px solid #5546eb;
+    background: white;
+    color: #30258b;
+}
+
+.codigo-coleta small {
+    color: #5d568a;
+}
+
+.lista-coletas-secao,
+.lista-coletas {
+    display: grid;
+    gap: 1rem;
+}
+
+.cabecalho-lista-coletas {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.coleta-card {
+    display: grid;
+    gap: 1rem;
+}
+
+.coleta-card-principal {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.coleta-card-principal h3 {
+    margin: 0.5rem 0 0.25rem;
+}
+
+.coleta-card-principal p {
+    color: var(--cor-texto-leve);
+}
+
+.coleta-card-principal dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+    gap: 1rem;
+}
+
+.coleta-card-principal dl div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.coleta-card-principal dt {
+    color: var(--cor-texto-leve);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.coleta-card-principal dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.estado-coleta {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    background: #eafaf4;
+    color: #17634d;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.estado-coleta.revogada,
+.estado-coleta.expirada,
+.estado-coleta.encerrada {
+    background: #f1f1f4;
+    color: #656575;
+}
+
+.btn-revogar-coleta,
+.btn-revogar-confirmar {
+    justify-self: start;
+    border: 1px solid #d65858;
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    background: transparent;
+    color: #a52d2d;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-revogar-confirmar {
+    background: #a52d2d;
+    color: white;
+}
+
+.confirmacao-revogacao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-top: 1px solid var(--cor-borda);
+    padding-top: 1rem;
+}
+
+.confirmacao-revogacao > div {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.apresentacao-coleta {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    height: 100dvh;
+    overflow: hidden;
+    padding: clamp(1rem, 2.5vh, 2rem);
+    background: linear-gradient(145deg, #17104f, #30258b 58%, #5546eb);
+    color: white;
+}
+
+.fechar-apresentacao-coleta {
+    position: fixed;
+    top: 1.5rem;
+    right: 2rem;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+    width: 3rem;
+    height: 3rem;
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.conteudo-apresentacao-coleta {
+    display: grid;
+    justify-items: center;
+    gap: clamp(0.45rem, 1.4vh, 1rem);
+    width: min(900px, 100%);
+    max-height: 100%;
+    text-align: center;
+}
+
+.marca-apresentacao-coleta {
+    color: #bff4e1;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.conteudo-apresentacao-coleta h2 {
+    margin: 0;
+    color: white;
+    font-size: clamp(2rem, 4.5vw, 4rem);
+}
+
+.turma-apresentacao-coleta {
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+}
+
+.conteudo-apresentacao-coleta > strong {
+    border-radius: 20px;
+    padding: 0.16em 0.42em;
+    background: white;
+    color: #241a76;
+    font-size: clamp(4rem, 9vw, 7.5rem);
+    letter-spacing: 0.12em;
+    line-height: 1.1;
+    white-space: nowrap;
+    user-select: all;
+}
+
+.conteudo-apresentacao-coleta ol {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 1.5rem;
+    text-align: left;
+    font-size: clamp(1.3rem, 2.2vw, 1.65rem);
+}
+
+.conteudo-apresentacao-coleta small {
+    color: #dcd8ff;
+    font-size: 1rem;
+}
+
+@media (max-width: 900px) {
+    .formulario-coleta {
+        grid-template-columns: 1fr;
+    }
+
+    .formulario-coleta > * {
+        grid-column: 1;
+    }
+
+    .coleta-card-principal,
+    .confirmacao-revogacao {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 600px) {
+    .pagina-coletas {
+        padding: 1rem;
+    }
+
+    .introducao-coletas > span {
+        display: none;
+    }
+
+    .coleta-card-principal dl {
+        grid-template-columns: 1fr;
+    }
+
+    .confirmacao-revogacao > div {
+        flex-direction: column;
+    }
+
+    .apresentacao-coleta {
+        padding: 4rem 1rem 1rem;
+    }
+
+    .fechar-apresentacao-coleta {
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+
+    .conteudo-apresentacao-coleta > strong {
+        font-size: clamp(2.6rem, 15vw, 4.5rem);
+    }
+}
+
+@media (max-height: 760px) {
+    .marca-apresentacao-coleta,
+    .turma-apresentacao-coleta,
+    .conteudo-apresentacao-coleta > p {
+        margin: 0;
+    }
+
+    .conteudo-apresentacao-coleta h2 {
+        font-size: clamp(1.8rem, 4vw, 3rem);
+    }
+
+    .conteudo-apresentacao-coleta > strong {
+        font-size: clamp(3.5rem, 8vw, 6rem);
+    }
+
+    .conteudo-apresentacao-coleta ol {
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
+    }
+}

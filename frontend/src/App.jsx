@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import DetalhesSessao from "./pages/DetalhesSessao";
 import Turmas from "./pages/Turmas";
+import Coletas from "./pages/Coletas";
 import DetalheTurma from "./pages/DetalheTurma";
 import PerfilAluno from "./pages/PerfilAluno";
 import AlunosJogo from "./pages/AlunosJogo";
@@ -65,6 +66,16 @@ function App() {
                             <RotaProtegida>
                                 <Layout>
                                     <Turmas />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/coletas"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <Coletas />
                                 </Layout>
                             </RotaProtegida>
                         }

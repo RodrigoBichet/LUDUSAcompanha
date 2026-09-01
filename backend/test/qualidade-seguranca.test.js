@@ -14,6 +14,10 @@ const Group = require("../src/models/Group");
 const Student = require("../src/models/Student");
 const Session = require("../src/models/Session");
 const Game = require("../src/models/Game");
+const ObservationCollection = require("../src/models/ObservationCollection");
+const {
+    compararCodigoColeta,
+} = require("../src/services/collectionCode");
 
 let mongo;
 
@@ -93,12 +97,175 @@ const criarCenarioEscolar = async () => {
         admin,
         professoraA,
         professoraB,
+        instituicaoA,
+        instituicaoB,
+        turmaA,
+        turmaB,
         alunoA,
         segundoAlunoA,
         alunoB,
         alunoProtegido,
     };
 };
+
+before(async () => {
+    mongo = await MongoMemoryServer.create();
+    await mongoose.connect(mongo.getUri());
+});
+
+beforeEach(async () => {
+    await mongoose.connection.db.dropDatabase();
+});
+
+after(async () => {
+    await mongoose.disconnect();
+    await mongo.stop();
+});
+
+test("cria coleta temporaria sem persistir o codigo legivel", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+
+    await request(app).post("/api/collections").send({}).expect(401);
+
+    const resposta = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            title: "Coleta fictícia da manhã",
+            groupId: String(turmaA._id),
+            durationMinutes: 60,
+            allowedOrigins: [
+                "https://jogos.exemplo.test/atividade",
+                "https://jogos.exemplo.test/outra",
+            ],
+        })
+        .expect(201);
+
+    assert.match(
+        resposta.body.codigoTemporario,
+        /^[A-HJ-NP-Z2-9]{3}-[A-HJ-NP-Z2-9]{3}$/,
+    );
+    assert.equal(resposta.body.coleta.status, "active");
+    assert.deepEqual(resposta.body.coleta.allowedOrigins, [
+        "https://jogos.exemplo.test",
+    ]);
+    assert.equal(
+        Object.hasOwn(resposta.body.coleta, "pairingCodeHash"),
+        false,
+    );
+
+    const coletaPersistida = await ObservationCollection.findOne({
+        collectionId: resposta.body.coleta.collectionId,
+    }).select("+pairingCodeHash");
+    assert.ok(coletaPersistida);
+    assert.notEqual(
+        coletaPersistida.pairingCodeHash,
+        resposta.body.codigoTemporario,
+    );
+    assert.equal(
+        compararCodigoColeta(
+            resposta.body.codigoTemporario.toLowerCase().replaceAll("-", " "),
+            coletaPersistida.pairingCodeHash,
+        ),
+        true,
+    );
+
+    const validadeMs =
+        new Date(coletaPersistida.expiresAt).getTime() -
+        new Date(coletaPersistida.startsAt).getTime();
+    assert.equal(validadeMs, 60 * 60 * 1000);
+
+    const listagem = await request(app)
+        .get("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(listagem.body.total, 1);
+    assert.equal(
+        Object.hasOwn(listagem.body.coletas[0], "pairingCodeHash"),
+        false,
+    );
+    assert.equal(
+        Object.hasOwn(listagem.body.coletas[0], "codigoTemporario"),
+        false,
+    );
+});
+
+test("isola coleta por professora e permite revogacao idempotente", async () => {
+    const { professoraA, professoraB, turmaA, turmaB } =
+        await criarCenarioEscolar();
+
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ title: "Turma alheia", groupId: String(turmaB._id) })
+        .expect(404);
+
+    const criadaA = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ title: "Coleta A", groupId: String(turmaA._id) })
+        .expect(201);
+    const criadaB = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+        .send({ title: "Coleta B", groupId: String(turmaB._id) })
+        .expect(201);
+
+    await request(app)
+        .patch(`/api/collections/${criadaB.body.coleta.collectionId}/revoke`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(404);
+
+    const revogada = await request(app)
+        .patch(`/api/collections/${criadaA.body.coleta.collectionId}/revoke`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(revogada.body.coleta.status, "revoked");
+    assert.ok(revogada.body.coleta.revokedAt);
+
+    const repetida = await request(app)
+        .patch(`/api/collections/${criadaA.body.coleta.collectionId}/revoke`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(repetida.body.coleta.status, "revoked");
+
+    const listaA = await request(app)
+        .get("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(listaA.body.total, 1);
+});
+
+test("recusa validade, origem e turma invalidas ao criar coleta", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const autorizacao = `Bearer ${tokenDe(professoraA)}`;
+
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacao)
+        .send({
+            title: "Validade curta",
+            groupId: String(turmaA._id),
+            durationMinutes: 14,
+        })
+        .expect(400);
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacao)
+        .send({
+            title: "Origem inválida",
+            groupId: String(turmaA._id),
+            allowedOrigins: ["javascript:alert(1)"],
+        })
+        .expect(400);
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacao)
+        .send({ title: "Turma inválida", groupId: "nao-e-object-id" })
+        .expect(400);
+
+    assert.equal(await ObservationCollection.countDocuments(), 0);
+});
 
 const jsonImportavel = () => ({
     sessionId: "arquivo-origem-unico",
@@ -249,20 +416,6 @@ const sessaoSdkWebglDeTeste = (aluno) => ({
         },
     ],
     screenshots: [],
-});
-
-before(async () => {
-    mongo = await MongoMemoryServer.create();
-    await mongoose.connect(mongo.getUri());
-});
-
-beforeEach(async () => {
-    await mongoose.connection.db.dropDatabase();
-});
-
-after(async () => {
-    await mongoose.disconnect();
-    await mongo.stop();
 });
 
 test("protege leituras por autenticacao e isola professoras", async () => {

@@ -245,6 +245,9 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | POST   | `/api/sessions`                     | Recebe sessoes do SDK Unity   |
 | POST   | `/api/sessions/import-batch/:studentId/preview` | Valida e resume um lote observacional sem gravar |
 | POST   | `/api/sessions/import-batch/:studentId/confirm` | Confirma e separa o lote por jogo e sessao |
+| POST   | `/api/collections`                 | Cria coleta e exibe seu código temporário uma vez |
+| GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
+| PATCH  | `/api/collections/:collectionId/revoke` | Revoga o código de uma coleta |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
 | GET    | `/api/sessions/student/:studentId`  | Historico por aluno real      |
 | GET    | `/api/dashboard/summary/:studentId` | Aceita `?gameId=...`          |
@@ -260,6 +263,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Login                  | `/login`              | Autenticacao JWT                                                          |
 | Jogos                  | `/`                   | Catálogo de jogos e acesso direto aos alunos associados                    |
 | Alunos                 | `/alunos`             | Visão geral dos alunos e dos jogos com sessões registradas                 |
+| Coletas                | `/coletas`            | Criação, validade, listagem e revogação de coletas escolares observacionais |
 | Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
 | Instituições           | `/turmas`             | Cadastro de instituições, seleção e gerenciamento de turmas               |
 | Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos vinculados à turma                              |
@@ -307,6 +311,25 @@ automática de alunos por turma e coleta será tratada em uma etapa posterior,
 quando houver contexto suficiente para evitar vínculos escolares incorretos.
 
 As sessões continuam vinculadas canonicamente por `studentId`; `playerId` é apenas exibição. Um aluno pode ter sessões de mais de um jogo, e resumos, histórico e alertas aceitam filtro opcional por `gameId`.
+
+## Coletas escolares e código temporário
+
+Uma professora autenticada pode preparar uma coleta para uma turma e receber
+um código temporário curto no formato `XXX-XXX`. Esse código não representa
+a conta da professora, não substitui sua senha ou JWT e não permite consultar o
+Dashboard. Ele será usado posteriormente para parear os computadores da sala
+somente com a coleta, instituição e turma escolhidas.
+
+O valor legível aparece apenas na resposta de criação. O banco guarda somente
+um HMAC do código, que possui validade entre 15 minutos e 8 horas e pode ser
+revogado pela professora. O pareamento da extensão e a credencial limitada de
+envio pertencem ao próximo recorte do Marco 4.
+
+O formato curto permite que a professora projete o código como em uma dinâmica
+de sala: cada estudante informa o próprio nome e o mesmo código uma única vez
+no computador que utilizará. A tela **Coletas** oferece um modo de apresentação
+com instruções ampliadas. O futuro portal Mais LUDUS também poderá embutir esse
+mesmo código em um link de entrada, sem criar uma segunda credencial.
 
 ---
 

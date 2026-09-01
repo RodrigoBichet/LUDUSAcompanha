@@ -23,6 +23,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - schema JSON estrito e versionado para o envelope de lote observacional;
 - ambiente manual efêmero com MongoDB em memória e dados exclusivamente
   fictícios para validar o lote sem ler o `.env` nem acessar o Atlas;
+- criação e listagem autenticadas de coletas escolares observacionais por
+  turma, com validade limitada e origens Web opcionais;
+- código temporário de pareamento exibido somente na criação e persistido no
+  banco apenas como HMAC, sem reutilizar senha ou JWT da professora;
+- tela **Coletas** para gerar o código, copiar, acompanhar validade e revogar a
+  coleta com confirmação explícita;
+- código de sala reduzido para seis caracteres sem símbolos ambíguos e modo de
+  apresentação com instruções ampliadas para a turma;
 - adaptador para telemetria observacional externa e metadados de capacidades;
 - alunos individuais por jogo e associação automática de alunos escolares ao jogo identificado no JSON;
 - visão geral de alunos com os jogos e totais de sessões realmente registrados;
@@ -57,6 +65,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - reimportação do mesmo lote reconhecida sem criar sessões duplicadas;
 - ambiente manual efêmero encerrado com descarte do MongoDB em memória;
 - backend com 11/11 testes aprovados, além de lint e build do frontend.
+- administração da coleta validada manualmente: criação, cópia do código,
+  persistência da coleta sem reexibir o segredo após recarga e revogação;
+- formato curto `XXX-XXX` coberto pelos testes automatizados; modo de
+  apresentação validado manualmente em 100% de zoom, sem rolagem, com código
+  em uma linha e instruções legíveis;
+- revogação da coleta validada com remoção imediata do código e das ações de
+  cópia e apresentação, sem depender de recarregar a página;
+- backend ampliado para 14/14 testes aprovados; lint e build do frontend
+  permaneceram aprovados.
 
 ---
 

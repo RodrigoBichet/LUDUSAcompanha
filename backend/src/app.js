@@ -43,6 +43,7 @@ app.use("/api/institutions", require("./routes/institutions"));
 app.use("/api/groups", require("./routes/groups"));
 app.use("/api/students", require("./routes/students"));
 app.use("/api/games", require("./routes/games"));
+app.use("/api/collections", require("./routes/collections"));
 app.use("/api/sessions", require("./routes/sessions"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
