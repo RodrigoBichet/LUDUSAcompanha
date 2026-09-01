@@ -16,6 +16,7 @@ const Session = require("../src/models/Session");
 const Game = require("../src/models/Game");
 const CollectionParticipant = require("../src/models/CollectionParticipant");
 const ObservationCollection = require("../src/models/ObservationCollection");
+const ObservationSubmission = require("../src/models/ObservationSubmission");
 const {
     compararCodigoColeta,
 } = require("../src/services/collectionCode");
@@ -482,6 +483,109 @@ const loteObservacionalDeTeste = (nomeParticipante) => ({
             "jogo-observacional-b",
         ),
     ],
+});
+
+const prepararColetaPareada = async ({ professora, turma, nomeParticipante }) => {
+    const criada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professora)}`)
+        .send({
+            title: "Coleta de recebimento fictícia",
+            groupId: String(turma._id),
+        })
+        .expect(201);
+    const pareada = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario,
+            participantName: nomeParticipante,
+        })
+        .expect(200);
+    const lote = loteObservacionalDeTeste(
+        pareada.body.participante.displayName,
+    );
+    lote.collectionRef = criada.body.coleta.collectionId;
+    lote.participant.participantRef =
+        pareada.body.participante.participantRef;
+
+    return { criada, lote, pareada };
+};
+
+test("recebe lote pareado de forma idempotente sem criar aluno ou sessao", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const alunosAntes = await Student.countDocuments();
+    const sessoesAntes = await Session.countDocuments();
+    const { lote, pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Aluna Fictícia da Coleta",
+    });
+
+    await request(app)
+        .post("/api/collections/submissions")
+        .send({ lote })
+        .expect(401);
+
+    const recebida = await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(201);
+
+    assert.equal(recebida.body.totalRecebidas, 2);
+    assert.equal(recebida.body.totalJaRecebidas, 0);
+    assert.equal(recebida.body.recibos.length, 2);
+    assert.ok(recebida.body.recibos.every((item) => item.status === "pending"));
+    assert.equal(await ObservationSubmission.countDocuments(), 2);
+    assert.equal(await Student.countDocuments(), alunosAntes);
+    assert.equal(await Session.countDocuments(), sessoesAntes);
+
+    const repetida = await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(200);
+    assert.equal(repetida.body.totalRecebidas, 0);
+    assert.equal(repetida.body.totalJaRecebidas, 2);
+    assert.equal(await ObservationSubmission.countDocuments(), 2);
+
+    lote.sessions[0].gameId = "jogo-alterado-no-reenvio";
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(409);
+    assert.equal(await ObservationSubmission.countDocuments(), 2);
+});
+
+test("recusa lote de outro participante e coleta revogada", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const { criada, lote, pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Participante Fictício Seguro",
+    });
+
+    lote.participant.participantRef = "participant-ref-de-outro-computador";
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(403);
+    assert.equal(await ObservationSubmission.countDocuments(), 0);
+
+    lote.participant.participantRef =
+        pareada.body.participante.participantRef;
+    await request(app)
+        .patch(`/api/collections/${criada.body.coleta.collectionId}/revoke`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(401);
+    assert.equal(await ObservationSubmission.countDocuments(), 0);
 });
 
 // Representa a forma canônica produzida pelo LUDUS Unity SDK em um build WebGL.

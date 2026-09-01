@@ -37,6 +37,49 @@ const autenticar = (req, res, next) => {
     }
 };
 
+// Credencial restrita emitida após nome+código da coleta. Não concede acesso
+// às rotas do Dashboard e serve somente para entregar telemetria observacional.
+const autenticarEnvioObservacional = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            sucesso: false,
+            mensagem: "Credencial observacional não fornecida.",
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(
+            authHeader.slice("Bearer ".length),
+            process.env.JWT_SECRET,
+            {
+                audience: "ludus-observa",
+                issuer: "ludus-acompanha",
+            },
+        );
+        if (
+            decoded.tokenType !== "observation-upload" ||
+            typeof decoded.collectionId !== "string" ||
+            typeof decoded.participantRef !== "string" ||
+            decoded.sub !== decoded.participantRef ||
+            decoded.id
+        ) {
+            throw new Error("Tipo de credencial observacional inválido.");
+        }
+
+        req.credencialObservacional = {
+            collectionId: decoded.collectionId,
+            participantRef: decoded.participantRef,
+        };
+        return next();
+    } catch {
+        return res.status(401).json({
+            sucesso: false,
+            mensagem: "Credencial observacional inválida ou expirada.",
+        });
+    }
+};
+
 // Middleware que verifica se o usuário é admin
 const apenasAdmin = async (req, res, next) => {
     const User = require("../models/User");
@@ -52,4 +95,4 @@ const apenasAdmin = async (req, res, next) => {
     next();
 };
 
-module.exports = { autenticar, apenasAdmin };
+module.exports = { autenticar, autenticarEnvioObservacional, apenasAdmin };

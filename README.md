@@ -247,6 +247,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | POST   | `/api/sessions/import-batch/:studentId/confirm` | Confirma e separa o lote por jogo e sessao |
 | POST   | `/api/collections`                 | Cria coleta e exibe seu código temporário uma vez |
 | POST   | `/api/collections/pair`            | Valida nome e código e emite credencial observacional limitada |
+| POST   | `/api/collections/submissions`     | Recebe sessões pareadas em uma caixa pendente, com recibos idempotentes |
 | GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
 | PATCH  | `/api/collections/:collectionId/revoke` | Revoga o código de uma coleta |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
@@ -323,8 +324,8 @@ somente com a coleta, instituição e turma escolhidas.
 
 O valor legível aparece apenas na resposta de criação. O banco guarda somente
 um HMAC do código, que possui validade entre 15 minutos e 8 horas e pode ser
-revogado pela professora. O pareamento da extensão e a credencial limitada de
-envio pertencem ao próximo recorte do Marco 4.
+revogado pela professora. O pareamento da extensão emite uma credencial limitada
+ao envio daquela coleta e daquele participante temporário.
 
 O formato curto permite que a professora projete o código como em uma dinâmica
 de sala: cada estudante informa o próprio nome e o mesmo código uma única vez
@@ -340,6 +341,13 @@ a coleta, em no máximo 8 horas, não contém o nome nem a identidade da profess
 rotas autenticadas comuns do Dashboard. O limite de tentativas usa memória da
 instância no piloto; uma implantação horizontal deverá adotar armazenamento
 compartilhado, como Redis.
+
+As sessões concluídas podem ser enviadas por `POST /api/collections/submissions`.
+O backend valida integralmente o lote e a correspondência entre credencial,
+coleta e participante, grava cada sessão em uma caixa pendente e devolve um
+recibo idempotente. Esse recebimento não cria automaticamente um aluno nem uma
+sessão definitiva: a revisão e confirmação docente permanecem como etapa
+separada do fluxo.
 
 ---
 

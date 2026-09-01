@@ -32,12 +32,12 @@ export default function PrivacidadeLudusObserva() {
             <section className="privacidade-observa-destaque" aria-labelledby="resumo-politica">
                 <div>
                     <p className="privacidade-observa-etiqueta">Resumo direto</p>
-                    <h2 id="resumo-politica">A extensão não envia sua telemetria para servidores.</h2>
+                    <h2 id="resumo-politica">A extensão só envia sessões após o vínculo consciente com a turma.</h2>
                 </div>
                 <p>
-                    Nome completo e código temporário são enviados somente para validar a coleta
-                    escolar. Os registros das interações permanecem localmente no navegador, e
-                    somente a pessoa usuária decide quando baixar ou descartar o lote JSON.
+                    Nome completo e código temporário validam a coleta escolar. Depois dessa
+                    confirmação, sessões concluídas são enviadas à caixa pendente da professora e
+                    permanecem localmente até o servidor confirmar o recebimento.
                 </p>
             </section>
 
@@ -47,7 +47,7 @@ export default function PrivacidadeLudusObserva() {
                     <p>
                         O LUDUS Observa registra evidências técnicas parciais de interação dentro
                         da área de um jogo Web escolhida conscientemente pela pessoa usuária. O
-                        resultado é um JSON local compatível com o LUDUS Acompanha.
+                        resultado é um envelope observacional compatível com o LUDUS Acompanha.
                     </p>
                     <p>
                         O recurso oferece apoio à observação e à mediação pedagógica. Ele não
@@ -70,7 +70,7 @@ export default function PrivacidadeLudusObserva() {
                 </section>
 
                 <section className="privacidade-observa-card">
-                    <h2>Dados processados localmente</h2>
+                    <h2>Dados observacionais processados</h2>
                     <ul>
                         <li>origem do site selecionado, sem conservar o caminho completo no JSON;</li>
                         <li>tamanho da área observada;</li>
@@ -78,7 +78,7 @@ export default function PrivacidadeLudusObserva() {
                         <li>amostras da trajetória do ponteiro;</li>
                         <li>amostras do ponteiro pressionado;</li>
                         <li>início, encerramento e duração da sessão;</li>
-                        <li>nome técnico da atividade informado pela pessoa usuária.</li>
+                        <li>nome técnico da atividade informado pela pessoa usuária;</li>
                         <li>nome de exibição do participante informado para organizar o lote.</li>
                     </ul>
                 </section>
@@ -101,15 +101,15 @@ export default function PrivacidadeLudusObserva() {
                     <p>
                         A sessão ativa é processada localmente. Ao encerrá-la, suas interações
                         ficam no armazenamento local da extensão e compõem o acompanhamento
-                        multi-jogo do participante. Isso permite percorrer jogos diferentes e
-                        gerar um único lote JSON ao final da atividade.
+                        multi-jogo do participante.
                     </p>
                     <p>
-                        A extensão envia ao LUDUS Acompanha somente o nome completo e o código
-                        temporário no pareamento consciente. Não transmite cliques, trajetórias,
-                        ponteiro pressionado, conteúdo do jogo ou analytics. A pessoa usuária pode
-                        exportar o lote, encerrar o acompanhamento e apagar os dados locais. Depois
-                        do download, o controle do arquivo pertence à pessoa que o baixou.
+                        Após o pareamento consciente, cada sessão concluída é enviada somente à
+                        coleta correspondente, usando uma credencial temporária e limitada. O
+                        envelope pode conter cliques, trajetórias, ponteiro pressionado, duração e
+                        tamanho da área, mas não contém texto digitado, senhas ou conteúdo interno
+                        do jogo. A cópia local só é considerada entregue após o recibo do servidor,
+                        e o lote JSON permanece disponível como recuperação manual.
                     </p>
                 </section>
 
@@ -150,8 +150,8 @@ export default function PrivacidadeLudusObserva() {
                     <p>
                         Nenhuma captura começa automaticamente. A pessoa confirma nome e código,
                         localiza cada jogo e inicia conscientemente suas sessões. Ela pode encerrar
-                        uma sessão, gerar o lote JSON, trocar o participante ou apagar os registros
-                        locais.
+                        uma sessão, baixar o lote de recuperação, trocar o participante ou apagar
+                        os registros locais depois da confirmação dos envios.
                     </p>
                     <p>
                         Sem informações fornecidas pelo próprio jogo, o LUDUS Observa não infere

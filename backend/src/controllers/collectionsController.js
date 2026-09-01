@@ -9,6 +9,13 @@ const mongoose = require("mongoose");
 const Group = require("../models/Group");
 const CollectionParticipant = require("../models/CollectionParticipant");
 const ObservationCollection = require("../models/ObservationCollection");
+const ObservationSubmission = require("../models/ObservationSubmission");
+const {
+    ErroValidacaoTelemetria,
+} = require("../services/telemetryValidator");
+const {
+    validarLoteTelemetria,
+} = require("../services/batchTelemetryValidator");
 const {
     obterContextoEscolar,
     podeAcessarInstituicao,
@@ -365,9 +372,150 @@ const parearParticipante = async (req, res) => {
     }
 };
 
+const calcularDigestSessao = (sessao) =>
+    crypto.createHash("sha256").update(JSON.stringify(sessao)).digest("hex");
+
+const receberLoteObservacional = async (req, res) => {
+    try {
+        const lote = validarLoteTelemetria(req.body?.lote);
+        const credencial = req.credencialObservacional;
+        const agora = new Date();
+
+        const coleta = await ObservationCollection.findOne({
+            collectionId: credencial.collectionId,
+            status: "active",
+            startsAt: { $lte: agora },
+            expiresAt: { $gt: agora },
+        });
+        if (!coleta) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "A coleta não está disponível para recebimento.",
+            });
+        }
+
+        const participante = await CollectionParticipant.findOne({
+            participantRef: credencial.participantRef,
+            collectionRef: coleta._id,
+        });
+        if (!participante) {
+            return res.status(401).json({
+                sucesso: false,
+                mensagem: "O participante não pertence à coleta informada.",
+            });
+        }
+        if (
+            lote.collectionRef !== coleta.collectionId ||
+            lote.participant.participantRef !== participante.participantRef ||
+            lote.participant.displayName !== participante.displayName
+        ) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O lote não corresponde ao pareamento confirmado.",
+            });
+        }
+
+        const candidatos = lote.sessions.map((sessao) => ({
+            sessao,
+            digest: calcularDigestSessao(sessao),
+        }));
+        const existentes = await ObservationSubmission.find({
+            collectionRef: coleta._id,
+            participantRef: participante._id,
+            sessionId: { $in: candidatos.map(({ sessao }) => sessao.sessionId) },
+        });
+        const porSessao = new Map(
+            existentes.map((item) => [item.sessionId, item]),
+        );
+
+        const conflito = candidatos.find(({ sessao, digest }) => {
+            const existente = porSessao.get(sessao.sessionId);
+            return existente && existente.payloadDigest !== digest;
+        });
+        if (conflito) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem:
+                    "Uma sessão com o mesmo identificador já foi recebida com outro conteúdo.",
+            });
+        }
+
+        const recibos = [];
+        let criadas = 0;
+        for (const { sessao, digest } of candidatos) {
+            let item = porSessao.get(sessao.sessionId);
+            let recebimento = "ja-recebida";
+
+            if (!item) {
+                try {
+                    item = await ObservationSubmission.create({
+                        receiptId: `receipt-${crypto.randomUUID()}`,
+                        collectionRef: coleta._id,
+                        participantRef: participante._id,
+                        batchId: lote.batchId,
+                        sessionId: sessao.sessionId,
+                        payloadDigest: digest,
+                        sessionPayload: sessao,
+                    });
+                    criadas += 1;
+                    recebimento = "recebida";
+                } catch (erro) {
+                    if (erro?.code !== 11000) throw erro;
+                    item = await ObservationSubmission.findOne({
+                        collectionRef: coleta._id,
+                        participantRef: participante._id,
+                        sessionId: sessao.sessionId,
+                    });
+                    if (!item || item.payloadDigest !== digest) {
+                        return res.status(409).json({
+                            sucesso: false,
+                            mensagem:
+                                "A sessão entrou em conflito durante o recebimento.",
+                        });
+                    }
+                }
+            }
+
+            recibos.push({
+                receiptId: item.receiptId,
+                sessionId: item.sessionId,
+                status: item.status,
+                recebimento,
+            });
+        }
+
+        return res.status(criadas > 0 ? 201 : 200).json({
+            sucesso: true,
+            mensagem:
+                criadas > 0
+                    ? "Sessões recebidas para revisão da professora."
+                    : "Todas as sessões já haviam sido recebidas.",
+            collectionId: coleta.collectionId,
+            participantRef: participante.participantRef,
+            totalRecebidas: criadas,
+            totalJaRecebidas: recibos.length - criadas,
+            recibos,
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes,
+            });
+        }
+        console.error("[LUDUS] Erro ao receber lote observacional:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao receber lote observacional.",
+        });
+    }
+};
+
 module.exports = {
     criarColeta,
     listarColetas,
     parearParticipante,
+    receberLoteObservacional,
     revogarColeta,
 };
