@@ -248,6 +248,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | POST   | `/api/collections`                 | Cria coleta e exibe seu código temporário uma vez |
 | POST   | `/api/collections/pair`            | Valida nome e código e emite credencial observacional limitada |
 | POST   | `/api/collections/submissions`     | Recebe sessões pareadas em uma caixa pendente, com recibos idempotentes |
+| GET    | `/api/collections/:collectionId/submissions` | Lista resumos pendentes da coleta para revisão da professora |
 | GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
 | PATCH  | `/api/collections/:collectionId/revoke` | Revoga o código de uma coleta |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
@@ -348,6 +349,11 @@ coleta e participante, grava cada sessão em uma caixa pendente e devolve um
 recibo idempotente. Esse recebimento não cria automaticamente um aluno nem uma
 sessão definitiva: a revisão e confirmação docente permanecem como etapa
 separada do fluxo.
+
+Na tela **Coletas**, a professora pode abrir **Ver recebimentos** para consultar
+os participantes e as sessões pendentes agrupadas por nome. A resposta apresenta
+somente jogo, horário, duração e totais técnicos de interação; coordenadas,
+payload bruto, digest e credenciais não são expostos nessa listagem.
 
 ---
 

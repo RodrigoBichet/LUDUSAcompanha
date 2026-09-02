@@ -3,6 +3,7 @@ import Header from "../components/layout/Header";
 import {
     criarColeta,
     listarColetas,
+    listarRecebimentosColeta,
     listarTurmas,
     revogarColeta,
 } from "../services/api";
@@ -23,6 +24,13 @@ const formatarData = (valor) =>
 
 const obterId = (valor) => valor?._id || valor || "";
 
+const formatarDuracao = (valor) => {
+    const segundos = Math.max(0, Math.round((Number(valor) || 0) / 1000));
+    const minutos = Math.floor(segundos / 60);
+    const resto = segundos % 60;
+    return minutos > 0 ? `${minutos}min ${resto}s` : `${resto}s`;
+};
+
 export default function Coletas() {
     const [coletas, setColetas] = useState([]);
     const [turmas, setTurmas] = useState([]);
@@ -39,6 +47,9 @@ export default function Coletas() {
     const [modoApresentacao, setModoApresentacao] = useState(false);
     const [confirmandoRevogacao, setConfirmandoRevogacao] = useState(null);
     const [revogando, setRevogando] = useState(null);
+    const [coletaAberta, setColetaAberta] = useState(null);
+    const [caixasPorColeta, setCaixasPorColeta] = useState({});
+    const [carregandoRecebimentos, setCarregandoRecebimentos] = useState(null);
 
     const turmasPorId = useMemo(
         () => new Map(turmas.map((turma) => [String(turma._id), turma])),
@@ -171,6 +182,34 @@ export default function Coletas() {
             );
         } finally {
             setRevogando(null);
+        }
+    };
+
+    const alternarRecebimentos = async (collectionId) => {
+        if (coletaAberta === collectionId) {
+            setColetaAberta(null);
+            return;
+        }
+
+        setColetaAberta(collectionId);
+        if (caixasPorColeta[collectionId]) return;
+
+        try {
+            setCarregandoRecebimentos(collectionId);
+            setErro("");
+            const resposta = await listarRecebimentosColeta(collectionId);
+            setCaixasPorColeta((atuais) => ({
+                ...atuais,
+                [collectionId]: resposta.data,
+            }));
+        } catch (erroRequisicao) {
+            setColetaAberta(null);
+            setErro(
+                erroRequisicao.response?.data?.mensagem ||
+                    "Não foi possível carregar os recebimentos da coleta.",
+            );
+        } finally {
+            setCarregandoRecebimentos(null);
         }
     };
 
@@ -394,6 +433,67 @@ export default function Coletas() {
                                                     Revogar código
                                                 </button>
                                             ))}
+
+                                        <button
+                                            type="button"
+                                            className="btn-recebimentos-coleta"
+                                            onClick={() => alternarRecebimentos(coleta.collectionId)}
+                                            disabled={carregandoRecebimentos === coleta.collectionId}
+                                        >
+                                            {carregandoRecebimentos === coleta.collectionId
+                                                ? "Carregando recebimentos..."
+                                                : coletaAberta === coleta.collectionId
+                                                  ? "Ocultar recebimentos"
+                                                  : "Ver recebimentos"}
+                                        </button>
+
+                                        {coletaAberta === coleta.collectionId &&
+                                            caixasPorColeta[coleta.collectionId] && (
+                                                <section className="caixa-recebimentos-coleta">
+                                                    <div className="resumo-recebimentos-coleta">
+                                                        <strong>
+                                                            {caixasPorColeta[coleta.collectionId].totalParticipantes} alunos
+                                                        </strong>
+                                                        <span>
+                                                            {caixasPorColeta[coleta.collectionId].totalSessoes} sessões aguardando revisão
+                                                        </span>
+                                                    </div>
+
+                                                    {caixasPorColeta[coleta.collectionId].recebimentos.length === 0 ? (
+                                                        <p className="recebimentos-vazios">
+                                                            Nenhuma sessão foi recebida nesta coleta.
+                                                        </p>
+                                                    ) : (
+                                                        <div className="lista-recebimentos-coleta">
+                                                            {caixasPorColeta[coleta.collectionId].recebimentos.map((recebimento) => (
+                                                                <article key={recebimento.participantRef}>
+                                                                    <header>
+                                                                        <div>
+                                                                            <h4>{recebimento.displayName}</h4>
+                                                                            <small>Cadastro pendente de revisão</small>
+                                                                        </div>
+                                                                        <span>{recebimento.totalSessoes} sessões</span>
+                                                                    </header>
+                                                                    <ul>
+                                                                        {recebimento.sessoes.map((sessao) => (
+                                                                            <li key={sessao.receiptId}>
+                                                                                <div>
+                                                                                    <strong>{sessao.gameId}</strong>
+                                                                                    <small>{formatarData(sessao.receivedAt)}</small>
+                                                                                </div>
+                                                                                <span>{formatarDuracao(sessao.durationMs)}</span>
+                                                                                <span>{sessao.totalCliques} cliques</span>
+                                                                                <span>{sessao.totalPontosMovimento} movimentos</span>
+                                                                                <span>{sessao.totalPontosArraste} arrastes</span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </article>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </section>
+                                            )}
                                     </article>
                                 );
                             })}

@@ -14,6 +14,11 @@ router.post(
     controller.receberLoteObservacional,
 );
 router.get("/", autenticar, controller.listarColetas);
+router.get(
+    "/:collectionId/submissions",
+    autenticar,
+    controller.listarSubmissoesColeta,
+);
 router.patch(
     "/:collectionId/revoke",
     autenticar,

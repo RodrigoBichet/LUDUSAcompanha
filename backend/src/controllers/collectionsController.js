@@ -512,9 +512,106 @@ const receberLoteObservacional = async (req, res) => {
     }
 };
 
+const listarSubmissoesColeta = async (req, res) => {
+    try {
+        const coleta = await ObservationCollection.findOne({
+            collectionId: req.params.collectionId,
+            ownerUserId: req.usuarioId,
+        }).select("_id collectionId title");
+
+        if (!coleta) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Coleta não encontrada ou sem permissão de acesso.",
+            });
+        }
+
+        const [participantes, submissoes] = await Promise.all([
+            CollectionParticipant.find({ collectionRef: coleta._id })
+                .select("_id participantRef displayName resolutionStatus")
+                .lean(),
+            ObservationSubmission.find({ collectionRef: coleta._id })
+                .select(
+                    "receiptId participantRef sessionId status sessionPayload createdAt",
+                )
+                .sort({ createdAt: -1 })
+                .lean(),
+        ]);
+        const participantePorId = new Map(
+            participantes.map((item) => [String(item._id), item]),
+        );
+        const grupos = new Map();
+
+        for (const item of submissoes) {
+            const participante = participantePorId.get(
+                String(item.participantRef),
+            );
+            if (!participante) continue;
+
+            if (!grupos.has(participante.participantRef)) {
+                grupos.set(participante.participantRef, {
+                    participantRef: participante.participantRef,
+                    displayName: participante.displayName,
+                    resolutionStatus: participante.resolutionStatus,
+                    totalSessoes: 0,
+                    sessoes: [],
+                });
+            }
+
+            const sessao = item.sessionPayload || {};
+            const grupo = grupos.get(participante.participantRef);
+            grupo.totalSessoes += 1;
+            grupo.sessoes.push({
+                receiptId: item.receiptId,
+                sessionId: item.sessionId,
+                status: item.status,
+                gameId: sessao.gameId,
+                startedAt: sessao.startedAt,
+                endedAt: sessao.endedAt,
+                durationMs: sessao.durationMs,
+                totalCliques: Array.isArray(sessao.clicks)
+                    ? sessao.clicks.length
+                    : 0,
+                totalPontosMovimento: Array.isArray(sessao.mousePath)
+                    ? sessao.mousePath.length
+                    : 0,
+                totalPontosArraste: Array.isArray(sessao.dragPath)
+                    ? sessao.dragPath.length
+                    : 0,
+                receivedAt: item.createdAt,
+            });
+        }
+
+        const recebimentos = [...grupos.values()].sort((a, b) =>
+            a.displayName.localeCompare(b.displayName, "pt-BR"),
+        );
+
+        return res.json({
+            sucesso: true,
+            coleta: {
+                collectionId: coleta.collectionId,
+                title: coleta.title,
+            },
+            totalParticipantes: recebimentos.length,
+            totalSessoes: submissoes.length,
+            recebimentos,
+        });
+    } catch (erro) {
+        console.error(
+            "[LUDUS] Erro ao listar recebimentos da coleta:",
+            erro.message,
+        );
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao listar recebimentos da coleta.",
+        });
+    }
+};
+
 module.exports = {
     criarColeta,
     listarColetas,
+    listarSubmissoesColeta,
     parearParticipante,
     receberLoteObservacional,
     revogarColeta,

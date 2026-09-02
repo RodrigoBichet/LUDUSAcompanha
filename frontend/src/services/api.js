@@ -83,6 +83,8 @@ export const deletarTurma = (id) => api.delete(`/groups/${id}`);
 // Coletas observacionais
 // -------------------------------------------------------------------------
 export const listarColetas = () => api.get("/collections");
+export const listarRecebimentosColeta = (collectionId) =>
+    api.get(`/collections/${encodeURIComponent(collectionId)}/submissions`);
 export const criarColeta = (dados) => api.post("/collections", dados);
 export const revogarColeta = (collectionId) =>
     api.patch(`/collections/${encodeURIComponent(collectionId)}/revoke`);

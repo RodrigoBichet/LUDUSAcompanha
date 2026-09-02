@@ -13,6 +13,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   com credencial limitada da coleta e sem criação precoce de aluno ou sessão;
 - endpoint idempotente de envio em lote, com validação estrita, recibo por
   sessão e rejeição de reutilização conflitante do mesmo `sessionId`;
+- Caixa de Coletas autenticada para visualizar participantes e sessões
+  pendentes agrupados, com isolamento por professora e sem expor o payload
+  observacional bruto;
 
 - Feedback de cópia do código da turma volta ao estado normal após 2,5
   segundos ou quando a professora troca de guia.

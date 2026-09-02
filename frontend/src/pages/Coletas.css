@@ -214,7 +214,8 @@
 }
 
 .btn-revogar-coleta,
-.btn-revogar-confirmar {
+.btn-revogar-confirmar,
+.btn-recebimentos-coleta {
     justify-self: start;
     border: 1px solid #d65858;
     border-radius: 8px;
@@ -223,6 +224,89 @@
     color: #a52d2d;
     font-weight: 700;
     cursor: pointer;
+}
+
+.btn-recebimentos-coleta {
+    border-color: #5546eb;
+    color: #30258b;
+}
+
+.caixa-recebimentos-coleta {
+    display: grid;
+    gap: 1rem;
+    border-top: 1px solid var(--cor-borda);
+    padding-top: 1rem;
+}
+
+.resumo-recebimentos-coleta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.resumo-recebimentos-coleta span,
+.recebimentos-vazios,
+.lista-recebimentos-coleta small {
+    color: var(--cor-texto-leve);
+}
+
+.lista-recebimentos-coleta {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.lista-recebimentos-coleta > article {
+    overflow: hidden;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    background: #faf9f7;
+}
+
+.lista-recebimentos-coleta header,
+.lista-recebimentos-coleta li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+}
+
+.lista-recebimentos-coleta header {
+    background: #f3f1ff;
+}
+
+.lista-recebimentos-coleta header h4,
+.lista-recebimentos-coleta ul {
+    margin: 0;
+}
+
+.lista-recebimentos-coleta header > span {
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    background: white;
+    color: #30258b;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.lista-recebimentos-coleta ul {
+    padding: 0;
+    list-style: none;
+}
+
+.lista-recebimentos-coleta li + li {
+    border-top: 1px solid var(--cor-borda);
+}
+
+.lista-recebimentos-coleta li > div {
+    display: grid;
+    min-width: 150px;
+}
+
+.lista-recebimentos-coleta li > span {
+    color: var(--cor-texto-leve);
+    font-size: 0.85rem;
 }
 
 .btn-revogar-confirmar {
@@ -354,6 +438,13 @@
     }
 
     .confirmacao-revogacao > div {
+        flex-direction: column;
+    }
+
+    .resumo-recebimentos-coleta,
+    .lista-recebimentos-coleta header,
+    .lista-recebimentos-coleta li {
+        align-items: flex-start;
         flex-direction: column;
     }
 

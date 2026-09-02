@@ -588,6 +588,45 @@ test("recusa lote de outro participante e coleta revogada", async () => {
     assert.equal(await ObservationSubmission.countDocuments(), 0);
 });
 
+test("lista caixa pendente somente para a professora proprietaria sem expor payload bruto", async () => {
+    const { professoraA, professoraB, turmaA } = await criarCenarioEscolar();
+    const { criada, lote, pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Estudante Fictícia da Caixa",
+    });
+
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(201);
+
+    const caminho = `/api/collections/${criada.body.coleta.collectionId}/submissions`;
+    await request(app).get(caminho).expect(401);
+    await request(app)
+        .get(caminho)
+        .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+        .expect(404);
+
+    const caixa = await request(app)
+        .get(caminho)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+
+    assert.equal(caixa.body.totalParticipantes, 1);
+    assert.equal(caixa.body.totalSessoes, 2);
+    assert.equal(caixa.body.recebimentos[0].displayName, "Estudante Fictícia da Caixa");
+    assert.deepEqual(
+        caixa.body.recebimentos[0].sessoes.map((item) => item.gameId).sort(),
+        ["jogo-observacional-a", "jogo-observacional-b"],
+    );
+    assert.equal(caixa.body.recebimentos[0].sessoes[0].status, "pending");
+    assert.equal(JSON.stringify(caixa.body).includes("sessionPayload"), false);
+    assert.equal(JSON.stringify(caixa.body).includes("payloadDigest"), false);
+    assert.equal(JSON.stringify(caixa.body).includes('"clicks"'), false);
+});
+
 // Representa a forma canônica produzida pelo LUDUS Unity SDK em um build WebGL.
 // Os valores são inteiramente fictícios e mantêm coordenadas dentro do viewport.
 const sessaoSdkWebglDeTeste = (aluno) => ({
