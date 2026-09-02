@@ -857,6 +857,10 @@ const sessoesPorAluno = async (req, res) => {
 };
 
 module.exports = {
+    prepararDadosImportacao,
+    buscarSessaoDuplicadaImportada,
+    registrarJogoEAssociarAluno,
+    salvarSessaoNormalizada,
     criarSessao,
     previewImportacao,
     confirmarImportacao,

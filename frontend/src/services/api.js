@@ -85,7 +85,21 @@ export const deletarTurma = (id) => api.delete(`/groups/${id}`);
 export const listarColetas = () => api.get("/collections");
 export const listarRecebimentosColeta = (collectionId) =>
     api.get(`/collections/${encodeURIComponent(collectionId)}/submissions`);
+export const resolverParticipanteColeta = (
+    collectionId,
+    participantRef,
+    dados,
+) =>
+    api.post(
+        `/collections/${encodeURIComponent(collectionId)}/participants/${encodeURIComponent(participantRef)}/resolve`,
+        dados,
+    );
 export const criarColeta = (dados) => api.post("/collections", dados);
+export const importarSessoesColeta = (collectionId, participantRef, receiptIds) =>
+    api.patch(
+        `/collections/${encodeURIComponent(collectionId)}/participants/${encodeURIComponent(participantRef)}/import`,
+        { receiptIds },
+    );
 export const revogarColeta = (collectionId) =>
     api.patch(`/collections/${encodeURIComponent(collectionId)}/revoke`);
 

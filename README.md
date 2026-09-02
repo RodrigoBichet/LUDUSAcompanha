@@ -355,6 +355,15 @@ os participantes e as sessões pendentes agrupadas por nome. A resposta apresent
 somente jogo, horário, duração e totais técnicos de interação; coordenadas,
 payload bruto, digest e credenciais não são expostos nessa listagem.
 
+Em **Revisar aluno**, selecione um cadastro da mesma turma ou confirme a criação
+de um novo. Depois use **Adicionar sessões ao histórico** e confirme o nome.
+As sessões passam a aparecer no perfil do aluno, separadas por jogo. Repetir
+o pedido não duplica sessões desta caixa; itens com falha continuam pendentes.
+O recebimento original é preservado. Uma colisão com importação manual anterior
+não sobrescreve o histórico e exige revisão, sem aprovação automática.
+
+Roteiro local: [Teste de importação das coletas](docs/TESTE_IMPORTACAO_COLETAS.md).
+
 ---
 
 ## Identificacao do aluno nas sessoes

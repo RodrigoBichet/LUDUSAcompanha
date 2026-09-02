@@ -7,9 +7,16 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Group = require("../models/Group");
+const Student = require("../models/Student");
 const CollectionParticipant = require("../models/CollectionParticipant");
 const ObservationCollection = require("../models/ObservationCollection");
 const ObservationSubmission = require("../models/ObservationSubmission");
+const {
+    prepararDadosImportacao,
+    buscarSessaoDuplicadaImportada,
+    registrarJogoEAssociarAluno,
+    salvarSessaoNormalizada,
+} = require("./sessionsController");
 const {
     ErroValidacaoTelemetria,
 } = require("../services/telemetryValidator");
@@ -19,6 +26,7 @@ const {
 const {
     obterContextoEscolar,
     podeAcessarInstituicao,
+    buscarAlunoComAcesso,
 } = require("../services/schoolAccess");
 const {
     calcularHashCodigoColeta,
@@ -528,7 +536,9 @@ const listarSubmissoesColeta = async (req, res) => {
 
         const [participantes, submissoes] = await Promise.all([
             CollectionParticipant.find({ collectionRef: coleta._id })
-                .select("_id participantRef displayName resolutionStatus")
+                .select(
+                    "_id participantRef displayName resolutionStatus studentId",
+                )
                 .lean(),
             ObservationSubmission.find({ collectionRef: coleta._id })
                 .select(
@@ -539,6 +549,18 @@ const listarSubmissoesColeta = async (req, res) => {
         ]);
         const participantePorId = new Map(
             participantes.map((item) => [String(item._id), item]),
+        );
+        const alunosResolvidos = await Student.find({
+            _id: {
+                $in: participantes
+                    .map((item) => item.studentId)
+                    .filter(Boolean),
+            },
+        })
+            .select("_id name")
+            .lean();
+        const alunoPorId = new Map(
+            alunosResolvidos.map((item) => [String(item._id), item]),
         );
         const grupos = new Map();
 
@@ -553,6 +575,14 @@ const listarSubmissoesColeta = async (req, res) => {
                     participantRef: participante.participantRef,
                     displayName: participante.displayName,
                     resolutionStatus: participante.resolutionStatus,
+                    resolvedStudent: participante.studentId
+                        ? {
+                              studentId: String(participante.studentId),
+                              name:
+                                  alunoPorId.get(String(participante.studentId))
+                                      ?.name || "Aluno cadastrado",
+                          }
+                        : null,
                     totalSessoes: 0,
                     sessoes: [],
                 });
@@ -594,6 +624,8 @@ const listarSubmissoesColeta = async (req, res) => {
             },
             totalParticipantes: recebimentos.length,
             totalSessoes: submissoes.length,
+            totalPendentes: submissoes.filter((item) => item.status === "pending").length,
+            totalImportadas: submissoes.filter((item) => item.status === "imported").length,
             recebimentos,
         });
     } catch (erro) {
@@ -608,11 +640,220 @@ const listarSubmissoesColeta = async (req, res) => {
     }
 };
 
+const resolverParticipanteColeta = async (req, res) => {
+    try {
+        const collectionId = req.params.collectionId;
+        const participantRef = req.params.participantRef;
+        const studentId = req.body?.studentId;
+        const criarNovo = req.body?.createNew === true;
+
+        if ((Boolean(studentId) && criarNovo) || (!studentId && !criarNovo)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem:
+                    "Escolha um aluno existente ou confirme a criação de um novo.",
+            });
+        }
+
+        const coleta = await ObservationCollection.findOne({
+            collectionId,
+            ownerUserId: req.usuarioId,
+        });
+        if (!coleta) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Coleta não encontrada ou sem permissão de acesso.",
+            });
+        }
+
+        const participante = await CollectionParticipant.findOne({
+            participantRef,
+            collectionRef: coleta._id,
+        });
+        if (!participante) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Participante não encontrado nesta coleta.",
+            });
+        }
+
+        let aluno;
+        let criado = false;
+        if (criarNovo) {
+            const alunosDaTurma = await Student.find({ groupId: coleta.groupId })
+                .select("_id name")
+                .lean();
+            const equivalente = alunosDaTurma.find(
+                (item) =>
+                    normalizarIdentidadeParticipante(item.name)
+                        .normalizedName === participante.normalizedName,
+            );
+            if (equivalente) {
+                return res.status(409).json({
+                    sucesso: false,
+                    codigo: "ALUNO_EQUIVALENTE",
+                    mensagem:
+                        "Já existe um aluno com nome equivalente nesta turma. Selecione o cadastro existente.",
+                    alunoSugerido: {
+                        studentId: String(equivalente._id),
+                        name: equivalente.name,
+                    },
+                });
+            }
+
+            aluno = await Student.create({
+                name: participante.displayName,
+                groupId: coleta.groupId,
+                institutionId: coleta.institutionId,
+                ownerUserId: coleta.ownerUserId,
+                enrollmentMode: "school",
+                deletionProtected: false,
+            });
+            criado = true;
+        } else {
+            if (!mongoose.isValidObjectId(studentId)) {
+                return res.status(400).json({
+                    sucesso: false,
+                    mensagem: "Selecione um aluno válido.",
+                });
+            }
+            aluno = await Student.findOne({
+                _id: studentId,
+                groupId: coleta.groupId,
+            });
+            if (!aluno) {
+                return res.status(404).json({
+                    sucesso: false,
+                    mensagem: "Aluno não encontrado na turma desta coleta.",
+                });
+            }
+        }
+
+        if (participante.resolutionStatus === "resolved") {
+            if (String(participante.studentId) !== String(aluno._id)) {
+                if (criado) await Student.deleteOne({ _id: aluno._id });
+                return res.status(409).json({
+                    sucesso: false,
+                    mensagem:
+                        "Este participante já foi associado a outro aluno.",
+                });
+            }
+        } else {
+            participante.studentId = aluno._id;
+            participante.resolutionStatus = "resolved";
+            await participante.save();
+        }
+
+        return res.status(criado ? 201 : 200).json({
+            sucesso: true,
+            mensagem: criado
+                ? "Aluno criado e confirmado para esta coleta."
+                : "Aluno existente confirmado para esta coleta.",
+            participante: {
+                participantRef: participante.participantRef,
+                displayName: participante.displayName,
+                resolutionStatus: participante.resolutionStatus,
+            },
+            aluno: {
+                studentId: String(aluno._id),
+                name: aluno.name,
+                criado,
+            },
+        });
+    } catch (erro) {
+        console.error(
+            "[LUDUS] Erro ao resolver participante da coleta:",
+            erro.message,
+        );
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao revisar participante da coleta.",
+        });
+    }
+};
+
+// Aprova apenas os recibos exibidos e confirmados pela professora.
+// Cada item é retomável: falha após salvar Session não exige apagar dados.
+const importarSessoesColeta = async (req, res) => {
+    try {
+        const ids = req.body?.receiptIds;
+        if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 ||
+            ids.some((id) => typeof id !== "string" || id.length > 100) ||
+            new Set(ids).size !== ids.length) {
+            return res.status(400).json({ sucesso: false, mensagem: "Selecione de 1 a 100 recibos distintos." });
+        }
+        const coleta = await ObservationCollection.findOne({
+            collectionId: req.params.collectionId, ownerUserId: req.usuarioId,
+        });
+        if (!coleta) return res.status(404).json({ sucesso: false, mensagem: "Coleta não encontrada." });
+        const participante = await CollectionParticipant.findOne({
+            collectionRef: coleta._id, participantRef: req.params.participantRef,
+        });
+        if (!participante) return res.status(404).json({ sucesso: false, mensagem: "Participante não encontrado." });
+        if (participante.resolutionStatus !== "resolved" || !participante.studentId) {
+            return res.status(409).json({ sucesso: false, mensagem: "Confirme o cadastro do aluno antes de adicionar sessões." });
+        }
+        const aluno = await buscarAlunoComAcesso(req.usuarioId, participante.studentId);
+        if (!aluno || String(aluno.groupId) !== String(coleta.groupId)) {
+            return res.status(404).json({ sucesso: false, mensagem: "Aluno indisponível na turma desta coleta." });
+        }
+        const itens = await ObservationSubmission.find({
+            collectionRef: coleta._id, participantRef: participante._id, receiptId: { $in: ids },
+        });
+        if (itens.length !== ids.length || itens.some((item) => item.status === "rejected")) {
+            return res.status(400).json({ sucesso: false, mensagem: "Um dos recibos não está disponível para este aluno." });
+        }
+        // Revalidar todos antes de iniciar qualquer persistência.
+        const preparados = itens.map((item) => ({
+            item, ...prepararDadosImportacao({ dadosBrutos: item.sessionPayload, aluno }),
+        }));
+        const resultados = [];
+        for (const { item, dados, nomeJogoDetectado } of preparados) {
+            try {
+                dados.observationReceiptId = item.receiptId;
+                let sessao = await buscarSessaoDuplicadaImportada(dados);
+                if (sessao && sessao.observationReceiptId !== item.receiptId) {
+                    resultados.push({ receiptId: item.receiptId, status: "erro", mensagem: "Já existe uma importação com esse identificador. Revise o histórico; nenhum dado foi sobrescrito." });
+                    continue;
+                }
+                await registrarJogoEAssociarAluno({ usuarioId: req.usuarioId, aluno, dados, nomeJogoDetectado });
+                if (!sessao) {
+                    try {
+                        sessao = await salvarSessaoNormalizada(dados);
+                    } catch (erro) {
+                        if (erro.code !== 11000 && erro.status !== 409) throw erro;
+                        sessao = await buscarSessaoDuplicadaImportada(dados);
+                        if (!sessao || sessao.observationReceiptId !== item.receiptId) throw erro;
+                    }
+                }
+                item.status = "imported";
+                item.importedSessionId = sessao._id;
+                item.reviewedAt = item.reviewedAt || new Date();
+                await item.save();
+                resultados.push({ receiptId: item.receiptId, status: "imported", sessionId: sessao.sessionId });
+            } catch {
+                resultados.push({ receiptId: item.receiptId, status: "erro", mensagem: "Não foi possível concluir este item. Tente novamente; os dados foram preservados." });
+            }
+        }
+        const totalErros = resultados.filter((item) => item.status === "erro").length;
+        return res.status(totalErros ? 207 : 200).json({
+            sucesso: totalErros === 0, totalErros, resultados,
+            mensagem: totalErros ? "Algumas sessões continuam pendentes. Confira os itens e tente novamente." : "Sessões adicionadas ao histórico do aluno.",
+        });
+    } catch (erro) {
+        return res.status(erro instanceof ErroValidacaoTelemetria ? 400 : 500).json({
+            sucesso: false, mensagem: "Não foi possível validar e importar as sessões. Nenhum recebimento foi descartado.",
+        });
+    }
+};
+
 module.exports = {
+    importarSessoesColeta,
     criarColeta,
     listarColetas,
     listarSubmissoesColeta,
     parearParticipante,
     receberLoteObservacional,
+    resolverParticipanteColeta,
     revogarColeta,
 };

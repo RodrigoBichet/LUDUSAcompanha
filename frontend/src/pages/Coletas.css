@@ -231,6 +231,25 @@
     color: #30258b;
 }
 
+.lista-recebimentos-coleta .aviso-importacao-coleta {
+    margin: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #b5dfce;
+    border-radius: 10px;
+    background: #edf9f3;
+    color: #185c43;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.lista-recebimentos-coleta .aviso-importacao-coleta--atencao {
+    border-color: #e8ce93;
+    background: #fff8e8;
+    color: #79500e;
+}
+
 .caixa-recebimentos-coleta {
     display: grid;
     gap: 1rem;
@@ -281,13 +300,76 @@
     margin: 0;
 }
 
-.lista-recebimentos-coleta header > span {
+.acoes-recebimento-aluno > span {
     border-radius: 999px;
     padding: 0.25rem 0.65rem;
     background: white;
     color: #30258b;
     font-size: 0.8rem;
     font-weight: 800;
+}
+
+.acoes-recebimento-aluno {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.acoes-recebimento-aluno button,
+.revisao-participante-coleta button {
+    border: 1px solid #5546eb;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #30258b;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.revisao-participante-coleta {
+    display: grid;
+    gap: 0.8rem;
+    border-top: 1px solid #dcd8ff;
+    border-bottom: 1px solid var(--cor-borda);
+    padding: 1rem;
+    background: #fff;
+}
+
+.revisao-participante-coleta label {
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 700;
+}
+
+.revisao-participante-coleta select {
+    width: 100%;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    padding: 0.65rem;
+    background: white;
+    color: var(--cor-texto);
+    font: inherit;
+}
+
+.revisao-participante-coleta > div {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.revisao-participante-coleta .btn-criar-aluno-coleta {
+    background: #5546eb;
+    color: white;
+}
+
+.revisao-participante-coleta .btn-cancelar-revisao {
+    border-color: var(--cor-borda);
+    color: var(--cor-texto-leve);
+}
+
+.revisao-participante-coleta button:disabled {
+    cursor: wait;
+    opacity: 0.6;
 }
 
 .lista-recebimentos-coleta ul {
@@ -445,6 +527,12 @@
     .lista-recebimentos-coleta header,
     .lista-recebimentos-coleta li {
         align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .acoes-recebimento-aluno,
+    .revisao-participante-coleta > div {
+        align-items: stretch;
         flex-direction: column;
     }
 

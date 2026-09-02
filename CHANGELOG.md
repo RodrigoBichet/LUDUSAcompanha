@@ -9,6 +9,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- aviso de resultado da importação com espaçamento e estilos distintos para
+  sucesso e pendências, dentro do card do participante.
+
+- revisão de participante com vínculo a aluno da turma ou criação confirmada;
+- aprovação autenticada dos recibos selecionados para o histórico do aluno,
+  com jogos separados, rastreio por recibo, retomada após falha e bloqueio de
+  sobrescrita de importações anteriores;
+- contadores de pendências e sessões adicionadas na caixa de coletas.
+
 - caixa persistente de submissões observacionais pendentes, recebidas somente
   com credencial limitada da coleta e sem criação precoce de aluno ou sessão;
 - endpoint idempotente de envio em lote, com validação estrita, recibo por

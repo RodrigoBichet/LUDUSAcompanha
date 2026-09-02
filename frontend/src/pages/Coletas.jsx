@@ -3,7 +3,10 @@ import Header from "../components/layout/Header";
 import {
     criarColeta,
     listarColetas,
+    listarAlunos,
     listarRecebimentosColeta,
+    resolverParticipanteColeta,
+    importarSessoesColeta,
     listarTurmas,
     revogarColeta,
 } from "../services/api";
@@ -50,6 +53,12 @@ export default function Coletas() {
     const [coletaAberta, setColetaAberta] = useState(null);
     const [caixasPorColeta, setCaixasPorColeta] = useState({});
     const [carregandoRecebimentos, setCarregandoRecebimentos] = useState(null);
+    const [alunosPorTurma, setAlunosPorTurma] = useState({});
+    const [participanteEmRevisao, setParticipanteEmRevisao] = useState(null);
+    const [alunoSelecionado, setAlunoSelecionado] = useState("");
+    const [resolvendoParticipante, setResolvendoParticipante] = useState(null);
+    const [importandoParticipante, setImportandoParticipante] = useState(null);
+    const [resultadoImportacao, setResultadoImportacao] = useState({});
 
     const turmasPorId = useMemo(
         () => new Map(turmas.map((turma) => [String(turma._id), turma])),
@@ -185,23 +194,60 @@ export default function Coletas() {
         }
     };
 
-    const alternarRecebimentos = async (collectionId) => {
+    const carregarRecebimentos = async (coleta) => {
+        const groupId = String(obterId(coleta.groupId));
+        const [respostaCaixa, respostaAlunos] = await Promise.all([
+            listarRecebimentosColeta(coleta.collectionId),
+            listarAlunos(groupId),
+        ]);
+        setCaixasPorColeta((atuais) => ({
+            ...atuais,
+            [coleta.collectionId]: respostaCaixa.data,
+        }));
+        setAlunosPorTurma((atuais) => ({
+            ...atuais,
+            [groupId]: respostaAlunos.data.alunos || [],
+        }));
+    };
+
+    const adicionarAoHistorico = async (coleta, recebimento) => {
+        const pendentes = recebimento.sessoes.filter((sessao) => sessao.status === "pending").slice(0, 100);
+        if (!pendentes.length || importandoParticipante) return;
+        if (!window.confirm(`Adicionar ${pendentes.length} sessão(ões) ao histórico de ${recebimento.resolvedStudent?.name}? Cada jogo será mantido separado.`)) return;
+        setImportandoParticipante(recebimento.participantRef);
+        setErro("");
+        try {
+            const resposta = await importarSessoesColeta(coleta.collectionId, recebimento.participantRef, pendentes.map((item) => item.receiptId));
+            setResultadoImportacao((atuais) => ({
+                ...atuais,
+                [recebimento.participantRef]: {
+                    mensagem: resposta.data.mensagem,
+                    tipo: resposta.data.sucesso ? "sucesso" : "atencao",
+                },
+                ...Object.fromEntries(resposta.data.resultados.map((item) => [item.receiptId, item.mensagem || ""])),
+            }));
+            await carregarRecebimentos(coleta);
+        } catch (falha) {
+            setErro(falha.response?.data?.mensagem || "Não foi possível confirmar a importação. Você pode tentar novamente sem duplicar as sessões.");
+        } finally {
+            setImportandoParticipante(null);
+        }
+    };
+
+    const alternarRecebimentos = async (coleta) => {
+        const collectionId = coleta.collectionId;
         if (coletaAberta === collectionId) {
             setColetaAberta(null);
+            setParticipanteEmRevisao(null);
             return;
         }
 
         setColetaAberta(collectionId);
-        if (caixasPorColeta[collectionId]) return;
 
         try {
             setCarregandoRecebimentos(collectionId);
             setErro("");
-            const resposta = await listarRecebimentosColeta(collectionId);
-            setCaixasPorColeta((atuais) => ({
-                ...atuais,
-                [collectionId]: resposta.data,
-            }));
+            await carregarRecebimentos(coleta);
         } catch (erroRequisicao) {
             setColetaAberta(null);
             setErro(
@@ -210,6 +256,46 @@ export default function Coletas() {
             );
         } finally {
             setCarregandoRecebimentos(null);
+        }
+    };
+
+    const abrirRevisaoParticipante = (recebimento) => {
+        setParticipanteEmRevisao(recebimento.participantRef);
+        setAlunoSelecionado(recebimento.resolvedStudent?.studentId || "");
+        setErro("");
+        setSucesso("");
+    };
+
+    const resolverParticipante = async (coleta, recebimento, criarNovo) => {
+        if (!criarNovo && !alunoSelecionado) {
+            setErro("Selecione um aluno existente ou escolha criar um novo.");
+            return;
+        }
+
+        try {
+            setResolvendoParticipante(recebimento.participantRef);
+            setErro("");
+            setSucesso("");
+            const resposta = await resolverParticipanteColeta(
+                coleta.collectionId,
+                recebimento.participantRef,
+                criarNovo
+                    ? { createNew: true }
+                    : { studentId: alunoSelecionado },
+            );
+            await carregarRecebimentos(coleta);
+            setParticipanteEmRevisao(null);
+            setAlunoSelecionado("");
+            setSucesso(resposta.data.mensagem);
+        } catch (erroRequisicao) {
+            const sugerido = erroRequisicao.response?.data?.alunoSugerido;
+            if (sugerido?.studentId) setAlunoSelecionado(sugerido.studentId);
+            setErro(
+                erroRequisicao.response?.data?.mensagem ||
+                    "Não foi possível confirmar o aluno desta coleta.",
+            );
+        } finally {
+            setResolvendoParticipante(null);
         }
     };
 
@@ -437,7 +523,7 @@ export default function Coletas() {
                                         <button
                                             type="button"
                                             className="btn-recebimentos-coleta"
-                                            onClick={() => alternarRecebimentos(coleta.collectionId)}
+                                            onClick={() => alternarRecebimentos(coleta)}
                                             disabled={carregandoRecebimentos === coleta.collectionId}
                                         >
                                             {carregandoRecebimentos === coleta.collectionId
@@ -455,7 +541,7 @@ export default function Coletas() {
                                                             {caixasPorColeta[coleta.collectionId].totalParticipantes} alunos
                                                         </strong>
                                                         <span>
-                                                            {caixasPorColeta[coleta.collectionId].totalSessoes} sessões aguardando revisão
+                                                            {caixasPorColeta[coleta.collectionId].totalPendentes} pendentes • {caixasPorColeta[coleta.collectionId].totalImportadas} no histórico
                                                         </span>
                                                     </div>
 
@@ -470,16 +556,91 @@ export default function Coletas() {
                                                                     <header>
                                                                         <div>
                                                                             <h4>{recebimento.displayName}</h4>
-                                                                            <small>Cadastro pendente de revisão</small>
+                                                                            <small>
+                                                                                {recebimento.resolutionStatus === "resolved"
+                                                                                    ? `Aluno confirmado: ${recebimento.resolvedStudent?.name || "cadastro selecionado"}`
+                                                                                    : "Cadastro pendente de revisão"}
+                                                                            </small>
                                                                         </div>
-                                                                        <span>{recebimento.totalSessoes} sessões</span>
+                                                                        <div className="acoes-recebimento-aluno">
+                                                                            <span>{recebimento.totalSessoes} sessões</span>
+                                                                            {recebimento.resolutionStatus === "resolved" && recebimento.sessoes.some((item) => item.status === "pending") && (
+                                                                                <button type="button" disabled={Boolean(importandoParticipante)} onClick={() => adicionarAoHistorico(coleta, recebimento)}>
+                                                                                    {importandoParticipante === recebimento.participantRef ? "Adicionando..." : "Adicionar sessões ao histórico"}
+                                                                                </button>
+                                                                            )}
+                                                                            {recebimento.resolutionStatus !== "resolved" && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => abrirRevisaoParticipante(recebimento)}
+                                                                                >
+                                                                                    Revisar aluno
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     </header>
+                                                                    {resultadoImportacao[recebimento.participantRef] && (
+                                                                        <p
+                                                                            role="status"
+                                                                            className={`aviso-importacao-coleta aviso-importacao-coleta--${resultadoImportacao[recebimento.participantRef].tipo}`}
+                                                                        >
+                                                                            {resultadoImportacao[recebimento.participantRef].mensagem}
+                                                                        </p>
+                                                                    )}
+                                                                    {participanteEmRevisao === recebimento.participantRef && (
+                                                                        <div className="revisao-participante-coleta">
+                                                                            <label>
+                                                                                Associar a um aluno da turma
+                                                                                <select
+                                                                                    value={alunoSelecionado}
+                                                                                    onChange={(evento) => setAlunoSelecionado(evento.target.value)}
+                                                                                >
+                                                                                    <option value="">Selecione o aluno</option>
+                                                                                    {(alunosPorTurma[String(obterId(coleta.groupId))] || []).map((aluno) => (
+                                                                                        <option key={aluno._id} value={aluno._id}>
+                                                                                            {aluno.name}
+                                                                                        </option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </label>
+                                                                            <div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => resolverParticipante(coleta, recebimento, false)}
+                                                                                    disabled={resolvendoParticipante === recebimento.participantRef}
+                                                                                >
+                                                                                    Confirmar aluno existente
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="btn-criar-aluno-coleta"
+                                                                                    onClick={() => resolverParticipante(coleta, recebimento, true)}
+                                                                                    disabled={resolvendoParticipante === recebimento.participantRef}
+                                                                                >
+                                                                                    Criar “{recebimento.displayName}” nesta turma
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="btn-cancelar-revisao"
+                                                                                    onClick={() => setParticipanteEmRevisao(null)}
+                                                                                    disabled={resolvendoParticipante === recebimento.participantRef}
+                                                                                >
+                                                                                    Cancelar
+                                                                                </button>
+                                                                            </div>
+                                                                            <small>
+                                                                                Esta confirmação ainda não importa as sessões. Ela apenas define o cadastro correto do aluno.
+                                                                            </small>
+                                                                        </div>
+                                                                    )}
                                                                     <ul>
                                                                         {recebimento.sessoes.map((sessao) => (
                                                                             <li key={sessao.receiptId}>
                                                                                 <div>
                                                                                     <strong>{sessao.gameId}</strong>
                                                                                     <small>{formatarData(sessao.receivedAt)}</small>
+                                                                                    <small>{sessao.status === "imported" ? "Adicionada ao histórico" : sessao.status === "rejected" ? "Recusada" : "Pendente"}</small>
+                                                                                    {resultadoImportacao[sessao.receiptId] && <small role="alert">{resultadoImportacao[sessao.receiptId]}</small>}
                                                                                 </div>
                                                                                 <span>{formatarDuracao(sessao.durationMs)}</span>
                                                                                 <span>{sessao.totalCliques} cliques</span>

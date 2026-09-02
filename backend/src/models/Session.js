@@ -116,6 +116,8 @@ const SessionSchema = new mongoose.Schema(
         // sessionId persistido é específico do aluno para permitir que o
         // mesmo JSON seja associado a alunos distintos sem perder rastreio.
         sourceSessionId: { type: String },
+        // Rastreia a aprovação na caixa escolar e permite retomar sem duplicar.
+        observationReceiptId: { type: String, unique: true, sparse: true },
         studentId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",

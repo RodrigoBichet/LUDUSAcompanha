@@ -19,6 +19,16 @@ router.get(
     autenticar,
     controller.listarSubmissoesColeta,
 );
+router.post(
+    "/:collectionId/participants/:participantRef/resolve",
+    autenticar,
+    controller.resolverParticipanteColeta,
+);
+router.patch(
+    "/:collectionId/participants/:participantRef/import",
+    autenticar,
+    controller.importarSessoesColeta,
+);
 router.patch(
     "/:collectionId/revoke",
     autenticar,

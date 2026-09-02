@@ -627,6 +627,153 @@ test("lista caixa pendente somente para a professora proprietaria sem expor payl
     assert.equal(JSON.stringify(caixa.body).includes('"clicks"'), false);
 });
 
+test("resolve participante somente com aluno da turma e preserva revisao explicita", async () => {
+    const { professoraA, turmaA, alunoA, alunoB } =
+        await criarCenarioEscolar();
+    const { criada, lote, pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Nome Fictício para Associar",
+    });
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send({ lote })
+        .expect(201);
+
+    const caminho = `/api/collections/${criada.body.coleta.collectionId}/participants/${pareada.body.participante.participantRef}/resolve`;
+    await request(app)
+        .post(caminho)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ studentId: String(alunoB._id) })
+        .expect(404);
+
+    const resolvida = await request(app)
+        .post(caminho)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ studentId: String(alunoA._id) })
+        .expect(200);
+    assert.equal(resolvida.body.aluno.studentId, String(alunoA._id));
+    assert.equal(resolvida.body.aluno.criado, false);
+
+    const caixa = await request(app)
+        .get(`/api/collections/${criada.body.coleta.collectionId}/submissions`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(caixa.body.recebimentos[0].resolutionStatus, "resolved");
+    assert.equal(
+        caixa.body.recebimentos[0].resolvedStudent.studentId,
+        String(alunoA._id),
+    );
+    assert.equal(await Session.countDocuments(), 0);
+});
+
+const prepararImportacaoDeColeta = async () => {
+    const cenario = await criarCenarioEscolar();
+    const coleta = await prepararColetaPareada({
+        professora: cenario.professoraA, turma: cenario.turmaA,
+        nomeParticipante: "Participante Fictício para Histórico",
+    });
+    const resposta = await request(app).post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${coleta.pareada.body.credencial.token}`)
+        .send({ lote: coleta.lote }).expect(201);
+    const base = `/api/collections/${coleta.criada.body.coleta.collectionId}/participants/${coleta.pareada.body.participante.participantRef}`;
+    const auth = `Bearer ${tokenDe(cenario.professoraA)}`;
+    await Session.createIndexes();
+    await Game.createIndexes();
+    return { ...cenario, ...coleta, base, auth, receiptIds: resposta.body.recibos.map((item) => item.receiptId) };
+};
+
+test("importa recebimentos revisados por jogo sem duplicar e isola acesso", async () => {
+    const c = await prepararImportacaoDeColeta();
+    const importar = (auth = c.auth, receiptIds = c.receiptIds) => request(app)
+        .patch(`${c.base}/import`).set("Authorization", auth).send({ receiptIds });
+    await importar().expect(409);
+    assert.equal(await Session.countDocuments(), 0);
+    await request(app).post(`${c.base}/resolve`).set("Authorization", c.auth)
+        .send({ studentId: String(c.alunoA._id) }).expect(200);
+    await importar(`Bearer ${tokenDe(c.professoraB)}`).expect(404);
+    await importar(`Bearer ${c.pareada.body.credencial.token}`).expect(401);
+    await importar(c.auth, [c.receiptIds[0], "receipt-de-outra-coleta"]).expect(400);
+    assert.equal(await Session.countDocuments(), 0);
+    await importar().expect(200);
+    await importar().expect(200);
+    assert.equal(await Session.countDocuments(), 2);
+    const sessoes = await Session.find({ studentId: c.alunoA._id });
+    assert.deepEqual(sessoes.map((item) => item.gameId).sort(), c.lote.sessions.map((item) => item.gameId).sort());
+    assert.ok(sessoes.every((item) => item.playerId === c.alunoA.name && item.captureMode === "observational"));
+    assert.equal(await ObservationSubmission.countDocuments({ status: "imported" }), 2);
+    assert.equal(await Game.countDocuments({ ownerUserId: c.professoraA._id }), 2);
+    const aluno = await Student.findById(c.alunoA._id);
+    assert.equal(aluno.assignedGameIds.length, 2);
+    const caixa = await request(app).get(`/api/collections/${c.criada.body.coleta.collectionId}/submissions`)
+        .set("Authorization", c.auth).expect(200);
+    assert.equal(caixa.body.totalPendentes, 0);
+    assert.equal(caixa.body.totalImportadas, 2);
+});
+
+test("retoma falha após persistir sessão e não sobrescreve importação manual", async () => {
+    const c = await prepararImportacaoDeColeta();
+    await request(app).post(`${c.base}/resolve`).set("Authorization", c.auth)
+        .send({ studentId: String(c.alunoA._id) }).expect(200);
+    const salvarOriginal = ObservationSubmission.prototype.save;
+    ObservationSubmission.prototype.save = async function (...args) {
+        if (this.status === "imported") throw new Error("Falha simulada no recibo");
+        return salvarOriginal.apply(this, args);
+    };
+    try {
+        await request(app).patch(`${c.base}/import`).set("Authorization", c.auth)
+            .send({ receiptIds: [c.receiptIds[0]] }).expect(207);
+    } finally {
+        ObservationSubmission.prototype.save = salvarOriginal;
+    }
+    assert.equal(await Session.countDocuments(), 1);
+    assert.equal(await ObservationSubmission.countDocuments({ status: "pending" }), 2);
+    await request(app).patch(`${c.base}/import`).set("Authorization", c.auth)
+        .send({ receiptIds: [c.receiptIds[0]] }).expect(200);
+    assert.equal(await Session.countDocuments(), 1);
+    await request(app).post(`/api/sessions/import/${c.alunoA._id}/confirm`)
+        .set("Authorization", c.auth).send({ sessao: c.lote.sessions[1] }).expect(201);
+    const conflito = await request(app).patch(`${c.base}/import`).set("Authorization", c.auth)
+        .send({ receiptIds: [c.receiptIds[1]] }).expect(207);
+    assert.match(conflito.body.resultados[0].mensagem, /nenhum dado foi sobrescrito/);
+    assert.equal(await Session.countDocuments(), 2);
+    assert.equal(await ObservationSubmission.countDocuments({ status: "pending" }), 1);
+});
+
+test("cria aluno escolar pela revisao e evita nome equivalente duplicado", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const primeira = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Nova Estudante Fictícia",
+    });
+    const caminhoPrimeira = `/api/collections/${primeira.criada.body.coleta.collectionId}/participants/${primeira.pareada.body.participante.participantRef}/resolve`;
+    const criada = await request(app)
+        .post(caminhoPrimeira)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ createNew: true })
+        .expect(201);
+    const alunoCriado = await Student.findById(criada.body.aluno.studentId);
+    assert.equal(alunoCriado.name, "Nova Estudante Fictícia");
+    assert.equal(String(alunoCriado.groupId), String(turmaA._id));
+    assert.equal(alunoCriado.enrollmentMode, "school");
+
+    const segunda = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "  Nova Estudante Fictícia  ",
+    });
+    const caminhoSegunda = `/api/collections/${segunda.criada.body.coleta.collectionId}/participants/${segunda.pareada.body.participante.participantRef}/resolve`;
+    const conflito = await request(app)
+        .post(caminhoSegunda)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ createNew: true })
+        .expect(409);
+    assert.equal(conflito.body.codigo, "ALUNO_EQUIVALENTE");
+    assert.equal(conflito.body.alunoSugerido.studentId, String(alunoCriado._id));
+});
+
 // Representa a forma canônica produzida pelo LUDUS Unity SDK em um build WebGL.
 // Os valores são inteiramente fictícios e mantêm coordenadas dentro do viewport.
 const sessaoSdkWebglDeTeste = (aluno) => ({
