@@ -9,6 +9,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- modal próprio e compartilhado para arquivar ou reativar jogos nas duas telas
+  do catálogo, preservando histórico, foco, cancelamento e prevenção de envio
+  duplicado. As confirmações de exclusão restantes continuam pendentes.
+
 - modal próprio para confirmar a adição de sessões ao histórico, com aluno e
   quantidade, cancelamento por Escape antes do envio, foco controlado e
   bloqueio de confirmação repetida. As demais confirmações não mudaram.

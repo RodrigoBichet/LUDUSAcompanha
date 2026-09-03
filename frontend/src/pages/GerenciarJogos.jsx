@@ -3,8 +3,9 @@
 // Catálogo pessoal/institucional de jogos acompanhados.
 // =============================================================================
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
 import Header from "../components/layout/Header";
 import {
     arquivarJogo,
@@ -21,6 +22,9 @@ export default function GerenciarJogos() {
     const [editandoId, setEditandoId] = useState(null);
     const [form, setForm] = useState({});
     const [salvando, setSalvando] = useState(false);
+    const [confirmacaoJogo, setConfirmacaoJogo] = useState(null);
+    const [erroConfirmacao, setErroConfirmacao] = useState("");
+    const alteracaoEmCurso = useRef(false);
 
     const carregarJogos = useCallback(async () => {
         try {
@@ -72,12 +76,16 @@ export default function GerenciarJogos() {
         }
     };
 
-    const alternarArquivo = async (jogo) => {
-        const acao = jogo.active === false ? "reativar" : "arquivar";
-        if (!window.confirm(`Deseja ${acao} “${jogo.name}”? O histórico será preservado.`)) {
-            return;
-        }
+    const abrirConfirmacaoArquivo = (jogo, origemFoco) => {
+        if (alteracaoEmCurso.current) return;
+        setErroConfirmacao("");
+        setConfirmacaoJogo({ ...jogo, origemFoco });
+    };
 
+    const alternarArquivo = async () => {
+        if (!confirmacaoJogo || alteracaoEmCurso.current) return;
+        alteracaoEmCurso.current = true;
+        const jogo = confirmacaoJogo;
         try {
             setSalvando(true);
             setErro("");
@@ -87,12 +95,14 @@ export default function GerenciarJogos() {
             setJogos((atuais) => atuais.map((item) =>
                 item._id === jogo._id ? resposta.data.jogo : item,
             ));
+            setConfirmacaoJogo(null);
         } catch (erroArquivo) {
-            setErro(
+            setErroConfirmacao(
                 erroArquivo.response?.data?.mensagem ||
                     "Não foi possível alterar o estado do jogo.",
             );
         } finally {
+            alteracaoEmCurso.current = false;
             setSalvando(false);
         }
     };
@@ -169,7 +179,7 @@ export default function GerenciarJogos() {
                                             <button className="btn-secundario" onClick={() => abrirEdicao(jogo)}>
                                                 Editar
                                             </button>
-                                            <button className="btn-secundario" disabled={salvando} onClick={() => alternarArquivo(jogo)}>
+                                            <button className="btn-secundario" disabled={salvando} onClick={(evento) => abrirConfirmacaoArquivo(jogo, evento.currentTarget)}>
                                                 {jogo.active === false ? "Reativar" : "Arquivar"}
                                             </button>
                                         </div>
@@ -180,6 +190,17 @@ export default function GerenciarJogos() {
                     </div>
                 )}
             </div>
+            {confirmacaoJogo && (
+                <ConfirmacaoEstadoJogo
+                    jogo={confirmacaoJogo}
+                    ocupado={salvando}
+                    erro={erroConfirmacao}
+                    onCancelar={() => {
+                        if (!alteracaoEmCurso.current) setConfirmacaoJogo(null);
+                    }}
+                    onConfirmar={alternarArquivo}
+                />
+            )}
         </div>
     );
 }

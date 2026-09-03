@@ -6,8 +6,9 @@
 // Página inicial — visão geral dos alunos monitorados.
 // =============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
 import Header from "../components/layout/Header";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -50,6 +51,9 @@ export default function Home() {
     const [jogoEmEdicao, setJogoEmEdicao] = useState(null);
     const [formEdicaoJogo, setFormEdicaoJogo] = useState({});
     const [processandoJogoId, setProcessandoJogoId] = useState(null);
+    const [confirmacaoJogo, setConfirmacaoJogo] = useState(null);
+    const [erroConfirmacao, setErroConfirmacao] = useState("");
+    const alteracaoEmCurso = useRef(false);
 
     const jogosDisponiveis = useMemo(() => {
         const cadastrados = jogos.map((jogo) => ({
@@ -154,12 +158,16 @@ export default function Home() {
         }
     };
 
-    const handleAlternarArquivoJogo = async (jogo) => {
-        const acao = jogo.ativo ? "arquivar" : "reativar";
-        if (!window.confirm(`Deseja ${acao} “${jogo.nome}”? O histórico será preservado.`)) {
-            return;
-        }
+    const abrirConfirmacaoArquivo = (jogo, origemFoco) => {
+        if (alteracaoEmCurso.current) return;
+        setErroConfirmacao("");
+        setConfirmacaoJogo({ ...jogo, origemFoco });
+    };
 
+    const handleAlternarArquivoJogo = async () => {
+        if (!confirmacaoJogo || alteracaoEmCurso.current) return;
+        alteracaoEmCurso.current = true;
+        const jogo = confirmacaoJogo;
         try {
             setProcessandoJogoId(jogo.registroId);
             setErroJogo("");
@@ -169,12 +177,14 @@ export default function Home() {
             setJogos((atuais) => atuais.map((item) =>
                 item._id === jogo.registroId ? resposta.data.jogo : item,
             ));
+            setConfirmacaoJogo(null);
         } catch (erroArquivo) {
-            setErroJogo(
+            setErroConfirmacao(
                 erroArquivo.response?.data?.mensagem ||
                     "Não foi possível alterar o estado do jogo.",
             );
         } finally {
+            alteracaoEmCurso.current = false;
             setProcessandoJogoId(null);
         }
     };
@@ -319,7 +329,7 @@ export default function Home() {
                                                     type="button"
                                                     title={jogo.ativo ? "Arquivar jogo" : "Reativar jogo"}
                                                     aria-label={jogo.ativo ? `Arquivar ${jogo.nome}` : `Reativar ${jogo.nome}`}
-                                                    onClick={() => handleAlternarArquivoJogo(jogo)}
+                                                    onClick={(evento) => abrirConfirmacaoArquivo(jogo, evento.currentTarget)}
                                                     disabled={Boolean(processandoJogoId)}
                                                 >
                                                     {processandoJogoId === jogo.registroId
@@ -362,6 +372,17 @@ export default function Home() {
                     </>
                 )}
             </div>
+            {confirmacaoJogo && (
+                <ConfirmacaoEstadoJogo
+                    jogo={confirmacaoJogo}
+                    ocupado={Boolean(processandoJogoId)}
+                    erro={erroConfirmacao}
+                    onCancelar={() => {
+                        if (!alteracaoEmCurso.current) setConfirmacaoJogo(null);
+                    }}
+                    onConfirmar={handleAlternarArquivoJogo}
+                />
+            )}
         </div>
     );
 }

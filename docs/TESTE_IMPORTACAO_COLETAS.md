@@ -59,7 +59,9 @@ ser conferido no navegador.
 Substituir gradualmente `window.alert`, `window.confirm` e `window.prompt` do
 dashboard por modais com a identidade visual do site. Solicitação de Rodrigo
 em 02/09/2026. O primeiro fluxo implementado é a aprovação das sessões; as
-demais confirmações permanecem pendentes.
+ações de arquivar/reativar jogos nas telas **Jogos** e **Gerenciar jogos**
+também usam um modal próprio compartilhado. As confirmações de exclusão
+restantes permanecem pendentes.
 
 Preservar confirmação explícita, foco inicial seguro, navegação por teclado,
 Escape/cancelamento, retorno de foco e bloqueio de confirmação duplicada.
@@ -82,3 +84,13 @@ Pedidos nativos de permissão do navegador não entram nessa substituição.
    Não reinicie o banco temporário para esse teste, pois apagaria a coleta.
 6. Confira em janela estreita e zoom de 100%: texto e botões devem permanecer
    acessíveis, com rolagem interna apenas quando necessária.
+
+### Teste manual do modal de jogos (pendente)
+
+1. Nas telas **Jogos** e **Gerenciar jogos**, abra a confirmação de arquivamento.
+   O modal deve mostrar o nome correto e explicar que o histórico será mantido.
+2. Teste Cancelar e Escape; o estado não deve mudar e o foco retorna ao botão.
+3. Confirme o arquivamento. Os botões ficam bloqueados durante a requisição e o
+   card deve passar a **Arquivado** sem perder alunos ou sessões.
+4. Abra novamente, confirme **Reativar** e confira o retorno ao estado ativo.
+5. Simule rede offline: a falha deve aparecer no modal e permitir nova tentativa.
