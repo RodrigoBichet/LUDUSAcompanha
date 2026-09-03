@@ -144,6 +144,8 @@ test("cadastro público nunca cria administrador nem aceita vínculo institucion
             password: "Senha@123",
             role: "admin",
             institutionId: String(instituicao._id),
+            institutionName: "Escola solicitada no cadastro",
+            institutionCity: "Pelotas",
         })
         .expect(201);
 
@@ -153,6 +155,68 @@ test("cadastro público nunca cria administrador nem aceita vínculo institucion
     const usuario = await User.findOne({ email: "cadastro.publico@ludus.local" });
     assert.equal(usuario.role, "professor");
     assert.equal(usuario.institutionId, undefined);
+    assert.equal(usuario.institutionRequest.name, "Escola solicitada no cadastro");
+    assert.equal(usuario.institutionRequest.city, "Pelotas");
+});
+
+test("somente administrador cria usuário interno com vínculo validado", async () => {
+    const { admin, professoraA, instituicaoA } = await criarCenarioEscolar();
+    const dados = {
+        name: "Professora criada pelo admin",
+        email: "criada.admin@ludus.local",
+        password: "Senha@123",
+        role: "professor",
+        institutionId: String(instituicaoA._id),
+    };
+
+    await request(app)
+        .post("/api/users")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send(dados)
+        .expect(403);
+
+    const resposta = await request(app)
+        .post("/api/users")
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send(dados)
+        .expect(201);
+
+    const usuario = await User.findById(resposta.body.usuario._id);
+    assert.equal(usuario.role, "professor");
+    assert.equal(String(usuario.institutionId), String(instituicaoA._id));
+    assert.ok(usuario.emailVerifiedAt);
+
+    await request(app)
+        .post("/api/users")
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send({ ...dados, email: "instituicao.invalida@ludus.local", institutionId: new mongoose.Types.ObjectId() })
+        .expect(400);
+});
+
+test("administrador vincula solicitação a instituição existente", async () => {
+    const { admin, instituicaoA } = await criarCenarioEscolar();
+    const pendente = await User.create({
+        name: "Professora aguardando vínculo",
+        email: "aguardando.vinculo@ludus.local",
+        password: "Senha@123",
+        institutionRequest: { name: "Escola A", city: "Pelotas" },
+    });
+
+    const resposta = await request(app)
+        .put(`/api/users/${pendente._id}`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send({
+            name: pendente.name,
+            email: pendente.email,
+            role: "professor",
+            institutionId: String(instituicaoA._id),
+        })
+        .expect(200);
+
+    assert.equal(String(resposta.body.usuario.institutionId), String(instituicaoA._id));
+    const atualizado = await User.findById(pendente._id);
+    assert.equal(String(atualizado.institutionId), String(instituicaoA._id));
+    assert.equal(atualizado.institutionRequest, undefined);
 });
 
 test("somente administrador cria instituição", async () => {
@@ -193,6 +257,7 @@ test("novo cadastro exige confirmação de email com token de uso único", async
             name: "Professora pendente",
             email: "PENDENTE@ludus.local ",
             password: "Senha@123",
+            institutionName: "Instituição pendente",
         })
         .expect(201);
 

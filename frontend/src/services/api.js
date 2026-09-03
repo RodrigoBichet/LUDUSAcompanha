@@ -149,6 +149,7 @@ export const alertasAluno = (studentId, gameId) =>
 // Users (Usuários — apenas admin)
 // -------------------------------------------------------------------------
 export const listarUsuarios = () => api.get("/users");
+export const criarUsuario = (dados) => api.post("/users", dados);
 export const deletarUsuario = (id) => api.delete(`/users/${id}`);
 
 export const atualizarUsuario = (id, dados) => api.put(`/users/${id}`, dados);

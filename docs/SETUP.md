@@ -68,6 +68,7 @@ limitador compartilhado, como Redis.
 | `password`      | String   | sim         | Senha com hash bcrypt                   |
 | `role`          | String   | sim         | `"admin"` ou `"professor"`              |
 | `institutionId` | ObjectId | nao         | Instituicao vinculada ao professor      |
+| `institutionRequest` | Object | nao     | Nome, cidade e data da solicitação de vínculo feita no cadastro público |
 | `createdAt`     | Date     | automatico  | Data de criacao                         |
 | `updatedAt`     | Date     | automatico  | Data da ultima atualizacao              |
 
@@ -77,6 +78,8 @@ limitador compartilhado, como Redis.
 - `admin` visualiza todas as instituicoes e e o unico papel autorizado a cria-las ou remove-las.
 - `professor` visualiza somente as instituicoes autorizadas pelos seus vinculos.
 - o cadastro publico sempre cria `professor` sem aceitar papel administrativo ou instituicao enviados pelo cliente.
+- nome e cidade da instituicao informados no cadastro publico ficam em `institutionRequest`; somente o admin converte a solicitacao em um `institutionId` valido.
+- ao salvar um vinculo institucional valido, a solicitacao pendente e removida.
 - `institutionId` pode ficar vazio para administradores e para novas contas ainda sem vinculo.
 
 ### Exemplo
@@ -630,6 +633,10 @@ Observacoes:
 | POST   | `/api/auth/login`  | Login no dashboard     |
 | GET    | `/api/auth/me`     | Usuario autenticado    |
 | PUT    | `/api/auth/perfil` | Atualiza perfil logado |
+| POST   | `/api/users`       | Cria usuario pela administracao (apenas admin) |
+| GET    | `/api/users`       | Lista usuarios e solicitacoes de vinculo (apenas admin) |
+| PUT    | `/api/users/:id`   | Atualiza usuario e confirma vinculo institucional (apenas admin) |
+| DELETE | `/api/users/:id`   | Remove usuario (apenas admin) |
 
 ### Unity
 

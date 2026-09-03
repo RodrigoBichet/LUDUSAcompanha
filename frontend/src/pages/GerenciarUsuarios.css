@@ -80,6 +80,32 @@
     padding: 0.1rem 0.5rem;
 }
 
+.tag-solicitacao {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #8a5200;
+    background: #fff4dc;
+    border: 1px solid #f0c36a;
+    border-radius: 99px;
+    padding: 0.15rem 0.55rem;
+}
+
+.solicitacao-instituicao {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    color: #684000;
+    background: #fff8e8;
+    border: 1px solid #f0cf87;
+    border-radius: 10px;
+}
+
+.solicitacao-instituicao small {
+    color: var(--cor-texto-leve);
+}
+
 .usuario-acoes {
     flex-shrink: 0;
 }

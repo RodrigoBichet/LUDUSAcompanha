@@ -7,6 +7,64 @@
 // =============================================================================
 
 const User = require("../models/User");
+const Institution = require("../models/Institution");
+
+const papeisValidos = new Set(["admin", "professor"]);
+const emailValido = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const normalizarEmail = (email) => String(email || "").trim().toLowerCase();
+
+const validarInstituicao = async (institutionId) => {
+    if (!institutionId) return null;
+    if (!require("mongoose").isValidObjectId(institutionId)) return false;
+    return Institution.exists({ _id: institutionId });
+};
+
+const criarUsuario = async (req, res) => {
+    try {
+        const name = String(req.body.name || "").trim();
+        const email = normalizarEmail(req.body.email);
+        const password = req.body.password;
+        const role = req.body.role || "professor";
+        const institutionId = req.body.institutionId || null;
+
+        if (!name || !emailValido(email) || typeof password !== "string" || password.length < 8) {
+            return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email válido e senha com pelo menos 8 caracteres." });
+        }
+        if (!papeisValidos.has(role)) {
+            return res.status(400).json({ sucesso: false, mensagem: "Papel de usuário inválido." });
+        }
+        if (institutionId && !(await validarInstituicao(institutionId))) {
+            return res.status(400).json({ sucesso: false, mensagem: "Instituição informada não existe." });
+        }
+        if (await User.exists({ email })) {
+            return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado." });
+        }
+
+        const usuario = await User.create({
+            name,
+            email,
+            password,
+            role,
+            institutionId,
+            emailVerifiedAt: new Date(),
+        });
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: "Usuário cadastrado com sucesso!",
+            usuario: {
+                _id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                institutionId: usuario.institutionId,
+            },
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao criar usuário:", erro.message);
+        return res.status(500).json({ sucesso: false, mensagem: "Erro interno ao criar usuário." });
+    }
+};
 
 const listarUsuarios = async (req, res) => {
     try {
@@ -65,24 +123,36 @@ const deletarUsuario = async (req, res) => {
 const atualizarUsuario = async (req, res) => {
     try {
         const { name, email, role, institutionId } = req.body;
-
-        const usuario = await User.findByIdAndUpdate(
-            req.params.id,
-            {
-                name,
-                email,
-                role,
-                institutionId: institutionId || null,
-            },
-            { new: true, runValidators: true },
-        ).select("-password");
-
+        const usuario = await User.findById(req.params.id);
         if (!usuario) {
             return res.status(404).json({
                 sucesso: false,
                 mensagem: "Usuário não encontrado",
             });
         }
+
+        const nomeNormalizado = String(name || "").trim();
+        const emailNormalizado = normalizarEmail(email);
+        if (!nomeNormalizado || !emailValido(emailNormalizado) || !papeisValidos.has(role)) {
+            return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email e papel válidos." });
+        }
+        if (String(req.params.id) === String(req.usuarioId) && role !== "admin") {
+            return res.status(409).json({ sucesso: false, mensagem: "Você não pode remover o próprio papel administrativo." });
+        }
+        if (institutionId && !(await validarInstituicao(institutionId))) {
+            return res.status(400).json({ sucesso: false, mensagem: "Instituição informada não existe." });
+        }
+        const emailEmUso = await User.exists({ email: emailNormalizado, _id: { $ne: usuario._id } });
+        if (emailEmUso) {
+            return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado." });
+        }
+
+        usuario.name = nomeNormalizado;
+        usuario.email = emailNormalizado;
+        usuario.role = role;
+        usuario.institutionId = institutionId || null;
+        if (institutionId) usuario.institutionRequest = undefined;
+        await usuario.save();
 
         console.log(`[LUDUS] Usuário atualizado: ${usuario.email}`);
 
@@ -100,4 +170,4 @@ const atualizarUsuario = async (req, res) => {
     }
 };
 
-module.exports = { listarUsuarios, deletarUsuario, atualizarUsuario };
+module.exports = { criarUsuario, listarUsuarios, deletarUsuario, atualizarUsuario };

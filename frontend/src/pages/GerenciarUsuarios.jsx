@@ -16,9 +16,9 @@ import {
     listarUsuarios,
     deletarUsuario,
     listarInstituicoes,
+    criarUsuario,
     atualizarUsuario,
 } from "../services/api";
-import api from "../services/api";
 import "./GerenciarUsuarios.css";
 
 export default function GerenciarUsuarios() {
@@ -90,7 +90,7 @@ export default function GerenciarUsuarios() {
     };
 
     // -------------------------------------------------------------------------
-    // Cria novo usuário via POST /api/auth/register
+    // Cria novo usuário pela rota administrativa protegida
     // -------------------------------------------------------------------------
     const salvarUsuario = async () => {
         if (!nome.trim() || !email.trim()) {
@@ -99,8 +99,8 @@ export default function GerenciarUsuarios() {
         }
 
         // Senha obrigatória apenas na criação
-        if (!editando && !senha.trim()) {
-            setErroForm("Senha é obrigatória para novo usuário.");
+        if (!editando && senha.length < 8) {
+            setErroForm("A senha do novo usuário deve ter pelo menos 8 caracteres.");
             return;
         }
 
@@ -116,7 +116,7 @@ export default function GerenciarUsuarios() {
                     institutionId: instituicaoId || null,
                 });
             } else {
-                await api.post("/auth/register", {
+                await criarUsuario({
                     name: nome.trim(),
                     email: email.trim(),
                     password: senha,
@@ -199,7 +199,7 @@ export default function GerenciarUsuarios() {
                                     <input
                                         className="campo-input"
                                         type="password"
-                                        placeholder="Mínimo 6 caracteres"
+                                        placeholder="Mínimo 8 caracteres"
                                         value={senha}
                                         onChange={(e) =>
                                             setSenha(e.target.value)
@@ -242,6 +242,14 @@ export default function GerenciarUsuarios() {
                                 </select>
                             </div>
                         </div>
+
+                        {editando?.institutionRequest && (
+                            <div className="solicitacao-instituicao">
+                                <strong>Vínculo solicitado no cadastro</strong>
+                                <span>{editando.institutionRequest.name}{editando.institutionRequest.city ? ` • ${editando.institutionRequest.city}` : ""}</span>
+                                <small>Selecione acima a instituição correspondente. Se ela ainda não existir, cadastre-a primeiro em Admin → Instituições.</small>
+                            </div>
+                        )}
 
                         {erroForm && <p className="form-erro">⚠️ {erroForm}</p>}
 
@@ -343,6 +351,12 @@ export default function GerenciarUsuarios() {
                                                                 u.institutionId
                                                                     .name
                                                             }
+                                                        </span>
+                                                    )}
+                                                    {!u.institutionId && u.institutionRequest && (
+                                                        <span className="tag-solicitacao">
+                                                            Vínculo pendente: {u.institutionRequest.name}
+                                                            {u.institutionRequest.city ? ` • ${u.institutionRequest.city}` : ""}
                                                         </span>
                                                     )}
                                                 </p>

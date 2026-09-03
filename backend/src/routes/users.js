@@ -12,6 +12,7 @@ const controller = require("../controllers/usersController");
 const { autenticar, apenasAdmin } = require("../middleware/auth");
 
 // Todas as rotas exigem token válido + role admin
+router.post("/", autenticar, apenasAdmin, controller.criarUsuario);
 router.get("/", autenticar, apenasAdmin, controller.listarUsuarios);
 router.put("/:id", autenticar, apenasAdmin, controller.atualizarUsuario);
 router.delete("/:id", autenticar, apenasAdmin, controller.deletarUsuario);

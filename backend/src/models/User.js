@@ -9,6 +9,15 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const SolicitacaoInstituicaoSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true, trim: true, maxlength: 160 },
+        city: { type: String, trim: true, maxlength: 120 },
+        requestedAt: { type: Date, default: Date.now },
+    },
+    { _id: false },
+);
+
 const UserSchema = new mongoose.Schema(
     {
         name: {
@@ -33,6 +42,10 @@ const UserSchema = new mongoose.Schema(
         institutionId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Institution",
+        },
+        institutionRequest: {
+            type: SolicitacaoInstituicaoSchema,
+            default: undefined,
         },
         emailVerifiedAt: { type: Date, default: null },
         emailVerificationTokenHash: { type: String, select: false },

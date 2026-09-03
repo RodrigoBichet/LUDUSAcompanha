@@ -239,6 +239,11 @@ de recuperacao usa links de uso unico com expiracao de 30 minutos e invalida as
 sessoes anteriores depois da troca de senha. Contas historicas permanecem
 compativeis e nao sao bloqueadas retroativamente.
 
+No cadastro, a professora informa também o nome da instituição e, opcionalmente,
+a cidade. Esses dados formam apenas uma solicitação: nenhuma instituição é criada
+automaticamente. Um administrador confere a informação e vincula a conta a uma
+instituição já cadastrada, evitando duplicidades e associações indevidas.
+
 Para envio real, configure no backend `FRONTEND_URL`, `RESEND_API_KEY` e
 `EMAIL_FROM`. `AUTH_EXPOSE_DEV_LINKS=true` deve ser usado somente em ambiente
 local controlado; nunca em producao.

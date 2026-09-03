@@ -35,14 +35,24 @@ const registrar = async (req, res) => {
         const name = String(req.body.name || "").trim();
         const email = normalizarEmail(req.body.email);
         const password = req.body.password;
-        if (!name || !emailValido(email) || !senhaValida(password)) {
-            return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email válido e senha com pelo menos 8 caracteres." });
+        const institutionName = String(req.body.institutionName || "").trim();
+        const institutionCity = String(req.body.institutionCity || "").trim();
+        if (!name || !emailValido(email) || !senhaValida(password) || !institutionName) {
+            return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email válido, instituição e senha com pelo menos 8 caracteres." });
+        }
+        if (name.length > 160 || institutionName.length > 160 || institutionCity.length > 120) {
+            return res.status(400).json({ sucesso: false, mensagem: "Um dos campos informados ultrapassa o tamanho permitido." });
         }
         if (await User.exists({ email })) return res.status(409).json({ sucesso: false, mensagem: "Email já cadastrado." });
 
         const token = gerarTokenOpaco();
         const usuario = await User.create({
             name, email, password, role: "professor",
+            institutionRequest: {
+                name: institutionName,
+                city: institutionCity || undefined,
+                requestedAt: new Date(),
+            },
             emailVerificationTokenHash: resumirToken(token),
             emailVerificationExpiresAt: expiraEmMinutos(30),
         });
@@ -50,7 +60,13 @@ const registrar = async (req, res) => {
         return res.status(201).json({
             sucesso: true,
             mensagem: "Cadastro realizado. Confira seu email para ativar a conta.",
-            usuario: { id: usuario._id, name: usuario.name, email: usuario.email, role: usuario.role },
+            usuario: {
+                id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                institutionRequest: usuario.institutionRequest,
+            },
             ...(linkDesenvolvimento && { linkDesenvolvimento }),
         });
     } catch (erro) {

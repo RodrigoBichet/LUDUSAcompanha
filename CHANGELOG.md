@@ -9,6 +9,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Autenticação
 
+- cadastro público registra o nome e a cidade informados para a instituição
+  como uma solicitação pendente, sem criar ou vincular instituições automaticamente;
+- administradores visualizam a solicitação, escolhem uma instituição já validada
+  e encerram a pendência ao salvar o vínculo;
+- criação administrativa de usuários usa uma rota autenticada própria, com
+  validação de papel, instituição, email único e senha mínima de oito caracteres;
 - cadastro público de professoras com confirmação de email antes do primeiro login;
 - recuperação de senha por token aleatório, armazenado somente como hash, com
   validade de 30 minutos e uso único;
