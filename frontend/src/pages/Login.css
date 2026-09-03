@@ -142,3 +142,17 @@
     font-size: 0.78rem;
     margin-top: 0.5rem;
 }
+
+.auth-link {
+    color: var(--cor-primaria-esc);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.auth-link:hover { text-decoration: underline; }
+.auth-link-direita { align-self: flex-end; font-size: 0.84rem; margin-top: -0.5rem; }
+.auth-alternativa { margin: 0; text-align: center; font-size: 0.88rem; color: var(--cor-texto-leve); }
+.auth-sucesso { background: rgba(78, 203, 160, 0.12); border: 1px solid var(--cor-primaria); border-radius: 8px; padding: 0.85rem 1rem; color: #176148; font-size: 0.9rem; }
+.auth-acoes { display: flex; flex-direction: column; gap: 0.75rem; }
+.auth-dev-link { display: block; text-align: center; overflow-wrap: anywhere; }
+.auth-ajuda { margin: 0; color: var(--cor-texto-leve); font-size: 0.82rem; line-height: 1.5; }

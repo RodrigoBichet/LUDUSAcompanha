@@ -31,7 +31,7 @@ const redefinir = async () => {
 
     await mongoose.connect(process.env.MONGODB_URI);
 
-    const usuario = await User.findOne({ email });
+    const usuario = await User.findOne({ email }).select("+authVersion");
     if (!usuario) {
         throw new Error("Nenhum usuário foi encontrado com esse email.");
     }
@@ -42,6 +42,7 @@ const redefinir = async () => {
 
     const senhaTemporaria = gerarSenhaTemporaria();
     usuario.password = senhaTemporaria;
+    usuario.authVersion = Number(usuario.authVersion || 0) + 1;
     await usuario.save();
 
     console.log("[LUDUS] Senha administrativa redefinida com sucesso.");

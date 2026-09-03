@@ -234,6 +234,15 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 
 ## Autenticacao
 
+Novas contas de professora confirmam o email antes do primeiro acesso. O fluxo
+de recuperacao usa links de uso unico com expiracao de 30 minutos e invalida as
+sessoes anteriores depois da troca de senha. Contas historicas permanecem
+compativeis e nao sao bloqueadas retroativamente.
+
+Para envio real, configure no backend `FRONTEND_URL`, `RESEND_API_KEY` e
+`EMAIL_FROM`. `AUTH_EXPOSE_DEV_LINKS=true` deve ser usado somente em ambiente
+local controlado; nunca em producao.
+
 | Papel       | Acesso                                                 |
 | ----------- | ------------------------------------------------------ |
 | `admin`     | Acesso total — todas as instituicoes e funcionalidades |

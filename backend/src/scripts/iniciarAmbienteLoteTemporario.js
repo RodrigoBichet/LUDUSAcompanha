@@ -5,6 +5,7 @@
 // =============================================================================
 
 process.env.JWT_SECRET = "segredo-local-exclusivo-do-teste-manual-de-lote";
+process.env.AUTH_EXPOSE_DEV_LINKS = "true";
 
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");

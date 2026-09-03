@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { textosAnonimos } from "../config/modoAnonimo";
 import "./Login.css";
@@ -16,6 +17,7 @@ export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [erro, setErro] = useState("");
+    const [emailNaoConfirmado, setEmailNaoConfirmado] = useState(false);
     const [carregando, setCarregando] = useState(false);
     const { login } = useAuth();
     const navegar = useNavigate();
@@ -23,13 +25,15 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErro("");
+        setEmailNaoConfirmado(false);
         setCarregando(true);
 
         try {
             await login(email, password);
             navegar("/");
-        } catch {
-            setErro("Email ou senha incorretos. Tente novamente.");
+        } catch (erroLogin) {
+            setErro(erroLogin.response?.data?.mensagem || "Não foi possível entrar. Tente novamente.");
+            setEmailNaoConfirmado(erroLogin.response?.data?.codigo === "EMAIL_NAO_CONFIRMADO");
         } finally {
             setCarregando(false);
         }
@@ -45,6 +49,7 @@ export default function Login() {
                         <div className="login-logo-titulo">LUDUS</div>
                         <div className="login-logo-subtitulo">ACOMPANHA</div>
                     </div>
+
                 </div>
 
                 <h2 className="login-titulo">Entrar no dashboard</h2>
@@ -80,8 +85,17 @@ export default function Login() {
                         />
                     </div>
 
+                    <Link className="auth-link auth-link-direita" to="/esqueci-senha">
+                        Esqueci minha senha
+                    </Link>
+
                     {/* Mensagem de erro */}
                     {erro && <div className="login-erro">⚠️ {erro}</div>}
+                    {emailNaoConfirmado && (
+                        <Link className="auth-link" to="/confirmar-email">
+                            Reenviar confirmação
+                        </Link>
+                    )}
 
                     <button
                         type="submit"
@@ -91,6 +105,10 @@ export default function Login() {
                         {carregando ? "Entrando..." : "Entrar"}
                     </button>
                 </form>
+
+                <p className="auth-alternativa">
+                    Ainda não possui uma conta? <Link className="auth-link" to="/cadastro">Criar conta</Link>
+                </p>
 
                 <p className="login-rodape texto-leve">
                     {textosAnonimos.loginRodape}

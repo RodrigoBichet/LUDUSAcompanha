@@ -3,6 +3,10 @@ import { AuthProvider } from "./contexts/AuthProvider";
 import RotaProtegida from "./components/shared/RotaProtegida";
 import Sidebar from "./components/layout/Sidebar";
 import Login from "./pages/Login";
+import Cadastro from "./pages/Cadastro";
+import EsqueciSenha from "./pages/EsqueciSenha";
+import RedefinirSenha from "./pages/RedefinirSenha";
+import ConfirmarEmail from "./pages/ConfirmarEmail";
 import Home from "./pages/Home";
 import DetalhesSessao from "./pages/DetalhesSessao";
 import Turmas from "./pages/Turmas";
@@ -34,6 +38,10 @@ function App() {
                 <Routes>
                     {/* Rota pública */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/cadastro" element={<Cadastro />} />
+                    <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+                    <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+                    <Route path="/confirmar-email" element={<ConfirmarEmail />} />
                     <Route
                         path="/privacidade/ludus-observa"
                         element={<PrivacidadeLudusObserva />}

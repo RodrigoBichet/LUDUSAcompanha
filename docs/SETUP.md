@@ -52,6 +52,12 @@ O banco possui cinco collections principais:
 
 Armazena os usuarios do dashboard. As senhas sao armazenadas com hash bcrypt e nunca devem ser salvas em texto puro.
 
+Novos cadastros confirmam o email antes do primeiro login. Tokens de confirmacao
+e recuperacao sao persistidos apenas como hash, expiram em 30 minutos e sao de
+uso unico. As rotas publicas de autenticacao possuem limite de tentativas em
+memoria; em uma arquitetura futura com varias instancias, substituir por um
+limitador compartilhado, como Redis.
+
 ### Campos
 
 | Campo           | Tipo     | Obrigatorio | Descricao                               |

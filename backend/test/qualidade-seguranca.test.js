@@ -6,6 +6,7 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 const request = require("supertest");
 
 process.env.JWT_SECRET = "segredo-exclusivo-dos-testes-ludus";
+process.env.AUTH_EXPOSE_DEV_LINKS = "true";
 
 const app = require("../src/app");
 const User = require("../src/models/User");
@@ -23,6 +24,7 @@ const {
 const {
     limparTentativasPareamento,
 } = require("../src/services/pairingAttemptLimiter");
+const { limparLimitadoresAuth } = require("../src/middleware/authRateLimiter");
 
 let mongo;
 
@@ -121,6 +123,7 @@ before(async () => {
 beforeEach(async () => {
     await mongoose.connection.db.dropDatabase();
     limparTentativasPareamento();
+    limparLimitadoresAuth();
 });
 
 after(async () => {
@@ -181,6 +184,117 @@ test("administrador não remove a própria conta", async () => {
 
     assert.match(resposta.body.mensagem, /própria conta/i);
     assert.ok(await User.findById(admin._id));
+});
+
+test("novo cadastro exige confirmação de email com token de uso único", async () => {
+    const cadastro = await request(app)
+        .post("/api/auth/register")
+        .send({
+            name: "Professora pendente",
+            email: "PENDENTE@ludus.local ",
+            password: "Senha@123",
+        })
+        .expect(201);
+
+    assert.match(cadastro.body.linkDesenvolvimento, /confirmar-email\?token=/);
+    await request(app)
+        .post("/api/auth/login")
+        .send({ email: "pendente@ludus.local", password: "Senha@123" })
+        .expect(403);
+
+    const token = new URL(cadastro.body.linkDesenvolvimento).searchParams.get("token");
+    const usuarioPendente = await User.findOne({ email: "pendente@ludus.local" })
+        .select("+emailVerificationTokenHash");
+    assert.notEqual(usuarioPendente.emailVerificationTokenHash, token);
+
+    await request(app).post("/api/auth/confirmar-email").send({ token }).expect(200);
+    await request(app).post("/api/auth/confirmar-email").send({ token }).expect(400);
+    await request(app)
+        .post("/api/auth/login")
+        .send({ email: "pendente@ludus.local", password: "Senha@123" })
+        .expect(200);
+});
+
+test("redefinição de senha é neutra, descartável e invalida sessão anterior", async () => {
+    const { professoraA } = await criarCenarioEscolar();
+    const tokenAnterior = tokenDe(professoraA);
+
+    const desconhecido = await request(app)
+        .post("/api/auth/esqueci-senha")
+        .send({ email: "nao.existe@ludus.local" })
+        .expect(200);
+    assert.equal(desconhecido.body.linkDesenvolvimento, undefined);
+
+    const solicitacao = await request(app)
+        .post("/api/auth/esqueci-senha")
+        .send({ email: professoraA.email })
+        .expect(200);
+    assert.equal(solicitacao.body.mensagem, desconhecido.body.mensagem);
+    const token = new URL(solicitacao.body.linkDesenvolvimento).searchParams.get("token");
+
+    await request(app)
+        .post("/api/auth/redefinir-senha")
+        .send({ token, password: "NovaSenha@123" })
+        .expect(200);
+    await request(app)
+        .post("/api/auth/redefinir-senha")
+        .send({ token, password: "OutraSenha@123" })
+        .expect(400);
+
+    await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${tokenAnterior}`)
+        .expect(401);
+    await request(app)
+        .post("/api/auth/login")
+        .send({ email: professoraA.email, password: "Senha@123" })
+        .expect(401);
+    const novoLogin = await request(app)
+        .post("/api/auth/login")
+        .send({ email: professoraA.email, password: "NovaSenha@123" })
+        .expect(200);
+    await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${novoLogin.body.token}`)
+        .expect(200);
+});
+
+test("token expirado não confirma email nem redefine senha", async () => {
+    const usuario = await User.create({
+        name: "Token expirado",
+        email: "expirado@ludus.local",
+        password: "Senha@123",
+        emailVerificationTokenHash: "hash-invalido",
+        emailVerificationExpiresAt: new Date(Date.now() - 1000),
+        passwordResetTokenHash: "outro-hash-invalido",
+        passwordResetExpiresAt: new Date(Date.now() - 1000),
+    });
+    assert.ok(usuario);
+    await request(app).post("/api/auth/confirmar-email").send({ token: "qualquer" }).expect(400);
+    await request(app)
+        .post("/api/auth/redefinir-senha")
+        .send({ token: "qualquer", password: "NovaSenha@123" })
+        .expect(400);
+});
+
+test("limita tentativas repetidas de login sem bloquear uso normal", async () => {
+    const { professoraA } = await criarCenarioEscolar();
+    for (let tentativa = 0; tentativa < 10; tentativa += 1) {
+        await request(app)
+            .post("/api/auth/login")
+            .send({ email: professoraA.email, password: "senha-incorreta" })
+            .expect(401);
+    }
+    const bloqueada = await request(app)
+        .post("/api/auth/login")
+        .send({ email: professoraA.email, password: "Senha@123" })
+        .expect(429);
+    assert.ok(bloqueada.headers["retry-after"]);
+
+    await request(app)
+        .post("/api/auth/login")
+        .send({ email: "outro.usuario@ludus.local", password: "Senha@123" })
+        .expect(401);
 });
 
 test("cria coleta temporaria sem persistir o codigo legivel", async () => {

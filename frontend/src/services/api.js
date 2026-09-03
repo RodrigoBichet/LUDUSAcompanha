@@ -14,6 +14,12 @@ const api = axios.create({
     baseURL: API_URL,
 });
 
+export const cadastrarConta = (dados) => api.post("/auth/register", dados);
+export const confirmarEmail = (token) => api.post("/auth/confirmar-email", { token });
+export const reenviarConfirmacao = (email) => api.post("/auth/reenviar-confirmacao", { email });
+export const solicitarRedefinicaoSenha = (email) => api.post("/auth/esqueci-senha", { email });
+export const redefinirSenha = (token, password) => api.post("/auth/redefinir-senha", { token, password });
+
 const montarQueryJogo = (gameId) => {
     if (!gameId || gameId === "todos") return "";
 

@@ -7,6 +7,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Autenticação
+
+- cadastro público de professoras com confirmação de email antes do primeiro login;
+- recuperação de senha por token aleatório, armazenado somente como hash, com
+  validade de 30 minutos e uso único;
+- redefinição de senha invalida sessões anteriores do dashboard;
+- respostas neutras na recuperação e no reenvio, sem revelar contas cadastradas;
+- telas públicas de cadastro, confirmação, reenvio, recuperação e nova senha;
+- login após redefinição emite a versão atual da sessão; aviso de tamanho mínimo
+  e acesso à recuperação ficam junto ao campo de senha;
+- envio por Resend configurável, sem credenciais versionadas, e links locais
+  visíveis apenas quando explicitamente habilitados fora de produção;
+- limitação de tentativas em memória para login, cadastro, confirmação e
+  recuperação, com resposta `429` e indicação de tempo para nova tentativa;
+
 ### Adicionado
 
 - redefinição administrativa pontual com senha temporária aleatória, validação

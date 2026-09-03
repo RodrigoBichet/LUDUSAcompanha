@@ -34,6 +34,12 @@ const UserSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Institution",
         },
+        emailVerifiedAt: { type: Date, default: null },
+        emailVerificationTokenHash: { type: String, select: false },
+        emailVerificationExpiresAt: { type: Date, select: false },
+        passwordResetTokenHash: { type: String, select: false },
+        passwordResetExpiresAt: { type: Date, select: false },
+        authVersion: { type: Number, default: 0, select: false },
     },
     {
         timestamps: true,

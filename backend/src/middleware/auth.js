@@ -9,7 +9,7 @@
 
 const jwt = require("jsonwebtoken");
 
-const autenticar = (req, res, next) => {
+const autenticar = async (req, res, next) => {
     // Pega o token do header Authorization: Bearer <token>
     const authHeader = req.headers.authorization;
 
@@ -27,7 +27,13 @@ const autenticar = (req, res, next) => {
         if (!decoded.id || decoded.tokenType) {
             throw new Error("Tipo de credencial incompatível com o Dashboard.");
         }
+        const User = require("../models/User");
+        const usuario = await User.findById(decoded.id).select("+authVersion");
+        if (!usuario || Number(decoded.authVersion || 0) !== Number(usuario.authVersion || 0)) {
+            throw new Error("Sessão invalidada.");
+        }
         req.usuarioId = decoded.id;
+        req.usuario = usuario;
         next();
     } catch (erro) {
         return res.status(401).json({
