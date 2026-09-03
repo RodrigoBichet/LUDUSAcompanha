@@ -7,7 +7,7 @@
 // Acessível apenas por usuários com role 'admin'.
 // =============================================================================
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
@@ -21,12 +21,16 @@ import {
 } from "../services/api";
 import "./GerenciarUsuarios.css";
 
+const ehVinculoPendente = (usuario) =>
+    !usuario.institutionId && Boolean(usuario.institutionRequest);
+
 export default function GerenciarUsuarios() {
     const { usuario } = useAuth();
     const [usuarios, setUsuarios] = useState([]);
     const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
+    const [mostrarSomentePendentes, setMostrarSomentePendentes] = useState(false);
 
     // Controle do formulário
     const [formAberto, setFormAberto] = useState(false);
@@ -39,6 +43,18 @@ export default function GerenciarUsuarios() {
     const [erroForm, setErroForm] = useState(null);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
     const remocao = useConfirmacaoRemocao();
+    const totalPendentes = usuarios.filter(ehVinculoPendente).length;
+    const usuariosExibidos = useMemo(() => {
+        const ordenados = [...usuarios].sort((a, b) => {
+            const diferencaPendencia = Number(ehVinculoPendente(b)) - Number(ehVinculoPendente(a));
+            if (diferencaPendencia !== 0) return diferencaPendencia;
+            return a.name.localeCompare(b.name, "pt-BR");
+        });
+
+        return mostrarSomentePendentes
+            ? ordenados.filter(ehVinculoPendente)
+            : ordenados;
+    }, [mostrarSomentePendentes, usuarios]);
 
     // -------------------------------------------------------------------------
     // Carrega usuários e instituições em paralelo
@@ -50,7 +66,11 @@ export default function GerenciarUsuarios() {
                 listarUsuarios(),
                 listarInstituicoes(),
             ]);
-            setUsuarios(resUsuarios.data.usuarios || []);
+            const usuariosRecebidos = resUsuarios.data.usuarios || [];
+            setUsuarios(usuariosRecebidos);
+            if (!usuariosRecebidos.some(ehVinculoPendente)) {
+                setMostrarSomentePendentes(false);
+            }
             setInstituicoes(resInstituicoes.data.instituicoes || []);
         } catch {
             setErro("Não foi possível carregar os dados.");
@@ -298,6 +318,30 @@ export default function GerenciarUsuarios() {
                     )}
                 </div>
 
+                {!carregando && !erro && totalPendentes > 0 && (
+                    <section className="card resumo-vinculos-pendentes">
+                        <div>
+                            <span className="resumo-vinculos-icone" aria-hidden="true">🏫</span>
+                            <div>
+                                <strong>
+                                    {totalPendentes === 1
+                                        ? "1 vínculo aguardando análise"
+                                        : `${totalPendentes} vínculos aguardando análise`}
+                                </strong>
+                                <p>Confira a instituição informada e vincule cada professora ao cadastro correto.</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            className="btn-secundario"
+                            aria-pressed={mostrarSomentePendentes}
+                            onClick={() => setMostrarSomentePendentes((atual) => !atual)}
+                        >
+                            {mostrarSomentePendentes ? "Mostrar todos" : "Mostrar somente pendentes"}
+                        </button>
+                    </section>
+                )}
+
                 {/* Estado de carregamento */}
                 {carregando && (
                     <div className="estado-centro">
@@ -317,14 +361,18 @@ export default function GerenciarUsuarios() {
                 {/* Lista de usuários */}
                 {!carregando && !erro && (
                     <>
-                        {usuarios.length === 0 ? (
+                        {usuariosExibidos.length === 0 ? (
                             <div className="card estado-vazio">
                                 <span className="estado-vazio-icone">👥</span>
-                                <p>Nenhum usuário cadastrado ainda.</p>
+                                <p>
+                                    {mostrarSomentePendentes
+                                        ? "Nenhum vínculo institucional está pendente."
+                                        : "Nenhum usuário cadastrado ainda."}
+                                </p>
                             </div>
                         ) : (
                             <div className="lista-usuarios">
-                                {usuarios.map((u) => (
+                                {usuariosExibidos.map((u) => (
                                     <div
                                         key={u._id}
                                         className="card card-usuario"
