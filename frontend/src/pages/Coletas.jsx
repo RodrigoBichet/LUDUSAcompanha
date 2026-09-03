@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ConfirmacaoHistorico from "../components/ConfirmacaoHistorico";
 import Header from "../components/layout/Header";
 import {
     criarColeta,
@@ -58,6 +59,10 @@ export default function Coletas() {
     const [alunoSelecionado, setAlunoSelecionado] = useState("");
     const [resolvendoParticipante, setResolvendoParticipante] = useState(null);
     const [importandoParticipante, setImportandoParticipante] = useState(null);
+    const [confirmacaoHistorico, setConfirmacaoHistorico] = useState(null);
+    const [erroConfirmacao, setErroConfirmacao] = useState("");
+    const importacaoEmCurso = useRef(false);
+    const focoListaColetas = useRef(null);
     const [resultadoImportacao, setResultadoImportacao] = useState({});
 
     const turmasPorId = useMemo(
@@ -210,11 +215,19 @@ export default function Coletas() {
         }));
     };
 
-    const adicionarAoHistorico = async (coleta, recebimento) => {
+    const adicionarAoHistorico = (coleta, recebimento) => {
         const pendentes = recebimento.sessoes.filter((sessao) => sessao.status === "pending").slice(0, 100);
-        if (!pendentes.length || importandoParticipante) return;
-        if (!window.confirm(`Adicionar ${pendentes.length} sessão(ões) ao histórico de ${recebimento.resolvedStudent?.name}? Cada jogo será mantido separado.`)) return;
+        if (!pendentes.length || importacaoEmCurso.current) return;
+        setErroConfirmacao("");
+        setConfirmacaoHistorico({ coleta, recebimento, pendentes });
+    };
+
+    const confirmarAdicaoAoHistorico = async () => {
+        if (!confirmacaoHistorico || importacaoEmCurso.current) return;
+        importacaoEmCurso.current = true;
+        const { coleta, recebimento, pendentes } = confirmacaoHistorico;
         setImportandoParticipante(recebimento.participantRef);
+        setErroConfirmacao("");
         setErro("");
         try {
             const resposta = await importarSessoesColeta(coleta.collectionId, recebimento.participantRef, pendentes.map((item) => item.receiptId));
@@ -227,9 +240,11 @@ export default function Coletas() {
                 ...Object.fromEntries(resposta.data.resultados.map((item) => [item.receiptId, item.mensagem || ""])),
             }));
             await carregarRecebimentos(coleta);
+            setConfirmacaoHistorico(null);
         } catch (falha) {
-            setErro(falha.response?.data?.mensagem || "Não foi possível confirmar a importação. Você pode tentar novamente sem duplicar as sessões.");
+            setErroConfirmacao(falha.response?.data?.mensagem || "Não foi possível confirmar a importação. Você pode tentar novamente sem duplicar as sessões.");
         } finally {
+            importacaoEmCurso.current = false;
             setImportandoParticipante(null);
         }
     };
@@ -440,7 +455,7 @@ export default function Coletas() {
                 <section className="lista-coletas-secao">
                     <div className="cabecalho-lista-coletas">
                         <div>
-                            <h2>Coletas preparadas</h2>
+                            <h2 ref={focoListaColetas} tabIndex={-1}>Coletas preparadas</h2>
                             <p>Somente as coletas criadas pela sua conta.</p>
                         </div>
                         <span className="badge">{coletas.length}</span>
@@ -662,6 +677,20 @@ export default function Coletas() {
                     )}
                 </section>
             </main>
+
+            {confirmacaoHistorico && (
+                <ConfirmacaoHistorico
+                    nome={confirmacaoHistorico.recebimento.resolvedStudent?.name || confirmacaoHistorico.recebimento.displayName}
+                    quantidade={confirmacaoHistorico.pendentes.length}
+                    ocupado={Boolean(importandoParticipante)}
+                    erro={erroConfirmacao}
+                    focoAlternativo={focoListaColetas}
+                    onCancelar={() => {
+                        if (!importacaoEmCurso.current) setConfirmacaoHistorico(null);
+                    }}
+                    onConfirmar={confirmarAdicaoAoHistorico}
+                />
+            )}
 
             {codigoGerado && modoApresentacao && (
                 <div

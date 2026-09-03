@@ -9,6 +9,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- modal próprio para confirmar a adição de sessões ao histórico, com aluno e
+  quantidade, cancelamento por Escape antes do envio, foco controlado e
+  bloqueio de confirmação repetida. As demais confirmações não mudaram.
+
 - aviso de resultado da importação com espaçamento e estilos distintos para
   sucesso e pendências, dentro do card do participante.
 

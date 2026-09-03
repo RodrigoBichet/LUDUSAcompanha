@@ -54,13 +54,31 @@ exibição no histórico. Após essa validação, o aviso de resultado recebeu
 espaçamento e estilos de sucesso/atenção; esse acabamento visual ainda precisa
 ser conferido no navegador.
 
-## Próxima etapa de interface — pendência registrada
+## Modais do dashboard — implantação gradual
 
 Substituir gradualmente `window.alert`, `window.confirm` e `window.prompt` do
-dashboard por modais com a identidade visual do site, começando pela aprovação
-das sessões. Solicitação de Rodrigo em 02/09/2026; não implementada nesta etapa.
+dashboard por modais com a identidade visual do site. Solicitação de Rodrigo
+em 02/09/2026. O primeiro fluxo implementado é a aprovação das sessões; as
+demais confirmações permanecem pendentes.
 
 Preservar confirmação explícita, foco inicial seguro, navegação por teclado,
 Escape/cancelamento, retorno de foco e bloqueio de confirmação duplicada.
 Cancelar nunca deve disparar a operação. Manter mensagens de falha acessíveis.
 Pedidos nativos de permissão do navegador não entram nessa substituição.
+
+### Teste manual do primeiro modal (pendente)
+
+1. Com aluno confirmado e sessões pendentes, clique em **Adicionar sessões ao
+   histórico**. Deve abrir um modal do site, com nome e quantidade corretos.
+2. O foco começa em **Cancelar**. Use Tab e Shift+Tab: o foco deve permanecer
+   no modal. Teste Escape e Cancelar; nenhum deles deve enviar sessões, e o
+   foco deve retornar ao botão de origem.
+3. Reabra e confirme. Durante o envio, os botões ficam bloqueados; cliques
+   repetidos não devem gerar pedidos extras. Escape não fecha nessa fase.
+4. Após sucesso, o modal fecha e os contadores atualizam. Se o botão de origem
+   desaparecer, o foco vai ao título **Coletas preparadas**.
+5. Simule rede offline pelas ferramentas do navegador, confirme e verifique
+   a mensagem de falha dentro do modal. Restaure a rede e tente novamente.
+   Não reinicie o banco temporário para esse teste, pois apagaria a coleta.
+6. Confira em janela estreita e zoom de 100%: texto e botões devem permanecer
+   acessíveis, com rolagem interna apenas quando necessária.

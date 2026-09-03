@@ -357,6 +357,8 @@ payload bruto, digest e credenciais não são expostos nessa listagem.
 
 Em **Revisar aluno**, selecione um cadastro da mesma turma ou confirme a criação
 de um novo. Depois use **Adicionar sessões ao histórico** e confirme o nome.
+Essa confirmação aparece em um modal do próprio dashboard; cancelar ou usar
+Escape antes do envio não altera as sessões.
 As sessões passam a aparecer no perfil do aluno, separadas por jogo. Repetir
 o pedido não duplica sessões desta caixa; itens com falha continuam pendentes.
 O recebimento original é preservado. Uma colisão com importação manual anterior
