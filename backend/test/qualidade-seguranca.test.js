@@ -128,6 +128,61 @@ after(async () => {
     await mongo.stop();
 });
 
+test("cadastro público nunca cria administrador nem aceita vínculo institucional", async () => {
+    const instituicao = await Institution.create({
+        name: "Instituição não autorizada no cadastro",
+    });
+
+    const resposta = await request(app)
+        .post("/api/auth/register")
+        .send({
+            name: "Cadastro público de teste",
+            email: "cadastro.publico@ludus.local",
+            password: "Senha@123",
+            role: "admin",
+            institutionId: String(instituicao._id),
+        })
+        .expect(201);
+
+    assert.equal(resposta.body.usuario.role, "professor");
+    assert.equal(resposta.body.usuario.institutionId, undefined);
+
+    const usuario = await User.findOne({ email: "cadastro.publico@ludus.local" });
+    assert.equal(usuario.role, "professor");
+    assert.equal(usuario.institutionId, undefined);
+});
+
+test("somente administrador cria instituição", async () => {
+    const { admin, professoraA } = await criarCenarioEscolar();
+
+    await request(app)
+        .post("/api/institutions")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ name: "Instituição recusada" })
+        .expect(403);
+
+    const respostaAdmin = await request(app)
+        .post("/api/institutions")
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send({ name: "Instituição criada pelo admin" })
+        .expect(201);
+
+    assert.equal(respostaAdmin.body.instituicao.name, "Instituição criada pelo admin");
+    assert.equal(await Institution.countDocuments(), 3);
+});
+
+test("administrador não remove a própria conta", async () => {
+    const { admin } = await criarCenarioEscolar();
+
+    const resposta = await request(app)
+        .delete(`/api/users/${admin._id}`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .expect(409);
+
+    assert.match(resposta.body.mensagem, /própria conta/i);
+    assert.ok(await User.findById(admin._id));
+});
+
 test("cria coleta temporaria sem persistir o codigo legivel", async () => {
     const { professoraA, turmaA } = await criarCenarioEscolar();
 

@@ -8,6 +8,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
@@ -21,6 +22,7 @@ import api from "../services/api";
 import "./GerenciarUsuarios.css";
 
 export default function GerenciarUsuarios() {
+    const { usuario } = useAuth();
     const [usuarios, setUsuarios] = useState([]);
     const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
@@ -353,13 +355,17 @@ export default function GerenciarUsuarios() {
                                             >
                                                 ✏️ Editar
                                             </button>
-                                            <button
-                                                className="btn-acao deletar"
-                                                onClick={(evento) => abrirRemocaoUsuario(u, evento.currentTarget)}
-                                                disabled={remocao.ocupado}
-                                            >
-                                                🗑️ Remover
-                                            </button>
+                                            {u._id === usuario?.id ? (
+                                                <span className="tag-role">Conta atual</span>
+                                            ) : (
+                                                <button
+                                                    className="btn-acao deletar"
+                                                    onClick={(evento) => abrirRemocaoUsuario(u, evento.currentTarget)}
+                                                    disabled={remocao.ocupado}
+                                                >
+                                                    🗑️ Remover
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

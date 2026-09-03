@@ -68,9 +68,10 @@ Armazena os usuarios do dashboard. As senhas sao armazenadas com hash bcrypt e n
 ### Regras
 
 - `email` e unico.
-- `admin` visualiza todas as instituicoes.
-- `professor` visualiza apenas a instituicao vinculada a `institutionId`.
-- `institutionId` pode ficar vazio para administradores.
+- `admin` visualiza todas as instituicoes e e o unico papel autorizado a cria-las ou remove-las.
+- `professor` visualiza somente as instituicoes autorizadas pelos seus vinculos.
+- o cadastro publico sempre cria `professor` sem aceitar papel administrativo ou instituicao enviados pelo cliente.
+- `institutionId` pode ficar vazio para administradores e para novas contas ainda sem vinculo.
 
 ### Exemplo
 
@@ -638,10 +639,10 @@ Observacoes:
 | Metodo | Rota                                  | Descricao                           |
 | ------ | ------------------------------------- | ----------------------------------- |
 | GET    | `/api/institutions`                   | Lista instituicoes                  |
-| POST   | `/api/institutions`                   | Cria instituicao                    |
+| POST   | `/api/institutions`                   | Cria instituicao (apenas admin)     |
 | GET    | `/api/institutions/:id`               | Busca instituicao                   |
 | PUT    | `/api/institutions/:id`               | Atualiza instituicao                |
-| DELETE | `/api/institutions/:id`               | Remove instituicao em cascata       |
+| DELETE | `/api/institutions/:id`               | Remove instituicao vazia (apenas admin) |
 | GET    | `/api/groups`                         | Lista turmas                        |
 | POST   | `/api/groups`                         | Cria turma                          |
 | GET    | `/api/groups/:id`                     | Busca turma                         |
@@ -677,11 +678,12 @@ As rotas de resumo, historico e indicadores aceitam filtro opcional por jogo:
 
 ## Exclusao em cascata
 
-O backend remove dados dependentes quando entidades principais sao excluidas:
+O backend preserva historicos escolares nas operacoes estruturais:
 
-- excluir aluno remove suas sessoes e imagens vinculadas;
-- excluir turma remove alunos, sessoes e imagens vinculadas;
-- excluir instituicao remove turmas, alunos, sessoes e imagens vinculadas, alem de desvincular usuarios associados.
+- a exclusao permanente autorizada de um aluno remove suas sessoes e imagens vinculadas;
+- turmas com alunos nao podem ser excluidas;
+- instituicoes com alunos nao podem ser excluidas e sua remocao e exclusiva de admin;
+- remover uma instituicao vazia remove suas turmas vazias e desvincula usuarios associados.
 
 As imagens sao removidas pelo helper:
 

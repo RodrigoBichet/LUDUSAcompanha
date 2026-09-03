@@ -237,7 +237,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Papel       | Acesso                                                 |
 | ----------- | ------------------------------------------------------ |
 | `admin`     | Acesso total — todas as instituicoes e funcionalidades |
-| `professor` | Acesso às instituições que criou, suas turmas e seus alunos individuais |
+| `professor` | Acesso às instituições vinculadas por um administrador, suas turmas e seus alunos individuais |
 
 ---
 
@@ -282,7 +282,7 @@ Mesmo quando uma quantidade menor e informada, o script random garante pelo meno
 | Alunos                 | `/alunos`             | Visão geral dos alunos e dos jogos com sessões registradas                 |
 | Coletas                | `/coletas`            | Criação, validade, listagem e revogação de coletas escolares observacionais |
 | Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
-| Instituições           | `/turmas`             | Cadastro de instituições, seleção e gerenciamento de turmas               |
+| Instituições           | `/turmas`             | Seleção das instituições vinculadas e gerenciamento de turmas              |
 | Detalhe Turma          | `/turmas/:id`         | Lista e cadastro de alunos vinculados à turma                              |
 | Alunos do jogo         | `/jogos/:gameId/alunos` | Seleção de alunos escolares ou individuais associados ao jogo            |
 | Perfil Aluno           | `/aluno/:id`          | Dados, anotacoes, indicadores, monitoramento, PDF e solicitacao de imagem |

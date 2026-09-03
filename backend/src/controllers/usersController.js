@@ -31,6 +31,13 @@ const listarUsuarios = async (req, res) => {
 
 const deletarUsuario = async (req, res) => {
     try {
+        if (String(req.params.id) === String(req.usuarioId)) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Você não pode remover a própria conta administrativa.",
+            });
+        }
+
         const usuario = await User.findByIdAndDelete(req.params.id);
 
         if (!usuario) {

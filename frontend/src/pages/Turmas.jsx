@@ -18,7 +18,6 @@ import {
     atualizarTurma,
     deletarTurma,
     listarInstituicoes,
-    criarInstituicao,
 } from "../services/api";
 import "./Turmas.css";
 
@@ -42,11 +41,6 @@ export default function Turmas() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
     const [editando, setEditando] = useState(null);
-    const [mostrarFormInstituicao, setMostrarFormInstituicao] = useState(false);
-    const [nomeInstituicao, setNomeInstituicao] = useState("");
-    const [cidadeInstituicao, setCidadeInstituicao] = useState("");
-    const [salvandoInstituicao, setSalvandoInstituicao] = useState(false);
-    const [erroInstituicao, setErroInstituicao] = useState("");
     const remocao = useConfirmacaoRemocao();
 
     const turmasFiltradas = institutionIdSelecionada
@@ -165,39 +159,6 @@ export default function Turmas() {
         remocao.executar((alvo) => deletarTurma(alvo.id), carregarDados, "Não foi possível excluir a turma.");
     };
 
-    const handleCriarInstituicao = async (evento) => {
-        evento.preventDefault();
-        if (!nomeInstituicao.trim()) return;
-
-        try {
-            setSalvandoInstituicao(true);
-            setErroInstituicao("");
-            const resposta = await criarInstituicao({
-                name: nomeInstituicao.trim(),
-                city: cidadeInstituicao.trim(),
-            });
-            const instituicao = resposta.data.instituicao;
-            setInstituicoes((atuais) =>
-                [...atuais, instituicao].sort((a, b) =>
-                    a.name.localeCompare(b.name, "pt-BR"),
-                ),
-            );
-            setNomeInstituicao("");
-            setCidadeInstituicao("");
-            setMostrarFormInstituicao(false);
-            navegar(
-                `/turmas?institutionId=${encodeURIComponent(instituicao._id)}`,
-            );
-        } catch (erroCadastro) {
-            setErroInstituicao(
-                erroCadastro.response?.data?.mensagem ||
-                    "Não foi possível cadastrar a instituição.",
-            );
-        } finally {
-            setSalvandoInstituicao(false);
-        }
-    };
-
     return (
         <div>
             <Header
@@ -211,81 +172,20 @@ export default function Turmas() {
 
             <div className="pagina-conteudo">
                 <section className="instituicoes-escolares">
-                    <div className="turmas-topo">
-                        <div className="secao-titulo">
-                            <h2>Instituições</h2>
-                            {!carregando && (
-                                <span className="badge">
-                                    {instituicoes.length}
-                                </span>
-                            )}
-                        </div>
-                        <button
-                            type="button"
-                            className="btn-primario"
-                            onClick={() =>
-                                setMostrarFormInstituicao((aberto) => !aberto)
-                            }
-                        >
-                            {mostrarFormInstituicao
-                                ? "Fechar cadastro"
-                                : "+ Nova Instituição"}
-                        </button>
+                    <div className="secao-titulo">
+                        <h2>Instituições</h2>
+                        {!carregando && (
+                            <span className="badge">
+                                {instituicoes.length}
+                            </span>
+                        )}
                     </div>
-
-                    {mostrarFormInstituicao && (
-                        <form
-                            className="card form-instituicao"
-                            onSubmit={handleCriarInstituicao}
-                        >
-                            <label className="campo-grupo">
-                                <span className="campo-label">
-                                    Nome da instituição
-                                </span>
-                                <input
-                                    className="campo-input"
-                                    value={nomeInstituicao}
-                                    onChange={(evento) =>
-                                        setNomeInstituicao(evento.target.value)
-                                    }
-                                    required
-                                    disabled={salvandoInstituicao}
-                                />
-                            </label>
-                            <label className="campo-grupo">
-                                <span className="campo-label">
-                                    Cidade (opcional)
-                                </span>
-                                <input
-                                    className="campo-input"
-                                    value={cidadeInstituicao}
-                                    onChange={(evento) =>
-                                        setCidadeInstituicao(
-                                            evento.target.value,
-                                        )
-                                    }
-                                    disabled={salvandoInstituicao}
-                                />
-                            </label>
-                            {erroInstituicao && (
-                                <p className="form-erro">{erroInstituicao}</p>
-                            )}
-                            <button
-                                className="btn-primario"
-                                disabled={salvandoInstituicao}
-                            >
-                                {salvandoInstituicao
-                                    ? "Salvando..."
-                                    : "Salvar instituição"}
-                            </button>
-                        </form>
-                    )}
 
                     {!carregando && instituicoes.length === 0 ? (
                         <div className="card estado-vazio">
                             <p>
-                                Cadastre a primeira instituição para organizar
-                                suas turmas e alunos.
+                                Nenhuma instituição está vinculada à sua conta.
+                                Solicite o vínculo a uma pessoa administradora.
                             </p>
                         </div>
                     ) : (

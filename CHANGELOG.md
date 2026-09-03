@@ -16,6 +16,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - formulário administrativo de instituições isolado dos estilos da tela de
   turmas, com campos e ações alinhados e adaptação para telas menores;
 
+### Segurança
+
+- cadastro público sempre cria uma conta de professora sem permitir elevação
+  para `admin` ou vínculo institucional informado pelo cliente;
+- criação de instituições restrita ao administrador no backend e removida da
+  tela comum das professoras;
+- administrador impedido de excluir a própria conta autenticada;
+- conta administrativa atual identificada na listagem sem oferecer a ação de remoção;
+- testes automatizados para cadastro, instituição e autoexclusão administrativa;
+
 - modal reutilizável do dashboard nas cinco exclusões que ainda dependiam da
   confirmação nativa: aluno em duas telas, turma, instituição e usuário;
 - erros de formulários e exclusões agora aparecem na página ou no modal, sem
