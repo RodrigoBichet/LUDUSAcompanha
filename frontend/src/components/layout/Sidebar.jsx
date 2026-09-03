@@ -6,6 +6,11 @@ import "./Sidebar.css";
 
 export default function Sidebar() {
     const { usuario, logout } = useAuth();
+    const vinculoPendente = Boolean(
+        usuario?.role === "professor" &&
+        !usuario?.institutionId &&
+        usuario?.institutionRequest,
+    );
 
     return (
         <aside className="sidebar">
@@ -31,35 +36,45 @@ export default function Sidebar() {
                     <span>Jogos</span>
                 </NavLink>
 
-                <NavLink
-                    to="/turmas"
-                    className={({ isActive }) =>
-                        isActive ? "nav-item ativo" : "nav-item"
-                    }
-                >
-                    <span className="nav-icone">📚</span>
-                    <span>Instituições</span>
-                </NavLink>
+                {!vinculoPendente && (
+                    <>
+                        <NavLink
+                            to="/turmas"
+                            className={({ isActive }) =>
+                                isActive ? "nav-item ativo" : "nav-item"
+                            }
+                        >
+                            <span className="nav-icone">📚</span>
+                            <span>Instituições</span>
+                        </NavLink>
 
-                <NavLink
-                    to="/alunos"
-                    className={({ isActive }) =>
-                        isActive ? "nav-item ativo" : "nav-item"
-                    }
-                >
-                    <span className="nav-icone">👥</span>
-                    <span>Alunos</span>
-                </NavLink>
+                        <NavLink
+                            to="/alunos"
+                            className={({ isActive }) =>
+                                isActive ? "nav-item ativo" : "nav-item"
+                            }
+                        >
+                            <span className="nav-icone">👥</span>
+                            <span>Alunos</span>
+                        </NavLink>
 
-                <NavLink
-                    to="/coletas"
-                    className={({ isActive }) =>
-                        isActive ? "nav-item ativo" : "nav-item"
-                    }
-                >
-                    <span className="nav-icone">📥</span>
-                    <span>Coletas</span>
-                </NavLink>
+                        <NavLink
+                            to="/coletas"
+                            className={({ isActive }) =>
+                                isActive ? "nav-item ativo" : "nav-item"
+                            }
+                        >
+                            <span className="nav-icone">📥</span>
+                            <span>Coletas</span>
+                        </NavLink>
+                    </>
+                )}
+
+                {vinculoPendente && (
+                    <div className="sidebar-vinculo-pendente">
+                        Vínculo institucional aguardando aprovação
+                    </div>
+                )}
             </nav>
 
             {/* Menu exclusivo para admin */}

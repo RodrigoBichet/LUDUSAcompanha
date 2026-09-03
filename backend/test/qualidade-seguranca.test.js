@@ -274,10 +274,11 @@ test("novo cadastro exige confirmação de email com token de uso único", async
 
     await request(app).post("/api/auth/confirmar-email").send({ token }).expect(200);
     await request(app).post("/api/auth/confirmar-email").send({ token }).expect(400);
-    await request(app)
+    const loginPendente = await request(app)
         .post("/api/auth/login")
         .send({ email: "pendente@ludus.local", password: "Senha@123" })
         .expect(200);
+    assert.equal(loginPendente.body.usuario.institutionRequest.name, "Instituição pendente");
 });
 
 test("redefinição de senha é neutra, descartável e invalida sessão anterior", async () => {

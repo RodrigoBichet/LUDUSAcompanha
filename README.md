@@ -243,6 +243,8 @@ No cadastro, a professora informa também o nome da instituição e, opcionalmen
 a cidade. Esses dados formam apenas uma solicitação: nenhuma instituição é criada
 automaticamente. Um administrador confere a informação e vincula a conta a uma
 instituição já cadastrada, evitando duplicidades e associações indevidas.
+Enquanto essa confirmação estiver pendente, a página inicial informa o estado
+da solicitação e oculta as ações escolares que ainda não estão disponíveis.
 
 Para envio real, configure no backend `FRONTEND_URL`, `RESEND_API_KEY` e
 `EMAIL_FROM`. `AUTH_EXPOSE_DEV_LINKS=true` deve ser usado somente em ambiente

@@ -36,6 +36,11 @@ const JOGOS_DISPONIVEIS = [
 
 export default function Home() {
     const { usuario } = useAuth();
+    const vinculoPendente = Boolean(
+        usuario?.role === "professor" &&
+        !usuario?.institutionId &&
+        usuario?.institutionRequest,
+    );
     const navegar = useNavigate();
     const [searchParams] = useSearchParams();
     const nomeJogoSugerido = searchParams.get("novoJogo") || "";
@@ -78,6 +83,10 @@ export default function Home() {
 
     useEffect(() => {
         const carregarJogos = async () => {
+        if (vinculoPendente) {
+            setCarregando(false);
+            return;
+        }
         try {
             setCarregando(true);
             const resJogos = await listarJogos();
@@ -90,7 +99,7 @@ export default function Home() {
         };
 
         void carregarJogos();
-    }, []);
+    }, [vinculoPendente]);
 
     const selecionarJogo = (jogo) => {
         if (!jogo.ativo) return;
@@ -197,6 +206,23 @@ export default function Home() {
             />
 
             <div className="pagina-conteudo">
+                {vinculoPendente && (
+                    <section className="card vinculo-pendente" role="status">
+                        <div className="vinculo-pendente-icone" aria-hidden="true">🏫</div>
+                        <div>
+                            <span className="vinculo-pendente-etapa">Cadastro confirmado</span>
+                            <h2>Vínculo institucional em análise</h2>
+                            <p>
+                                Sua solicitação para <strong>{usuario.institutionRequest.name}</strong>
+                                {usuario.institutionRequest.city ? `, em ${usuario.institutionRequest.city}` : ""}, foi registrada.
+                            </p>
+                            <p className="texto-leve">
+                                Uma pessoa administradora precisa confirmar a instituição antes de liberar as turmas e coletas. Você não precisa enviar o cadastro novamente.
+                            </p>
+                        </div>
+                    </section>
+                )}
+
                 {carregando && (
                     <div className="estado-centro">
                         <div className="spinner" />
@@ -211,7 +237,7 @@ export default function Home() {
                     </div>
                 )}
 
-                {!carregando && !erro && (
+                {!vinculoPendente && !carregando && !erro && (
                     <>
                         <div className="jogos-selecao">
                             <div>

@@ -1,3 +1,43 @@
+.vinculo-pendente {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    max-width: 760px;
+    padding: 1.5rem;
+    border-color: #cbbffc;
+    background: linear-gradient(135deg, #f6f3ff, #eefaf6);
+}
+
+.vinculo-pendente-icone {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: white;
+    font-size: 1.6rem;
+    box-shadow: 0 4px 14px rgba(46, 31, 128, 0.1);
+}
+
+.vinculo-pendente-etapa {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+    color: #147a5e;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vinculo-pendente h2 {
+    margin-bottom: 0.55rem;
+}
+
+.vinculo-pendente p {
+    margin: 0.25rem 0;
+    line-height: 1.55;
+}
+
 .jogos-selecao {
     display: flex;
     flex-direction: column;
@@ -189,6 +229,10 @@
 }
 
 @media (max-width: 780px) {
+    .vinculo-pendente {
+        grid-template-columns: 1fr;
+    }
+
     .jogos-selecao {
         align-items: stretch;
         flex-direction: column;

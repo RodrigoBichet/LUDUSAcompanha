@@ -177,3 +177,14 @@
 .sidebar-usuario {
     text-decoration: none;
 }
+.sidebar-vinculo-pendente {
+    margin: 0.5rem 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(203, 191, 252, 0.32);
+    border-radius: 8px;
+    color: #d8d0ff;
+    background: rgba(86, 67, 191, 0.18);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.4;
+}

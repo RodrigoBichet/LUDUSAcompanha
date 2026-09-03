@@ -125,7 +125,14 @@ const login = async (req, res) => {
         }
         return res.json({
             sucesso: true, token: gerarToken(usuario),
-            usuario: { id: usuario._id, name: usuario.name, email: usuario.email, role: usuario.role, institutionId: usuario.institutionId },
+            usuario: {
+                id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                institutionId: usuario.institutionId,
+                institutionRequest: usuario.institutionRequest,
+            },
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao fazer login:", erro.message);
@@ -200,7 +207,14 @@ const atualizarPerfil = async (req, res) => {
         await usuario.save();
         return res.json({
             sucesso: true, mensagem: "Perfil atualizado com sucesso.",
-            usuario: { id: usuario._id, name: usuario.name, email: usuario.email, role: usuario.role, institutionId: usuario.institutionId },
+            usuario: {
+                id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                institutionId: usuario.institutionId,
+                institutionRequest: usuario.institutionRequest,
+            },
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao atualizar perfil:", erro.message);

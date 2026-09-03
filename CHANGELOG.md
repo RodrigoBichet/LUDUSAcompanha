@@ -13,6 +13,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   como uma solicitação pendente, sem criar ou vincular instituições automaticamente;
 - administradores visualizam a solicitação, escolhem uma instituição já validada
   e encerram a pendência ao salvar o vínculo;
+- professoras com solicitação pendente recebem uma orientação própria na página
+  inicial; atalhos escolares permanecem ocultos até a aprovação administrativa;
 - criação administrativa de usuários usa uma rota autenticada própria, com
   validação de papel, instituição, email único e senha mínima de oito caracteres;
 - cadastro público de professoras com confirmação de email antes do primeiro login;
