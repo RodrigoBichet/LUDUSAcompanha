@@ -3,7 +3,7 @@
    LUDUS Acompanha — UFPel (2026)
    ============================================================================= */
 
-.form-instituicao {
+.admin-instituicao-form {
     margin-bottom: 1.5rem;
 }
 
@@ -14,9 +14,9 @@
     color: var(--cor-texto);
 }
 
-.form-campos {
+.admin-instituicao-form-campos {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
     margin-bottom: 1rem;
 }
@@ -27,9 +27,26 @@
     margin-bottom: 0.75rem;
 }
 
-.form-acoes {
+.admin-instituicao-form-acoes {
     display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 0.75rem;
+}
+
+@media (max-width: 760px) {
+    .admin-instituicao-form-campos {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-instituicao-form-acoes {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .admin-instituicao-form-acoes button {
+        width: 100%;
+    }
 }
 
 .lista-instituicoes {

@@ -7,10 +7,11 @@
 // Dados cadastrais, anotações do professor e monitoramento.
 // =============================================================================
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemoverAnotacao from "../components/ConfirmacaoRemoverAnotacao";
 import {
     LineChart,
     Line,
@@ -87,10 +88,17 @@ export default function PerfilAluno() {
     const [editando, setEditando] = useState(false);
     const [formAluno, setFormAluno] = useState({});
     const [salvando, setSalvando] = useState(false);
+    const [erroEdicaoAluno, setErroEdicaoAluno] = useState("");
 
     // Anotações
     const [novaAnotacao, setNovaAnotacao] = useState("");
     const [salvandoAnot, setSalvandoAnot] = useState(false);
+    const [erroNovaAnotacao, setErroNovaAnotacao] = useState("");
+    const [anotacaoParaRemover, setAnotacaoParaRemover] = useState(null);
+    const [removendoAnotacao, setRemovendoAnotacao] = useState(false);
+    const [erroRemocaoAnotacao, setErroRemocaoAnotacao] = useState("");
+    const remocaoAnotacaoEmCurso = useRef(false);
+    const tituloAnotacoes = useRef(null);
 
     // Captura de screenshots
     const [solicitandoCaptura, setSolicitandoCaptura] = useState(false);
@@ -296,11 +304,12 @@ export default function PerfilAluno() {
         e.preventDefault();
         try {
             setSalvando(true);
+            setErroEdicaoAluno("");
             await atualizarAluno(id, formAluno);
             setEditando(false);
             carregarDados();
         } catch {
-            alert("Erro ao salvar dados.");
+            setErroEdicaoAluno("Não foi possível salvar os dados. Tente novamente.");
         } finally {
             setSalvando(false);
         }
@@ -311,23 +320,37 @@ export default function PerfilAluno() {
         if (!novaAnotacao.trim()) return;
         try {
             setSalvandoAnot(true);
+            setErroNovaAnotacao("");
             await adicionarAnotacao(id, novaAnotacao.trim());
             setNovaAnotacao("");
             carregarDados();
         } catch {
-            alert("Erro ao adicionar anotação.");
+            setErroNovaAnotacao("Não foi possível adicionar a anotação. Tente novamente.");
         } finally {
             setSalvandoAnot(false);
         }
     };
 
-    const handleDeletarAnotacao = async (anotacaoId) => {
-        if (!window.confirm("Remover esta anotação?")) return;
+    const abrirRemocaoAnotacao = (anotacao, origemFoco) => {
+        if (remocaoAnotacaoEmCurso.current) return;
+        setErroRemocaoAnotacao("");
+        setAnotacaoParaRemover({ ...anotacao, origemFoco });
+    };
+
+    const handleDeletarAnotacao = async () => {
+        if (!anotacaoParaRemover || remocaoAnotacaoEmCurso.current) return;
+        remocaoAnotacaoEmCurso.current = true;
         try {
-            await deletarAnotacao(id, anotacaoId);
-            carregarDados();
+            setRemovendoAnotacao(true);
+            setErroRemocaoAnotacao("");
+            await deletarAnotacao(id, anotacaoParaRemover._id);
+            await carregarDados();
+            setAnotacaoParaRemover(null);
         } catch {
-            alert("Erro ao remover anotação.");
+            setErroRemocaoAnotacao("Não foi possível remover a anotação. Tente novamente.");
+        } finally {
+            remocaoAnotacaoEmCurso.current = false;
+            setRemovendoAnotacao(false);
         }
     };
 
@@ -1455,6 +1478,7 @@ export default function PerfilAluno() {
                                                 ? "Salvando..."
                                                 : "Salvar alterações"}
                                         </button>
+                                        {erroEdicaoAluno && <p className="form-erro" role="alert">{erroEdicaoAluno}</p>}
                                     </form>
                                 )}
                             </div>
@@ -1651,7 +1675,7 @@ export default function PerfilAluno() {
                         <div className="perfil-coluna">
                             {/* Anotações */}
                             <div className="card secao-card">
-                                <h3>📝 Anotações do Professor</h3>
+                                <h3 ref={tituloAnotacoes} tabIndex={-1}>📝 Anotações do Professor</h3>
 
                                 {/* Nova anotação */}
                                 <form
@@ -1679,6 +1703,7 @@ export default function PerfilAluno() {
                                             ? "Salvando..."
                                             : "+ Adicionar Anotação"}
                                     </button>
+                                    {erroNovaAnotacao && <p className="form-erro" role="alert">{erroNovaAnotacao}</p>}
                                 </form>
 
                                 {/* Lista de anotações */}
@@ -1712,11 +1737,10 @@ export default function PerfilAluno() {
                                                     </span>
                                                     <button
                                                         className="btn-deletar-anot"
-                                                        onClick={() =>
-                                                            handleDeletarAnotacao(
-                                                                anot._id,
-                                                            )
-                                                        }
+                                                        type="button"
+                                                        aria-label="Remover anotação"
+                                                        disabled={removendoAnotacao}
+                                                        onClick={(evento) => abrirRemocaoAnotacao(anot, evento.currentTarget)}
                                                     >
                                                         🗑️
                                                     </button>
@@ -1959,6 +1983,19 @@ export default function PerfilAluno() {
                             📄 Gerar Relatório PDF
                         </button>
                     </div>
+                )}
+
+                {anotacaoParaRemover && (
+                    <ConfirmacaoRemoverAnotacao
+                        anotacao={anotacaoParaRemover}
+                        ocupado={removendoAnotacao}
+                        erro={erroRemocaoAnotacao}
+                        focoAlternativo={tituloAnotacoes}
+                        onCancelar={() => {
+                            if (!remocaoAnotacaoEmCurso.current) setAnotacaoParaRemover(null);
+                        }}
+                        onConfirmar={handleDeletarAnotacao}
+                    />
                 )}
 
                 {modalCaptura && (

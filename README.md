@@ -168,6 +168,20 @@ cd backend
 node src/scripts/criarAdmin.js
 ```
 
+### Redefinir a senha de um administrador existente
+
+Em um ambiente local com `MONGODB_URI` configurada, gere uma senha temporária
+forte sem alterar instituições, turmas, alunos ou sessões:
+
+```powershell
+cd backend
+npm run admin:reset-password -- --email=admin@exemplo.com
+```
+
+O comando só aceita uma conta que já possua o papel `admin`. A senha temporária
+é exibida uma única vez no terminal e deve ser substituída imediatamente na
+página de perfil do dashboard.
+
 ---
 
 ## Dataset demonstrativo

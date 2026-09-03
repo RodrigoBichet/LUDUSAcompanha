@@ -9,6 +9,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
+import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
     listarInstituicoes,
     criarInstituicao,
@@ -29,6 +31,7 @@ export default function GerenciarInstituicoes() {
     const [cidade, setCidade] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
+    const remocao = useConfirmacaoRemocao();
 
     // -------------------------------------------------------------------------
     // Carrega lista de instituições do backend
@@ -123,20 +126,13 @@ export default function GerenciarInstituicoes() {
     // -------------------------------------------------------------------------
     // Deleta instituição com confirmação
     // -------------------------------------------------------------------------
-    const removerInstituicao = async (instituicao) => {
-        if (
-            !window.confirm(
-                `Deseja remover a instituição "${instituicao.name}"? Turmas, alunos, sessões e imagens vinculadas também serão removidos. Esta ação não pode ser desfeita.`,
-            )
-        )
-            return;
-
-        try {
-            await deletarInstituicao(instituicao._id);
-            await carregarInstituicoes();
-        } catch {
-            alert("Erro ao remover instituição. Tente novamente.");
-        }
+    const abrirRemocaoInstituicao = (instituicao, origemFoco) => {
+        remocao.abrir({ id: instituicao._id, nome: instituicao.name, titulo: "Remover instituição permanentemente?",
+            descricao: "A instituição só pode ser removida se não possuir alunos. As turmas vazias vinculadas também serão removidas; alunos, sessões e imagens são preservados.",
+            rotuloConfirmacao: "Remover instituição" }, origemFoco);
+    };
+    const removerInstituicao = () => {
+        remocao.executar((alvo) => deletarInstituicao(alvo.id), carregarInstituicoes, "Erro ao remover instituição. Tente novamente.");
     };
 
     return (
@@ -149,14 +145,14 @@ export default function GerenciarInstituicoes() {
             <div className="pagina-conteudo">
                 {/* Formulário de criação/edição */}
                 {formAberto && (
-                    <div className="card form-instituicao">
+                    <div className="card admin-instituicao-form">
                         <h3 className="form-titulo">
                             {editando
                                 ? "Editar Instituição"
                                 : "Nova Instituição"}
                         </h3>
 
-                        <div className="form-campos">
+                        <div className="admin-instituicao-form-campos">
                             <div className="campo-grupo">
                                 <label className="campo-label">
                                     Nome da instituição *
@@ -184,7 +180,7 @@ export default function GerenciarInstituicoes() {
 
                         {erroForm && <p className="form-erro">⚠️ {erroForm}</p>}
 
-                        <div className="form-acoes">
+                        <div className="admin-instituicao-form-acoes">
                             <button
                                 className="btn-primario"
                                 onClick={salvarInstituicao}
@@ -288,11 +284,8 @@ export default function GerenciarInstituicoes() {
                                             </button>
                                             <button
                                                 className="btn-acao deletar"
-                                                onClick={() =>
-                                                    removerInstituicao(
-                                                        instituicao,
-                                                    )
-                                                }
+                                                onClick={(evento) => abrirRemocaoInstituicao(instituicao, evento.currentTarget)}
+                                                disabled={remocao.ocupado}
                                             >
                                                 🗑️ Remover
                                             </button>
@@ -304,6 +297,8 @@ export default function GerenciarInstituicoes() {
                     </>
                 )}
             </div>
+            {remocao.alvo && <ConfirmacaoRemocao alvo={remocao.alvo} ocupado={remocao.ocupado} erro={remocao.erro}
+                onCancelar={remocao.cancelar} onConfirmar={removerInstituicao} />}
         </div>
     );
 }

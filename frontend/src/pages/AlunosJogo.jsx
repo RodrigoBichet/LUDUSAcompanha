@@ -6,6 +6,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
+import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
     criarAlunoIndividual,
     deletarAluno,
@@ -28,7 +30,7 @@ export default function AlunosJogo() {
     const [mostrarForm, setMostrarForm] = useState(Boolean(nomeAlunoSugerido));
     const [nomeAluno, setNomeAluno] = useState(nomeAlunoSugerido);
     const [salvando, setSalvando] = useState(false);
-    const [excluindoAlunoId, setExcluindoAlunoId] = useState(null);
+    const remocao = useConfirmacaoRemocao();
 
     const carregarAlunos = useCallback(async () => {
         try {
@@ -95,26 +97,17 @@ export default function AlunosJogo() {
         }
     };
 
-    const handleExcluirAluno = async (aluno) => {
-        if (!window.confirm(
-            `Excluir “${aluno.name}” permanentemente? O perfil, as sessões e as imagens vinculadas serão apagados. Esta ação não pode ser desfeita.`,
-        )) {
-            return;
-        }
-
-        try {
-            setExcluindoAlunoId(aluno._id);
-            setErro("");
-            await deletarAluno(aluno._id);
-            setAlunos((atuais) => atuais.filter((item) => item._id !== aluno._id));
-        } catch (erroExclusao) {
-            setErro(
-                erroExclusao.response?.data?.mensagem ||
-                    "Não foi possível excluir o aluno.",
-            );
-        } finally {
-            setExcluindoAlunoId(null);
-        }
+    const abrirExclusaoAluno = (aluno, origemFoco) => {
+        remocao.abrir({ id: aluno._id, nome: aluno.name, titulo: "Excluir aluno permanentemente?",
+            descricao: "O perfil, as sessões e as imagens vinculadas serão apagados. Esta ação não pode ser desfeita.",
+            rotuloConfirmacao: "Excluir aluno" }, origemFoco);
+    };
+    const confirmarExclusaoAluno = () => {
+        remocao.executar(
+            (alvo) => deletarAluno(alvo.id),
+            (alvo) => setAlunos((atuais) => atuais.filter((item) => item._id !== alvo.id)),
+            "Não foi possível excluir o aluno.",
+        );
     };
 
     return (
@@ -229,10 +222,10 @@ export default function AlunosJogo() {
                                             className="aluno-jogo-excluir"
                                             title="Excluir aluno permanentemente"
                                             aria-label={`Excluir ${aluno.name} permanentemente`}
-                                            onClick={() => handleExcluirAluno(aluno)}
-                                            disabled={excluindoAlunoId === aluno._id}
+                                            onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
+                                            disabled={remocao.ocupado}
                                         >
-                                            {excluindoAlunoId === aluno._id ? "…" : "🗑️"}
+                                            {remocao.ocupado && remocao.alvo?.id === aluno._id ? "…" : "🗑️"}
                                         </button>
                                     </div>
                                 )}
@@ -241,6 +234,8 @@ export default function AlunosJogo() {
                     </div>
                 )}
             </div>
+            {remocao.alvo && <ConfirmacaoRemocao alvo={remocao.alvo} ocupado={remocao.ocupado} erro={remocao.erro}
+                onCancelar={remocao.cancelar} onConfirmar={confirmarExclusaoAluno} />}
         </div>
     );
 }

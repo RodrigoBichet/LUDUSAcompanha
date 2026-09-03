@@ -9,6 +9,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- redefinição administrativa pontual com senha temporária aleatória, validação
+  do papel `admin` e preservação integral dos dados pedagógicos;
+- conta administrativa fictícia no ambiente efêmero de teste do lote, permitindo
+  validar os fluxos exclusivos de admin sem acessar dados reais;
+- formulário administrativo de instituições isolado dos estilos da tela de
+  turmas, com campos e ações alinhados e adaptação para telas menores;
+
+- modal reutilizável do dashboard nas cinco exclusões que ainda dependiam da
+  confirmação nativa: aluno em duas telas, turma, instituição e usuário;
+- erros de formulários e exclusões agora aparecem na página ou no modal, sem
+  chamadas a `alert`, `confirm` ou `prompt` no frontend.
+
+- modal próprio para remover anotações do professor, mostrando o conteúdo antes
+  da confirmação e mantendo foco, cancelamento, erro recuperável e proteção
+  contra requisições repetidas.
+
 - modal próprio e compartilhado para arquivar ou reativar jogos nas duas telas
   do catálogo, preservando histórico, foco, cancelamento e prevenção de envio
   duplicado. As confirmações de exclusão restantes continuam pendentes.

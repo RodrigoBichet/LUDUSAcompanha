@@ -10,6 +10,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
+import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
     listarTurmas,
     criarTurma,
@@ -45,6 +47,7 @@ export default function Turmas() {
     const [cidadeInstituicao, setCidadeInstituicao] = useState("");
     const [salvandoInstituicao, setSalvandoInstituicao] = useState(false);
     const [erroInstituicao, setErroInstituicao] = useState("");
+    const remocao = useConfirmacaoRemocao();
 
     const turmasFiltradas = institutionIdSelecionada
         ? turmas.filter((turma) => {
@@ -153,22 +156,13 @@ export default function Turmas() {
         }
     };
 
-    const handleDeletar = async (id, nome) => {
-        if (
-            !window.confirm(
-                `Tem certeza que deseja excluir a turma "${nome}"? Apenas turmas sem alunos podem ser excluídas; alunos e sessões existentes serão preservados.`,
-            )
-        )
-            return;
-        try {
-            await deletarTurma(id);
-            carregarDados();
-        } catch (erroExclusao) {
-            alert(
-                erroExclusao.response?.data?.mensagem ||
-                    "Não foi possível excluir a turma.",
-            );
-        }
+    const abrirRemocaoTurma = (turma, origemFoco) => {
+        remocao.abrir({ id: turma._id, nome: turma.name, titulo: "Excluir turma?",
+            descricao: "Apenas turmas sem alunos podem ser excluídas. Alunos e sessões existentes serão preservados.",
+            rotuloConfirmacao: "Excluir turma" }, origemFoco);
+    };
+    const handleDeletar = () => {
+        remocao.executar((alvo) => deletarTurma(alvo.id), carregarDados, "Não foi possível excluir a turma.");
     };
 
     const handleCriarInstituicao = async (evento) => {
@@ -519,12 +513,8 @@ export default function Turmas() {
                                                 </button>
                                                 <button
                                                     className="btn-deletar"
-                                                    onClick={() =>
-                                                        handleDeletar(
-                                                            turma._id,
-                                                            turma.name,
-                                                        )
-                                                    }
+                                                    onClick={(evento) => abrirRemocaoTurma(turma, evento.currentTarget)}
+                                                    disabled={remocao.ocupado}
                                                 >
                                                     🗑️
                                                 </button>
@@ -536,6 +526,8 @@ export default function Turmas() {
                     </>
                 )}
             </div>
+            {remocao.alvo && <ConfirmacaoRemocao alvo={remocao.alvo} ocupado={remocao.ocupado} erro={remocao.erro}
+                onCancelar={remocao.cancelar} onConfirmar={handleDeletar} />}
         </div>
     );
 }

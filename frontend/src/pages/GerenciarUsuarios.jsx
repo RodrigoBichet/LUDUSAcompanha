@@ -9,6 +9,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
+import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
     listarUsuarios,
     deletarUsuario,
@@ -34,6 +36,7 @@ export default function GerenciarUsuarios() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
+    const remocao = useConfirmacaoRemocao();
 
     // -------------------------------------------------------------------------
     // Carrega usuários e instituições em paralelo
@@ -133,20 +136,13 @@ export default function GerenciarUsuarios() {
     // -------------------------------------------------------------------------
     // Remove usuário com confirmação
     // -------------------------------------------------------------------------
-    const removerUsuario = async (usuario) => {
-        if (
-            !window.confirm(
-                `Deseja remover o usuário "${usuario.name}"? Esta ação não pode ser desfeita.`,
-            )
-        )
-            return;
-
-        try {
-            await deletarUsuario(usuario._id);
-            await carregarDados();
-        } catch {
-            alert("Erro ao remover usuário. Tente novamente.");
-        }
+    const abrirRemocaoUsuario = (usuario, origemFoco) => {
+        remocao.abrir({ id: usuario._id, nome: usuario.name, titulo: "Remover usuário permanentemente?",
+            descricao: "O acesso dessa pessoa será removido. Cadastros e históricos vinculados não serão apagados por esta ação.",
+            rotuloConfirmacao: "Remover usuário" }, origemFoco);
+    };
+    const removerUsuario = () => {
+        remocao.executar((alvo) => deletarUsuario(alvo.id), carregarDados, "Erro ao remover usuário. Tente novamente.");
     };
 
     // -------------------------------------------------------------------------
@@ -359,9 +355,8 @@ export default function GerenciarUsuarios() {
                                             </button>
                                             <button
                                                 className="btn-acao deletar"
-                                                onClick={() =>
-                                                    removerUsuario(u)
-                                                }
+                                                onClick={(evento) => abrirRemocaoUsuario(u, evento.currentTarget)}
+                                                disabled={remocao.ocupado}
                                             >
                                                 🗑️ Remover
                                             </button>
@@ -373,6 +368,8 @@ export default function GerenciarUsuarios() {
                     </>
                 )}
             </div>
+            {remocao.alvo && <ConfirmacaoRemocao alvo={remocao.alvo} ocupado={remocao.ocupado} erro={remocao.erro}
+                onCancelar={remocao.cancelar} onConfirmar={removerUsuario} />}
         </div>
     );
 }

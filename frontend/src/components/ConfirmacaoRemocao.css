@@ -1,0 +1,12 @@
+.confirmacao-remocao { box-sizing: border-box; width: min(540px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; margin: auto; padding: clamp(20px, 4vw, 32px); border: 1px solid #ded8cf; border-radius: 18px; background: #fff; color: #203446; box-shadow: 0 20px 60px #14243540; overflow-wrap: anywhere; }
+.confirmacao-remocao::backdrop { background: #17283899; }
+.confirmacao-remocao h2 { margin: 0 0 16px; font-size: 1.5rem; }
+.confirmacao-remocao p { margin: 12px 0; line-height: 1.6; }
+.confirmacao-remocao .confirmacao-remocao-aviso { padding: 12px 16px; border-left: 4px solid #d17c28; background: #fff7e8; color: #70470f; }
+.confirmacao-remocao .confirmacao-remocao-erro { padding: 12px; border-radius: 8px; background: #fff0f0; color: #9b2635; }
+.confirmacao-remocao-acoes { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.confirmacao-remocao-acoes button { min-height: 44px; padding: 10px 16px; border: 1px solid #b8c3cb; border-radius: 9px; background: #fff; color: #203446; font: inherit; font-weight: 600; cursor: pointer; }
+.confirmacao-remocao-acoes .confirmar-remocao { border-color: #bd263d; background: #bd263d; color: #fff; }
+.confirmacao-remocao-acoes button:focus-visible { outline: 3px solid #267f8a; outline-offset: 3px; }
+.confirmacao-remocao-acoes button:disabled { opacity: 0.65; cursor: wait; }
+@media (max-width: 480px) { .confirmacao-remocao-acoes { flex-direction: column; } .confirmacao-remocao-acoes button { width: 100%; } }

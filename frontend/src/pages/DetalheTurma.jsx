@@ -10,6 +10,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
+import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
     buscarTurma,
     listarAlunos,
@@ -41,6 +43,7 @@ export default function DetalheTurma() {
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
     const [agora] = useState(() => Date.now());
+    const remocao = useConfirmacaoRemocao();
 
     // Campos do formulário
     const [form, setForm] = useState({
@@ -150,22 +153,13 @@ export default function DetalheTurma() {
         }
     };
 
-    const handleDeletar = async (alunoId, nome) => {
-        if (
-            !window.confirm(
-                `Excluir "${nome}" permanentemente? O perfil, as sessões e as imagens vinculadas serão apagados. Esta ação não pode ser desfeita.`,
-            )
-        )
-            return;
-        try {
-            await deletarAluno(alunoId);
-            carregarDados();
-        } catch (erroExclusao) {
-            alert(
-                erroExclusao.response?.data?.mensagem ||
-                    "Não foi possível excluir o aluno.",
-            );
-        }
+    const abrirExclusaoAluno = (aluno, origemFoco) => {
+        remocao.abrir({ id: aluno._id, nome: aluno.name, titulo: "Excluir aluno permanentemente?",
+            descricao: "O perfil, as sessões e as imagens vinculadas serão apagados. Esta ação não pode ser desfeita.",
+            rotuloConfirmacao: "Excluir aluno" }, origemFoco);
+    };
+    const confirmarExclusaoAluno = () => {
+        remocao.executar((alvo) => deletarAluno(alvo.id), carregarDados, "Não foi possível excluir o aluno.");
     };
 
     return (
@@ -460,12 +454,8 @@ export default function DetalheTurma() {
                                                 </button>
                                                 <button
                                                     className="btn-deletar"
-                                                    onClick={() =>
-                                                        handleDeletar(
-                                                            aluno._id,
-                                                            aluno.name,
-                                                        )
-                                                    }
+                                                    onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
+                                                    disabled={remocao.ocupado}
                                                 >
                                                     🗑️
                                                 </button>
@@ -478,6 +468,8 @@ export default function DetalheTurma() {
                     </>
                 )}
             </div>
+            {remocao.alvo && <ConfirmacaoRemocao alvo={remocao.alvo} ocupado={remocao.ocupado} erro={remocao.erro}
+                onCancelar={remocao.cancelar} onConfirmar={confirmarExclusaoAluno} />}
         </div>
     );
 }

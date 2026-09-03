@@ -60,8 +60,29 @@ Substituir gradualmente `window.alert`, `window.confirm` e `window.prompt` do
 dashboard por modais com a identidade visual do site. Solicitação de Rodrigo
 em 02/09/2026. O primeiro fluxo implementado é a aprovação das sessões; as
 ações de arquivar/reativar jogos nas telas **Jogos** e **Gerenciar jogos**
-também usam um modal próprio compartilhado. As confirmações de exclusão
-restantes permanecem pendentes.
+também usam um modal próprio compartilhado. A remoção de anotações no perfil
+do aluno é o terceiro fluxo migrado. As demais confirmações de exclusão
+de aluno, turma, instituição e usuário usam agora um modal reutilizável. Não
+restam chamadas nativas a `alert`, `confirm` ou `prompt` no frontend.
+
+### Teste manual dos modais de exclusão (pendente)
+
+Use somente cadastros fictícios e descartáveis. Não confirme exclusões sobre
+dados reais. Em cada tela, teste primeiro Cancelar e Escape.
+
+1. **Aluno por jogo** e **detalhes da turma**: confirme nome e aviso sobre
+   perfil, sessões e imagens. Para validar a confirmação real, use um aluno
+   fictício sem qualquer dado que precise ser preservado.
+2. **Turmas**: tente excluir uma turma com aluno fictício. O backend deve negar
+   e a mensagem deve aparecer no modal, que permanece aberto. Teste a remoção
+   real somente em uma turma fictícia vazia.
+3. **Instituições**: confira o aviso sobre dados vinculados. Para evitar perda
+   acidental, valide Cancelar/Escape; confirmação real apenas em uma instituição
+   fictícia vazia e criada especificamente para o teste.
+4. **Usuários**: valide Cancelar/Escape com um usuário fictício. Confirmação
+   real apenas em conta descartável, nunca na conta atualmente usada.
+5. Em todos os casos, confira bloqueio durante a requisição, erro recuperável e
+   retorno do foco ao botão original ou a outro controle disponível.
 
 Preservar confirmação explícita, foco inicial seguro, navegação por teclado,
 Escape/cancelamento, retorno de foco e bloqueio de confirmação duplicada.
@@ -94,3 +115,15 @@ Pedidos nativos de permissão do navegador não entram nessa substituição.
    card deve passar a **Arquivado** sem perder alunos ou sessões.
 4. Abra novamente, confirme **Reativar** e confira o retorno ao estado ativo.
 5. Simule rede offline: a falha deve aparecer no modal e permitir nova tentativa.
+
+### Teste manual do modal de anotação (pendente)
+
+1. No perfil de um aluno fictício, crie uma anotação sem dados reais.
+2. Clique na lixeira. O modal deve mostrar o conteúdo correto e avisar que a
+   remoção é permanente.
+3. Teste Cancelar e Escape; a anotação deve permanecer e o foco retornar à
+   lixeira correspondente.
+4. Confirme a remoção. Os botões devem ficar bloqueados até a anotação sumir.
+   Como o botão deixa de existir, o foco deve ir ao título das anotações.
+5. Com rede offline, confirme: o modal deve permanecer aberto, exibir o erro e
+   permitir nova tentativa depois que a rede for restaurada.

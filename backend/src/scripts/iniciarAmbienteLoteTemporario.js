@@ -17,6 +17,8 @@ const Student = require("../models/Student");
 const PORTA = 3000;
 const EMAIL = "professora.lote@ludus.local";
 const SENHA = "Teste@2026";
+const EMAIL_ADMIN = "admin.lote@ludus.local";
+const SENHA_ADMIN = "AdminTeste@2026";
 const NOME_ALUNO = "Aluno Fictício Teste";
 
 let mongoTemporario;
@@ -37,6 +39,13 @@ const encerrar = async () => {
 };
 
 const prepararDadosFicticios = async () => {
+    await User.create({
+        name: "Administrador de teste do lote",
+        email: EMAIL_ADMIN,
+        password: SENHA_ADMIN,
+        role: "admin",
+    });
+
     const professora = await User.create({
         name: "Professora de teste do lote",
         email: EMAIL,
@@ -81,6 +90,8 @@ const iniciar = async () => {
         console.log(` API: http://localhost:${PORTA}`);
         console.log(` Login: ${EMAIL}`);
         console.log(` Senha: ${SENHA}`);
+        console.log(` Login admin: ${EMAIL_ADMIN}`);
+        console.log(` Senha admin: ${SENHA_ADMIN}`);
         console.log(` Aluno fictício: ${NOME_ALUNO}`);
         console.log(" Ao fechar este CMD, todos os dados serão apagados.");
         console.log("============================================================");
