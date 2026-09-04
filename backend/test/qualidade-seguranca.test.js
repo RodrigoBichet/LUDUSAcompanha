@@ -219,6 +219,51 @@ test("administrador vincula solicitação a instituição existente", async () =
     assert.equal(atualizado.institutionRequest, undefined);
 });
 
+test("limita conta pendente ao perfil e libera acesso depois do vínculo", async () => {
+    const { admin, professoraA, instituicaoA } = await criarCenarioEscolar();
+    const pendente = await User.create({
+        name: "Professora com vínculo pendente",
+        email: "vinculo.pendente@ludus.local",
+        password: "Senha@123",
+        emailVerifiedAt: new Date(),
+        institutionRequest: { name: "Escola solicitada", city: "Pelotas" },
+    });
+    const autorizacaoPendente = `Bearer ${tokenDe(pendente)}`;
+
+    await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", autorizacaoPendente)
+        .expect(200);
+
+    const bloqueada = await request(app)
+        .get("/api/games")
+        .set("Authorization", autorizacaoPendente)
+        .expect(403);
+    assert.equal(bloqueada.body.codigo, "VINCULO_INSTITUCIONAL_PENDENTE");
+
+    // Contas históricas sem solicitação continuam compatíveis.
+    await request(app)
+        .get("/api/games")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+
+    await request(app)
+        .put(`/api/users/${pendente._id}`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send({
+            name: pendente.name,
+            email: pendente.email,
+            role: "professor",
+            institutionId: String(instituicaoA._id),
+        })
+        .expect(200);
+
+    await request(app)
+        .get("/api/games")
+        .set("Authorization", autorizacaoPendente)
+        .expect(200);
+});
+
 test("somente administrador cria instituição", async () => {
     const { admin, professoraA } = await criarCenarioEscolar();
 

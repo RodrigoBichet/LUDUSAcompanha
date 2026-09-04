@@ -80,6 +80,9 @@ limitador compartilhado, como Redis.
 - o cadastro publico sempre cria `professor` sem aceitar papel administrativo ou instituicao enviados pelo cliente.
 - nome e cidade da instituicao informados no cadastro publico ficam em `institutionRequest`; somente o admin converte a solicitacao em um `institutionId` valido.
 - ao salvar um vinculo institucional valido, a solicitacao pendente e removida.
+- contas com `institutionRequest` e sem `institutionId` acessam apenas as rotas
+  autenticadas do proprio perfil; as demais respondem `403` com o codigo
+  `VINCULO_INSTITUCIONAL_PENDENTE` ate a aprovacao.
 - `institutionId` pode ficar vazio para administradores e para novas contas ainda sem vinculo.
 
 ### Exemplo

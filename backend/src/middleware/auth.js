@@ -32,6 +32,17 @@ const autenticar = async (req, res, next) => {
         if (!usuario || Number(decoded.authVersion || 0) !== Number(usuario.authVersion || 0)) {
             throw new Error("Sessão invalidada.");
         }
+        const vinculoInstitucionalPendente =
+            usuario.role === "professor" &&
+            !usuario.institutionId &&
+            Boolean(usuario.institutionRequest);
+        if (vinculoInstitucionalPendente && req.baseUrl !== "/api/auth") {
+            return res.status(403).json({
+                sucesso: false,
+                codigo: "VINCULO_INSTITUCIONAL_PENDENTE",
+                mensagem: "Seu vínculo institucional ainda aguarda aprovação.",
+            });
+        }
         req.usuarioId = decoded.id;
         req.usuario = usuario;
         next();

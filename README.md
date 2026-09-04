@@ -245,6 +245,8 @@ automaticamente. Um administrador confere a informação e vincula a conta a uma
 instituição já cadastrada, evitando duplicidades e associações indevidas.
 Enquanto essa confirmação estiver pendente, a página inicial informa o estado
 da solicitação e oculta as ações escolares que ainda não estão disponíveis.
+O backend também recusa o acesso dessa conta às rotas pedagógicas até a
+aprovação, permitindo apenas consultar e atualizar o próprio perfil.
 
 Para envio real, configure no backend `FRONTEND_URL`, `RESEND_API_KEY` e
 `EMAIL_FROM`. `AUTH_EXPOSE_DEV_LINKS=true` deve ser usado somente em ambiente
