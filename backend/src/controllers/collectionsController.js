@@ -363,6 +363,7 @@ const parearParticipante = async (req, res) => {
                 collectionId: coleta.collectionId,
                 title: coleta.title,
                 expiresAt: coleta.expiresAt,
+                allowedOrigins: coleta.allowedOrigins,
             },
             credencial: {
                 token,

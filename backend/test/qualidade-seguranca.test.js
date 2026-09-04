@@ -604,7 +604,14 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
     const criada = await request(app)
         .post("/api/collections")
         .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
-        .send({ title: "Coleta para pareamento", groupId: String(turmaA._id) })
+        .send({
+            title: "Coleta para pareamento",
+            groupId: String(turmaA._id),
+            allowedOrigins: [
+                "https://jogos.exemplo.org/atividade/1",
+                "https://portal.exemplo.org/turma",
+            ],
+        })
         .expect(201);
 
     const pareada = await request(app)
@@ -621,6 +628,10 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
         pareada.body.coleta.collectionId,
         criada.body.coleta.collectionId,
     );
+    assert.deepEqual(pareada.body.coleta.allowedOrigins, [
+        "https://jogos.exemplo.org",
+        "https://portal.exemplo.org",
+    ]);
     assert.equal(await Student.countDocuments(), quantidadeAlunosAntes);
     assert.equal(await CollectionParticipant.countDocuments(), 1);
 
