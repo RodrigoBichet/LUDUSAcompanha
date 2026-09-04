@@ -172,7 +172,6 @@ export default function Home() {
             setJogos((atuais) => [...atuais, jogo]);
             setFormJogo({ name: "" });
             setMostrarCadastroJogo(false);
-            navegar(`/jogos/${encodeURIComponent(jogo.gameId)}/alunos`);
         } catch (erroCadastro) {
             setErroJogo(
                 erroCadastro.response?.data?.mensagem ||
