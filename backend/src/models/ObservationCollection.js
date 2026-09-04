@@ -65,6 +65,20 @@ const ObservationCollectionSchema = new mongoose.Schema(
             type: [String],
             default: [],
         },
+        gameTargets: {
+            type: [
+                new mongoose.Schema(
+                    {
+                        gameId: { type: String, required: true },
+                        name: { type: String, required: true },
+                        entryUrl: { type: String, required: true },
+                        captureOrigins: { type: [String], default: [] },
+                    },
+                    { _id: false },
+                ),
+            ],
+            default: [],
+        },
         closedAt: {
             type: Date,
             default: null,

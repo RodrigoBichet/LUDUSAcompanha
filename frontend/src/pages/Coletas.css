@@ -56,9 +56,70 @@
 }
 
 .campo-origens-coleta,
+.jogos-coleta,
+.sites-externos-coleta,
 .formulario-coleta > .mensagem-coleta,
 .formulario-coleta > .btn-primario {
     grid-column: 1 / -1;
+}
+
+.jogos-coleta {
+    display: grid;
+    gap: 0.8rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.jogos-coleta legend {
+    padding: 0 0.35rem;
+    font-weight: 700;
+}
+
+.opcao-todos-jogos,
+.lista-jogos-coleta label {
+    display: flex !important;
+    grid-template-columns: none;
+    align-items: flex-start;
+    gap: 0.7rem !important;
+}
+
+.opcao-todos-jogos input,
+.lista-jogos-coleta input {
+    width: auto;
+    margin-top: 0.2rem;
+}
+
+.opcao-todos-jogos span {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.opcao-todos-jogos small,
+.sites-externos-coleta small {
+    color: var(--cor-texto-leve);
+    font-weight: 400;
+}
+
+.lista-jogos-coleta {
+    display: grid;
+    gap: 0.65rem;
+    padding-left: 1.7rem;
+}
+
+.sites-externos-coleta {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+}
+
+.sites-externos-coleta summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.sites-externos-coleta .campo-origens-coleta {
+    margin-top: 0.8rem;
 }
 
 .campo-origens-coleta small {

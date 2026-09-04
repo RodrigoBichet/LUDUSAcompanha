@@ -9,6 +9,7 @@ import {
     resolverParticipanteColeta,
     importarSessoesColeta,
     listarTurmas,
+    listarJogos,
     revogarColeta,
 } from "../services/api";
 import "./Coletas.css";
@@ -46,6 +47,9 @@ export default function Coletas() {
     const [turmaId, setTurmaId] = useState("");
     const [duracao, setDuracao] = useState(120);
     const [origens, setOrigens] = useState("");
+    const [jogos, setJogos] = useState([]);
+    const [usarTodosJogos, setUsarTodosJogos] = useState(false);
+    const [jogosSelecionados, setJogosSelecionados] = useState([]);
     const [codigoGerado, setCodigoGerado] = useState(null);
     const [codigoCopiado, setCodigoCopiado] = useState(false);
     const [modoApresentacao, setModoApresentacao] = useState(false);
@@ -70,16 +74,25 @@ export default function Coletas() {
         [turmas],
     );
 
+    const jogosPreparados = useMemo(
+        () => jogos.filter(
+            (jogo) => jogo.active !== false && jogo.observationTarget?.entryUrl,
+        ),
+        [jogos],
+    );
+
     const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
             setErro("");
-            const [resColetas, resTurmas] = await Promise.all([
+            const [resColetas, resTurmas, resJogos] = await Promise.all([
                 listarColetas(),
                 listarTurmas(),
+                listarJogos(),
             ]);
             setColetas(resColetas.data.coletas || []);
             setTurmas(resTurmas.data.turmas || []);
+            setJogos(resJogos.data.jogos || []);
         } catch (erroRequisicao) {
             setErro(
                 erroRequisicao.response?.data?.mensagem ||
@@ -133,6 +146,15 @@ export default function Coletas() {
             .map((origem) => origem.trim())
             .filter(Boolean);
 
+        if (
+            !usarTodosJogos &&
+            jogosSelecionados.length === 0 &&
+            allowedOrigins.length === 0
+        ) {
+            setErro("Escolha pelo menos um jogo ou adicione um site externo.");
+            return;
+        }
+
         try {
             setSalvando(true);
             const resposta = await criarColeta({
@@ -140,6 +162,9 @@ export default function Coletas() {
                 groupId: turmaId,
                 durationMinutes: Number(duracao),
                 allowedOrigins,
+                gameIds: (usarTodosJogos
+                    ? jogosPreparados.map((jogo) => jogo._id)
+                    : jogosSelecionados),
             });
             setCodigoGerado({
                 codigo: resposta.data.codigoTemporario,
@@ -148,6 +173,8 @@ export default function Coletas() {
             setColetas((atuais) => [resposta.data.coleta, ...atuais]);
             setTitulo("");
             setOrigens("");
+            setUsarTodosJogos(false);
+            setJogosSelecionados([]);
             setSucesso("Coleta criada. Compartilhe o código apenas com os computadores desta turma.");
         } catch (erroRequisicao) {
             setErro(
@@ -392,21 +419,59 @@ export default function Coletas() {
                         </select>
                     </label>
 
-                    <label className="campo-origens-coleta">
-                        <span>Sites dos jogos (opcional)</span>
-                        <textarea
-                            value={origens}
-                            onChange={(evento) => setOrigens(evento.target.value)}
-                            placeholder={"https://jogos.exemplo.org\nhttps://outro-portal.exemplo.org"}
-                            rows={3}
-                            disabled={salvando}
-                        />
-                        <small>
-                            Informe um endereço por linha. Caminhos internos não
-                            serão guardados. Deixe vazio enquanto o catálogo de
-                            sites ainda estiver sendo preparado.
-                        </small>
-                    </label>
+                    <fieldset className="jogos-coleta">
+                        <legend>Jogos da coleta</legend>
+                        {jogosPreparados.length > 0 ? (
+                            <>
+                                <label className="opcao-todos-jogos">
+                                    <input type="checkbox" checked={usarTodosJogos}
+                                        onChange={(evento) => {
+                                            setUsarTodosJogos(evento.target.checked);
+                                            setJogosSelecionados([]);
+                                        }}
+                                        disabled={salvando} />
+                                    <span><strong>Usar todos os jogos preparados</strong><small>{jogosPreparados.length} {jogosPreparados.length === 1 ? "jogo disponível" : "jogos disponíveis"}. Esta é a opção recomendada.</small></span>
+                                </label>
+                                <div className="lista-jogos-coleta">
+                                    {jogosPreparados.map((jogo) => (
+                                        <label key={jogo._id}>
+                                            <input type="checkbox" checked={usarTodosJogos || jogosSelecionados.includes(jogo._id)}
+                                                onChange={(evento) => {
+                                                    if (usarTodosJogos) {
+                                                        setUsarTodosJogos(false);
+                                                        setJogosSelecionados(
+                                                            jogosPreparados
+                                                                .filter((item) => item._id !== jogo._id)
+                                                                .map((item) => item._id),
+                                                        );
+                                                        return;
+                                                    }
+                                                    setJogosSelecionados((atuais) => evento.target.checked
+                                                        ? [...atuais, jogo._id]
+                                                        : atuais.filter((id) => id !== jogo._id));
+                                                }}
+                                                disabled={salvando} />
+                                            <span>{jogo.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <p className="texto-leve">Nenhum jogo possui link preparado ainda. Você ainda pode criar uma coleta para um site externo.</p>
+                        )}
+                    </fieldset>
+
+                    <details className="sites-externos-coleta">
+                        <summary>Adicionar um site externo</summary>
+                        <label className="campo-origens-coleta">
+                            <span>Endereços permitidos</span>
+                            <textarea value={origens}
+                                onChange={(evento) => setOrigens(evento.target.value)}
+                                placeholder="https://jogos.exemplo.org"
+                                rows={3} disabled={salvando} />
+                            <small>Use somente para jogos que ainda não aparecem na lista acima.</small>
+                        </label>
+                    </details>
 
                     {turmas.length === 0 && !carregando && (
                         <p className="mensagem-coleta aviso">

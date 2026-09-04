@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Group = require("../models/Group");
+const Game = require("../models/Game");
 const Student = require("../models/Student");
 const CollectionParticipant = require("../models/CollectionParticipant");
 const ObservationCollection = require("../models/ObservationCollection");
@@ -56,6 +57,7 @@ const resumirColeta = (coleta) => ({
     startsAt: coleta.startsAt,
     expiresAt: coleta.expiresAt,
     allowedOrigins: coleta.allowedOrigins,
+    gameTargets: coleta.gameTargets,
     closedAt: coleta.closedAt,
     revokedAt: coleta.revokedAt,
     createdAt: coleta.createdAt,
@@ -85,6 +87,57 @@ const normalizarOrigens = (origens) => {
     });
 
     return [...new Set(normalizadas)];
+};
+
+const prepararAlvosDosJogos = async (gameIds, contexto) => {
+    if (gameIds === undefined) return [];
+    if (!Array.isArray(gameIds) || gameIds.length > 50) {
+        const erro = new Error("Selecione no máximo 50 jogos para a coleta.");
+        erro.status = 400;
+        throw erro;
+    }
+
+    const ids = [...new Set(gameIds.map((id) => String(id)))];
+    if (ids.some((id) => !mongoose.isValidObjectId(id))) {
+        const erro = new Error("A seleção contém um jogo inválido.");
+        erro.status = 400;
+        throw erro;
+    }
+    if (ids.length === 0) return [];
+
+    const filtro = { _id: { $in: ids }, active: true };
+    if (!contexto.todasInstituicoes) {
+        const escopos = [`user:${contexto.usuario._id}`];
+        escopos.push(
+            ...contexto.institutionIds.map((id) => `institution:${id}`),
+        );
+        filtro.scopeKey = { $in: escopos };
+    }
+
+    const jogos = await Game.find(filtro).select(
+        "gameId name observationTarget",
+    );
+    const porId = new Map(jogos.map((jogo) => [String(jogo._id), jogo]));
+    if (porId.size !== ids.length) {
+        const erro = new Error("Um dos jogos não existe ou não está disponível para esta coleta.");
+        erro.status = 400;
+        throw erro;
+    }
+
+    return ids.map((id) => {
+        const jogo = porId.get(id);
+        if (!jogo.observationTarget?.entryUrl) {
+            const erro = new Error(`O jogo “${jogo.name}” ainda não possui um link preparado.`);
+            erro.status = 400;
+            throw erro;
+        }
+        return {
+            gameId: jogo.gameId,
+            name: jogo.name,
+            entryUrl: jogo.observationTarget.entryUrl,
+            captureOrigins: jogo.observationTarget.captureOrigins || [],
+        };
+    });
 };
 
 const criarColeta = async (req, res) => {
@@ -146,6 +199,22 @@ const criarColeta = async (req, res) => {
             });
         }
 
+        let gameTargets;
+        try {
+            gameTargets = await prepararAlvosDosJogos(req.body?.gameIds, contexto);
+        } catch (erroValidacao) {
+            return res.status(erroValidacao.status || 400).json({
+                sucesso: false,
+                mensagem: erroValidacao.message,
+            });
+        }
+
+        const origensDosJogos = gameTargets.flatMap((alvo) => [
+            new URL(alvo.entryUrl).origin,
+            ...alvo.captureOrigins,
+        ]);
+        allowedOrigins = [...new Set([...allowedOrigins, ...origensDosJogos])];
+
         const agora = new Date();
         const credencial = gerarCredencialColeta();
         const coleta = await ObservationCollection.create({
@@ -161,6 +230,7 @@ const criarColeta = async (req, res) => {
             ),
             pairingCodeHash: credencial.hash,
             allowedOrigins,
+            gameTargets,
         });
 
         return res.status(201).json({
@@ -364,6 +434,7 @@ const parearParticipante = async (req, res) => {
                 title: coleta.title,
                 expiresAt: coleta.expiresAt,
                 allowedOrigins: coleta.allowedOrigins,
+                gameTargets: coleta.gameTargets,
             },
             credencial: {
                 token,

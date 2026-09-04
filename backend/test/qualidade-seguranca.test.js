@@ -546,6 +546,39 @@ test("cria coleta temporaria sem persistir o codigo legivel", async () => {
     );
 });
 
+test("cria coleta com jogos preparados e deriva permissões automaticamente", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const jogo = await Game.create({
+        gameId: "jogo-preparado",
+        name: "Jogo preparado fictício",
+        sourceType: "external-json",
+        scopeType: "personal",
+        ownerUserId: professoraA._id,
+        observationTarget: {
+            entryUrl: "https://portal.exemplo.test/jogos/preparado",
+            captureOrigins: ["https://conteudo.exemplo.test"],
+        },
+    });
+
+    const resposta = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            title: "Coleta com catálogo fictício",
+            groupId: String(turmaA._id),
+            durationMinutes: 60,
+            gameIds: [String(jogo._id)],
+        })
+        .expect(201);
+
+    assert.deepEqual(resposta.body.coleta.allowedOrigins.sort(), [
+        "https://conteudo.exemplo.test",
+        "https://portal.exemplo.test",
+    ]);
+    assert.equal(resposta.body.coleta.gameTargets[0].gameId, "jogo-preparado");
+    assert.equal(resposta.body.coleta.gameTargets[0].name, "Jogo preparado fictício");
+});
+
 test("isola coleta por professora e permite revogacao idempotente", async () => {
     const { professoraA, professoraB, turmaA, turmaB } =
         await criarCenarioEscolar();
