@@ -492,3 +492,22 @@
         transform: rotate(360deg);
     }
 }
+.configuracao-avancada-jogo {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 0.8rem;
+}
+
+.configuracao-avancada-jogo summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.configuracao-avancada-jogo .campo-grupo {
+    margin-top: 0.8rem;
+}
+
+.configuracao-avancada-jogo textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+}

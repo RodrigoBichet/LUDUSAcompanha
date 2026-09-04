@@ -37,6 +37,61 @@ const criarBaseGameId = (nome) =>
         .slice(0, 100);
 
 const GAME_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,99}$/;
+const LIMITE_ORIGENS_CAPTURA = 10;
+
+const normalizarUrlEntrada = (valor) => {
+    const texto = String(valor || "").trim();
+    if (!texto) return "";
+
+    let url;
+    try {
+        url = new URL(texto);
+    } catch {
+        const erro = new Error("A página do jogo precisa ser uma URL válida.");
+        erro.status = 400;
+        throw erro;
+    }
+    if (!['http:', 'https:'].includes(url.protocol)) {
+        const erro = new Error("A página do jogo aceita somente HTTP ou HTTPS.");
+        erro.status = 400;
+        throw erro;
+    }
+    url.search = "";
+    url.hash = "";
+    return url.href.replace(/\/$/, url.pathname === "/" ? "" : "/");
+};
+
+const normalizarOrigensCaptura = (valores) => {
+    if (valores === undefined || valores === null) return [];
+    if (!Array.isArray(valores) || valores.length > LIMITE_ORIGENS_CAPTURA) {
+        const erro = new Error(`As origens incorporadas aceitam no máximo ${LIMITE_ORIGENS_CAPTURA} endereços.`);
+        erro.status = 400;
+        throw erro;
+    }
+
+    const origens = valores.filter((valor) => String(valor || "").trim()).map((valor) => {
+        let url;
+        try {
+            url = new URL(String(valor).trim());
+        } catch {
+            const erro = new Error("Há uma origem incorporada inválida.");
+            erro.status = 400;
+            throw erro;
+        }
+        if (!['http:', 'https:'].includes(url.protocol) || url.pathname !== "/" || url.search || url.hash) {
+            const erro = new Error("Origens incorporadas devem conter somente protocolo e domínio.");
+            erro.status = 400;
+            throw erro;
+        }
+        return url.origin;
+    });
+    return [...new Set(origens)];
+};
+
+const normalizarAlvoObservacional = (alvo = {}) => ({
+    entryUrl: normalizarUrlEntrada(alvo.entryUrl),
+    captureOrigins: normalizarOrigensCaptura(alvo.captureOrigins),
+});
 
 const buscarJogoGerenciavel = async (usuario, jogoId) => {
     if (!mongoose.isValidObjectId(jogoId)) return null;
@@ -86,7 +141,7 @@ const listarJogos = async (req, res) => {
         const filtro = escopos ? { scopeKey: { $in: escopos } } : {};
         const jogos = await Game.find(filtro)
             .select(
-                "gameId name description defaultVersion sourceType active scopeType institutionId createdAt updatedAt",
+                "gameId name description defaultVersion sourceType observationTarget active scopeType institutionId createdAt updatedAt",
             )
             .sort({ name: 1 });
 
@@ -120,6 +175,7 @@ const criarJogo = async (req, res) => {
             sourceType,
             scopeType,
             institutionId: institutionIdSolicitada,
+            observationTarget,
         } = req.body;
 
         if (!name || !scopeType) {
@@ -173,6 +229,7 @@ const criarJogo = async (req, res) => {
             description,
             defaultVersion,
             sourceType,
+            observationTarget: normalizarAlvoObservacional(observationTarget),
             scopeType,
             ownerUserId: usuario._id,
             institutionId,
@@ -306,10 +363,13 @@ const atualizarJogo = async (req, res) => {
             "defaultVersion",
             "sourceType",
             "active",
+            "observationTarget",
         ];
         for (const campo of camposPermitidos) {
             if (Object.prototype.hasOwnProperty.call(req.body, campo)) {
-                jogo[campo] = req.body[campo];
+                jogo[campo] = campo === "observationTarget"
+                    ? normalizarAlvoObservacional(req.body[campo])
+                    : req.body[campo];
             }
         }
 
@@ -320,6 +380,13 @@ const atualizarJogo = async (req, res) => {
             jogo,
         });
     } catch (erro) {
+        if (erro.status) {
+            return res.status(erro.status).json({
+                sucesso: false,
+                mensagem: erro.message,
+            });
+        }
+
         if (erro instanceof mongoose.Error.ValidationError) {
             return res.status(400).json({
                 sucesso: false,

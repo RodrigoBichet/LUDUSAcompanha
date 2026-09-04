@@ -40,6 +40,18 @@ const GameSchema = new mongoose.Schema(
             enum: ["sdk-ludus", "external-json", "manual"],
             default: "external-json",
         },
+        observationTarget: {
+            entryUrl: {
+                type: String,
+                trim: true,
+                maxlength: 2048,
+                default: "",
+            },
+            captureOrigins: {
+                type: [String],
+                default: [],
+            },
+        },
         active: {
             type: Boolean,
             default: true,

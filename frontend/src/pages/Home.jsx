@@ -83,6 +83,8 @@ export default function Home() {
             ativo: jogo.active !== false,
             escopo: jogo.scopeType,
             registroId: jogo._id,
+            entryUrl: jogo.observationTarget?.entryUrl || "",
+            captureOrigins: jogo.observationTarget?.captureOrigins || [],
         }));
 
         return [
@@ -186,6 +188,8 @@ export default function Home() {
         setFormEdicaoJogo({
             name: jogo.nome,
             description: jogo.descricaoEditavel || "",
+            entryUrl: jogo.entryUrl || "",
+            captureOrigins: (jogo.captureOrigins || []).join("\n"),
         });
         setErroJogo("");
     };
@@ -199,7 +203,16 @@ export default function Home() {
             setErroJogo("");
             const resposta = await atualizarJogo(
                 jogoEmEdicao.registroId,
-                formEdicaoJogo,
+                {
+                    name: formEdicaoJogo.name,
+                    description: formEdicaoJogo.description,
+                    observationTarget: {
+                        entryUrl: formEdicaoJogo.entryUrl,
+                        captureOrigins: formEdicaoJogo.captureOrigins
+                            .split(/\r?\n/)
+                            .filter((item) => item.trim()),
+                    },
+                },
             );
             setJogos((atuais) => atuais.map((jogo) =>
                 jogo._id === jogoEmEdicao.registroId ? resposta.data.jogo : jogo,
@@ -482,6 +495,23 @@ export default function Home() {
                                             <input className="campo-input" value={formEdicaoJogo.description}
                                                 onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, description: evento.target.value }))} />
                                         </label>
+                                        <label className="campo-grupo">
+                                            <span className="campo-label">Link do jogo (opcional)</span>
+                                            <input className="campo-input" type="url" value={formEdicaoJogo.entryUrl}
+                                                placeholder="https://portal.exemplo.org/jogos/meu-jogo"
+                                                onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, entryUrl: evento.target.value }))} />
+                                            <small className="texto-leve">Copie aqui o endereço que aparece no navegador quando o jogo está aberto.</small>
+                                        </label>
+                                        <details className="configuracao-avancada-jogo">
+                                            <summary>O jogo abre dentro de outra página?</summary>
+                                            <label className="campo-grupo">
+                                                <span className="campo-label">Endereço onde o jogo é carregado</span>
+                                                <textarea className="campo-input" value={formEdicaoJogo.captureOrigins}
+                                                    placeholder="https://conteudo.exemplo.org"
+                                                    onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, captureOrigins: evento.target.value }))} />
+                                                <small className="texto-leve">Normalmente você pode deixar este espaço vazio. Preencha somente se receber essa orientação ao preparar o jogo.</small>
+                                            </label>
+                                        </details>
                                         <div className="modal-edicao-jogo-acoes">
                                             <button type="button" className="btn-secundario" onClick={() => setJogoEmEdicao(null)} disabled={Boolean(processandoJogoId)}>
                                                 Cancelar

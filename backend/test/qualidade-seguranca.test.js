@@ -328,6 +328,31 @@ test("somente administrador cria instituição", async () => {
     assert.equal(await Institution.countDocuments(), 3);
 });
 
+test("normaliza alvo observacional do jogo sem guardar parâmetros sensíveis", async () => {
+    const { professoraA } = await criarCenarioEscolar();
+    const criada = await request(app)
+        .post("/api/games")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            name: "Jogo observacional fictício",
+            scopeType: "personal",
+            observationTarget: {
+                entryUrl: "https://jogos.exemplo.org/atividade/?token=ficticio#fase",
+                captureOrigins: ["https://conteudo.exemplo.org", "https://conteudo.exemplo.org"],
+            },
+        })
+        .expect(201);
+
+    assert.equal(criada.body.jogo.observationTarget.entryUrl, "https://jogos.exemplo.org/atividade/");
+    assert.deepEqual(criada.body.jogo.observationTarget.captureOrigins, ["https://conteudo.exemplo.org"]);
+
+    await request(app)
+        .patch(`/api/games/${criada.body.jogo._id}`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ observationTarget: { entryUrl: "javascript:alert(1)", captureOrigins: [] } })
+        .expect(400);
+});
+
 test("administrador não remove a própria conta", async () => {
     const { admin } = await criarCenarioEscolar();
 
