@@ -170,4 +170,41 @@ const atualizarUsuario = async (req, res) => {
     }
 };
 
-module.exports = { criarUsuario, listarUsuarios, deletarUsuario, atualizarUsuario };
+const recusarSolicitacaoInstituicao = async (req, res) => {
+    try {
+        const motivo = String(req.body.reason || "").trim();
+        if (motivo.length < 10 || motivo.length > 500) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Informe um motivo entre 10 e 500 caracteres.",
+            });
+        }
+
+        const usuario = await User.findById(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
+        }
+        if (usuario.role !== "professor" || usuario.institutionId || !usuario.institutionRequest) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Este usuário não possui uma solicitação institucional pendente.",
+            });
+        }
+
+        usuario.institutionRequest.status = "rejected";
+        usuario.institutionRequest.rejectionReason = motivo;
+        usuario.institutionRequest.reviewedAt = new Date();
+        await usuario.save();
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Solicitação devolvida para correção.",
+            usuario,
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao recusar solicitação institucional:", erro.message);
+        return res.status(500).json({ sucesso: false, mensagem: "Erro interno ao revisar solicitação." });
+    }
+};
+
+module.exports = { criarUsuario, listarUsuarios, deletarUsuario, atualizarUsuario, recusarSolicitacaoInstituicao };

@@ -13,6 +13,13 @@ const SolicitacaoInstituicaoSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true, maxlength: 160 },
         city: { type: String, trim: true, maxlength: 120 },
+        status: {
+            type: String,
+            enum: ["pending", "rejected"],
+            default: "pending",
+        },
+        rejectionReason: { type: String, trim: true, maxlength: 500 },
+        reviewedAt: { type: Date },
         requestedAt: { type: Date, default: Date.now },
     },
     { _id: false },

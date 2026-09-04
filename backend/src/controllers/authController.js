@@ -222,4 +222,50 @@ const atualizarPerfil = async (req, res) => {
     }
 };
 
-module.exports = { registrar, confirmarEmail, reenviarConfirmacao, login, solicitarRedefinicaoSenha, redefinirSenha, perfil, atualizarPerfil };
+const atualizarSolicitacaoInstituicao = async (req, res) => {
+    try {
+        const institutionName = String(req.body.institutionName || "").trim();
+        const institutionCity = String(req.body.institutionCity || "").trim();
+        if (institutionName.length < 2 || institutionName.length > 160 || institutionCity.length > 120) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Informe uma instituição válida e uma cidade com até 120 caracteres.",
+            });
+        }
+
+        const usuario = await User.findById(req.usuarioId);
+        if (!usuario) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        if (usuario.role !== "professor" || usuario.institutionId) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Este perfil já possui vínculo institucional ou não aceita essa solicitação.",
+            });
+        }
+
+        usuario.institutionRequest = {
+            name: institutionName,
+            city: institutionCity || undefined,
+            status: "pending",
+            requestedAt: new Date(),
+        };
+        await usuario.save();
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Solicitação corrigida e reenviada para análise.",
+            usuario: {
+                id: usuario._id,
+                name: usuario.name,
+                email: usuario.email,
+                role: usuario.role,
+                institutionId: usuario.institutionId,
+                institutionRequest: usuario.institutionRequest,
+            },
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao atualizar solicitação institucional:", erro.message);
+        return res.status(500).json({ sucesso: false, mensagem: "Não foi possível reenviar a solicitação." });
+    }
+};
+
+module.exports = { registrar, confirmarEmail, reenviarConfirmacao, login, solicitarRedefinicaoSenha, redefinirSenha, perfil, atualizarPerfil, atualizarSolicitacaoInstituicao };

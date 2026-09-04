@@ -16,6 +16,7 @@ import {
     criarJogo,
     atualizarJogo,
     arquivarJogo,
+    atualizarSolicitacaoInstituicao,
 } from "../services/api";
 import "./Home.css";
 
@@ -41,6 +42,8 @@ export default function Home() {
         !usuario?.institutionId &&
         usuario?.institutionRequest,
     );
+    const solicitacaoRecusada =
+        usuario?.institutionRequest?.status === "rejected";
     const navegar = useNavigate();
     const [searchParams] = useSearchParams();
     const nomeJogoSugerido = searchParams.get("novoJogo") || "";
@@ -49,6 +52,13 @@ export default function Home() {
     const [erro, setErro] = useState(null);
     const [verificandoVinculo, setVerificandoVinculo] = useState(false);
     const [mensagemVinculo, setMensagemVinculo] = useState("");
+    const [salvandoSolicitacao, setSalvandoSolicitacao] = useState(false);
+    const [instituicaoSolicitada, setInstituicaoSolicitada] = useState(
+        usuario?.institutionRequest?.name || "",
+    );
+    const [cidadeSolicitada, setCidadeSolicitada] = useState(
+        usuario?.institutionRequest?.city || "",
+    );
     const [mostrarCadastroJogo, setMostrarCadastroJogo] = useState(
         Boolean(nomeJogoSugerido),
     );
@@ -121,6 +131,27 @@ export default function Home() {
             setMensagemVinculo("Não foi possível verificar agora. Tente novamente em alguns instantes.");
         } finally {
             setVerificandoVinculo(false);
+        }
+    };
+
+    const reenviarSolicitacao = async (evento) => {
+        evento.preventDefault();
+        try {
+            setSalvandoSolicitacao(true);
+            setMensagemVinculo("");
+            await atualizarSolicitacaoInstituicao({
+                institutionName: instituicaoSolicitada,
+                institutionCity: cidadeSolicitada,
+            });
+            await recarregarUsuario();
+            setMensagemVinculo("Solicitação corrigida e reenviada para análise.");
+        } catch (erroSolicitacao) {
+            setMensagemVinculo(
+                erroSolicitacao.response?.data?.mensagem ||
+                    "Não foi possível reenviar a solicitação.",
+            );
+        } finally {
+            setSalvandoSolicitacao(false);
         }
     };
 
@@ -227,16 +258,56 @@ export default function Home() {
                     <section className="card vinculo-pendente" role="status">
                         <div className="vinculo-pendente-icone" aria-hidden="true">🏫</div>
                         <div>
-                            <span className="vinculo-pendente-etapa">Cadastro confirmado</span>
-                            <h2>Vínculo institucional em análise</h2>
+                            <span className="vinculo-pendente-etapa">
+                                {solicitacaoRecusada ? "Correção necessária" : "Cadastro confirmado"}
+                            </span>
+                            <h2>
+                                {solicitacaoRecusada
+                                    ? "Revise sua solicitação institucional"
+                                    : "Vínculo institucional em análise"}
+                            </h2>
                             <p>
                                 Sua solicitação para <strong>{usuario.institutionRequest.name}</strong>
                                 {usuario.institutionRequest.city ? `, em ${usuario.institutionRequest.city}` : ""}, foi registrada.
                             </p>
-                            <p className="texto-leve">
-                                Uma pessoa administradora precisa confirmar a instituição antes de liberar as turmas e coletas. Você não precisa enviar o cadastro novamente.
-                            </p>
+                            {solicitacaoRecusada ? (
+                                <>
+                                    <p className="vinculo-motivo">
+                                        <strong>Motivo informado:</strong>{" "}
+                                        {usuario.institutionRequest.rejectionReason}
+                                    </p>
+                                    <form className="vinculo-correcao" onSubmit={reenviarSolicitacao}>
+                                        <label>
+                                            Instituição
+                                            <input
+                                                className="campo-input"
+                                                value={instituicaoSolicitada}
+                                                maxLength={160}
+                                                required
+                                                onChange={(evento) => setInstituicaoSolicitada(evento.target.value)}
+                                            />
+                                        </label>
+                                        <label>
+                                            Cidade (opcional)
+                                            <input
+                                                className="campo-input"
+                                                value={cidadeSolicitada}
+                                                maxLength={120}
+                                                onChange={(evento) => setCidadeSolicitada(evento.target.value)}
+                                            />
+                                        </label>
+                                        <button className="btn-primario" disabled={salvandoSolicitacao}>
+                                            {salvandoSolicitacao ? "Reenviando..." : "Corrigir e reenviar"}
+                                        </button>
+                                    </form>
+                                </>
+                            ) : (
+                                <p className="texto-leve">
+                                    Uma pessoa administradora precisa confirmar a instituição antes de liberar as turmas e coletas. Você não precisa enviar o cadastro novamente.
+                                </p>
+                            )}
                             <div className="vinculo-pendente-acoes">
+                                {!solicitacaoRecusada && (
                                 <button
                                     type="button"
                                     className="btn-primario"
@@ -245,6 +316,7 @@ export default function Home() {
                                 >
                                     {verificandoVinculo ? "Verificando..." : "Verificar aprovação"}
                                 </button>
+                                )}
                                 {mensagemVinculo && <span role="status">{mensagemVinculo}</span>}
                             </div>
                         </div>

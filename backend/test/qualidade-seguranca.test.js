@@ -219,6 +219,51 @@ test("administrador vincula solicitação a instituição existente", async () =
     assert.equal(atualizado.institutionRequest, undefined);
 });
 
+test("administrador devolve vínculo e professora corrige a solicitação", async () => {
+    const { admin } = await criarCenarioEscolar();
+    const professora = await User.create({
+        name: "Professora para correção",
+        email: "corrigir.vinculo@ludus.local",
+        password: "Senha@123",
+        role: "professor",
+        emailVerifiedAt: new Date(),
+        institutionRequest: { name: "Escola incorreta", city: "Pelotas" },
+    });
+
+    await request(app)
+        .patch(`/api/users/${professora._id}/institution-request/reject`)
+        .set("Authorization", `Bearer ${tokenDe(professora)}`)
+        .send({ reason: "Tentativa sem permissão administrativa." })
+        .expect(403);
+
+    await request(app)
+        .patch(`/api/users/${professora._id}/institution-request/reject`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .send({ reason: "Confira o nome oficial e a cidade da instituição." })
+        .expect(200);
+
+    let atualizada = await User.findById(professora._id);
+    assert.equal(atualizada.institutionRequest.status, "rejected");
+    assert.equal(
+        atualizada.institutionRequest.rejectionReason,
+        "Confira o nome oficial e a cidade da instituição.",
+    );
+    assert.ok(atualizada.institutionRequest.reviewedAt);
+
+    const resposta = await request(app)
+        .put("/api/auth/institution-request")
+        .set("Authorization", `Bearer ${tokenDe(professora)}`)
+        .send({ institutionName: "Escola corrigida", institutionCity: "Rio Grande" })
+        .expect(200);
+
+    assert.equal(resposta.body.usuario.institutionRequest.status, "pending");
+    assert.equal(resposta.body.usuario.institutionRequest.rejectionReason, undefined);
+    atualizada = await User.findById(professora._id);
+    assert.equal(atualizada.institutionRequest.name, "Escola corrigida");
+    assert.equal(atualizada.institutionRequest.city, "Rio Grande");
+    assert.equal(atualizada.institutionRequest.status, "pending");
+});
+
 test("limita conta pendente ao perfil e libera acesso depois do vínculo", async () => {
     const { admin, professoraA, instituicaoA } = await criarCenarioEscolar();
     const pendente = await User.create({

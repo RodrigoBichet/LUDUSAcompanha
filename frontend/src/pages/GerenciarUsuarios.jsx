@@ -18,11 +18,16 @@ import {
     listarInstituicoes,
     criarUsuario,
     atualizarUsuario,
+    recusarSolicitacaoInstituicao,
 } from "../services/api";
 import "./GerenciarUsuarios.css";
 
 const ehVinculoPendente = (usuario) =>
-    !usuario.institutionId && Boolean(usuario.institutionRequest);
+    !usuario.institutionId && Boolean(usuario.institutionRequest) &&
+    usuario.institutionRequest.status !== "rejected";
+
+const ehVinculoRecusado = (usuario) =>
+    !usuario.institutionId && usuario.institutionRequest?.status === "rejected";
 
 export default function GerenciarUsuarios() {
     const { usuario } = useAuth();
@@ -41,6 +46,8 @@ export default function GerenciarUsuarios() {
     const [instituicaoId, setInstituicaoId] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState(null);
+    const [motivoRecusa, setMotivoRecusa] = useState("");
+    const [recusando, setRecusando] = useState(false);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
     const remocao = useConfirmacaoRemocao();
     const totalPendentes = usuarios.filter(ehVinculoPendente).length;
@@ -98,7 +105,26 @@ export default function GerenciarUsuarios() {
         setRole(usuario?.role || "professor");
         setInstituicaoId(usuario?.institutionId?._id || "");
         setErroForm(null);
+        setMotivoRecusa(usuario?.institutionRequest?.rejectionReason || "");
         setFormAberto(true);
+    };
+
+    const recusarVinculo = async () => {
+        if (!editando || motivoRecusa.trim().length < 10) {
+            setErroForm("Explique o motivo da correção em pelo menos 10 caracteres.");
+            return;
+        }
+        try {
+            setRecusando(true);
+            setErroForm(null);
+            await recusarSolicitacaoInstituicao(editando._id, motivoRecusa.trim());
+            cancelarForm();
+            await carregarDados();
+        } catch (erroRecusa) {
+            setErroForm(erroRecusa.response?.data?.mensagem || "Não foi possível devolver a solicitação.");
+        } finally {
+            setRecusando(false);
+        }
     };
 
     // -------------------------------------------------------------------------
@@ -265,9 +291,26 @@ export default function GerenciarUsuarios() {
 
                         {editando?.institutionRequest && (
                             <div className="solicitacao-instituicao">
-                                <strong>Vínculo solicitado no cadastro</strong>
+                                <strong>
+                                    {ehVinculoRecusado(editando)
+                                        ? "Solicitação devolvida para correção"
+                                        : "Vínculo solicitado no cadastro"}
+                                </strong>
                                 <span>{editando.institutionRequest.name}{editando.institutionRequest.city ? ` • ${editando.institutionRequest.city}` : ""}</span>
                                 <small>Selecione acima a instituição correspondente. Se ela ainda não existir, cadastre-a primeiro em Admin → Instituições.</small>
+                                {!ehVinculoRecusado(editando) && (
+                                    <label className="campo-grupo motivo-recusa">
+                                        <span className="campo-label">Motivo para pedir correção</span>
+                                        <textarea
+                                            className="campo-input"
+                                            rows="3"
+                                            maxLength={500}
+                                            placeholder="Ex.: Não encontramos essa instituição. Confira o nome e a cidade."
+                                            value={motivoRecusa}
+                                            onChange={(evento) => setMotivoRecusa(evento.target.value)}
+                                        />
+                                    </label>
+                                )}
                             </div>
                         )}
 
@@ -285,6 +328,15 @@ export default function GerenciarUsuarios() {
                                       ? "Salvar alterações"
                                       : "Cadastrar usuário"}
                             </button>
+                            {editando && ehVinculoPendente(editando) && (
+                                <button
+                                    className="btn-secundario btn-recusar-vinculo"
+                                    onClick={recusarVinculo}
+                                    disabled={salvando || recusando}
+                                >
+                                    {recusando ? "Devolvendo..." : "Pedir correção"}
+                                </button>
+                            )}
                             <button
                                 className="btn-secundario"
                                 onClick={cancelarForm}
@@ -402,8 +454,8 @@ export default function GerenciarUsuarios() {
                                                         </span>
                                                     )}
                                                     {!u.institutionId && u.institutionRequest && (
-                                                        <span className="tag-solicitacao">
-                                                            Vínculo pendente: {u.institutionRequest.name}
+                                                        <span className={`tag-solicitacao ${ehVinculoRecusado(u) ? "recusada" : ""}`}>
+                                                            {ehVinculoRecusado(u) ? "Correção solicitada" : "Vínculo pendente"}: {u.institutionRequest.name}
                                                             {u.institutionRequest.city ? ` • ${u.institutionRequest.city}` : ""}
                                                         </span>
                                                     )}

@@ -15,6 +15,7 @@ const { autenticar, apenasAdmin } = require("../middleware/auth");
 router.post("/", autenticar, apenasAdmin, controller.criarUsuario);
 router.get("/", autenticar, apenasAdmin, controller.listarUsuarios);
 router.put("/:id", autenticar, apenasAdmin, controller.atualizarUsuario);
+router.patch("/:id/institution-request/reject", autenticar, apenasAdmin, controller.recusarSolicitacaoInstituicao);
 router.delete("/:id", autenticar, apenasAdmin, controller.deletarUsuario);
 
 module.exports = router;

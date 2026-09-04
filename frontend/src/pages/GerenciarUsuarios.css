@@ -123,6 +123,12 @@
     padding: 0.15rem 0.55rem;
 }
 
+.tag-solicitacao.recusada {
+    color: #8f2531;
+    background: #fff0f1;
+    border-color: #e89aa3;
+}
+
 .solicitacao-instituicao {
     display: flex;
     flex-direction: column;
@@ -137,6 +143,15 @@
 
 .solicitacao-instituicao small {
     color: var(--cor-texto-leve);
+}
+
+.motivo-recusa {
+    margin-top: 0.55rem;
+}
+
+.btn-recusar-vinculo {
+    color: #9d2935;
+    border-color: #dc5262;
 }
 
 .usuario-acoes {

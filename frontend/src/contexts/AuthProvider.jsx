@@ -29,14 +29,20 @@ export function AuthProvider({ children }) {
         // Configura o token no header padrão do axios
         api.defaults.headers.common["Authorization"] = `Bearer ${tokenInicial}`;
 
-        // Busca dados do usuário logado
-        recarregarUsuario()
-            .catch(() => {
+        const carregarSessaoSalva = async () => {
+            try {
+                const resposta = await api.get("/auth/me");
+                setUsuario(resposta.data.usuario);
+            } catch {
                 // Token inválido ou expirado — limpa tudo
                 localStorage.removeItem("ludus_token");
                 delete api.defaults.headers.common["Authorization"];
-            })
-            .finally(() => setCarregando(false));
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        void carregarSessaoSalva();
     }, [recarregarUsuario, tokenInicial]);
 
     // -------------------------------------------------------------------------

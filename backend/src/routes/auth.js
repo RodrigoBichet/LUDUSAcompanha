@@ -24,5 +24,6 @@ router.post("/esqueci-senha", limitarEmail, controller.solicitarRedefinicaoSenha
 router.post("/redefinir-senha", limitarToken, controller.redefinirSenha);
 router.get("/me", autenticar, controller.perfil);
 router.put("/perfil", autenticar, controller.atualizarPerfil);
+router.put("/institution-request", autenticar, controller.atualizarSolicitacaoInstituicao);
 
 module.exports = router;

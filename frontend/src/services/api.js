@@ -153,7 +153,11 @@ export const criarUsuario = (dados) => api.post("/users", dados);
 export const deletarUsuario = (id) => api.delete(`/users/${id}`);
 
 export const atualizarUsuario = (id, dados) => api.put(`/users/${id}`, dados);
+export const recusarSolicitacaoInstituicao = (id, reason) =>
+    api.patch(`/users/${id}/institution-request/reject`, { reason });
 export const atualizarPerfil = (dados) => api.put("/auth/perfil", dados);
+export const atualizarSolicitacaoInstituicao = (dados) =>
+    api.put("/auth/institution-request", dados);
 
 // -------------------------------------------------------------------------
 // Jogos
