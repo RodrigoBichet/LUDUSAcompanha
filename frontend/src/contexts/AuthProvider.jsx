@@ -7,7 +7,7 @@
 // Gerencia token JWT, dados do usuário logado e funções de login/logout.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../services/api";
 import { AuthContext } from "./AuthContext";
 
@@ -15,6 +15,12 @@ export function AuthProvider({ children }) {
     const [tokenInicial] = useState(() => localStorage.getItem("ludus_token"));
     const [usuario, setUsuario] = useState(null);
     const [carregando, setCarregando] = useState(Boolean(tokenInicial));
+
+    const recarregarUsuario = useCallback(async () => {
+        const resposta = await api.get("/auth/me");
+        setUsuario(resposta.data.usuario);
+        return resposta.data.usuario;
+    }, []);
 
     // Ao iniciar, verifica se há token salvo e carrega o usuário
     useEffect(() => {
@@ -24,17 +30,14 @@ export function AuthProvider({ children }) {
         api.defaults.headers.common["Authorization"] = `Bearer ${tokenInicial}`;
 
         // Busca dados do usuário logado
-        api.get("/auth/me")
-            .then((res) => {
-                setUsuario(res.data.usuario);
-            })
+        recarregarUsuario()
             .catch(() => {
                 // Token inválido ou expirado — limpa tudo
                 localStorage.removeItem("ludus_token");
                 delete api.defaults.headers.common["Authorization"];
             })
             .finally(() => setCarregando(false));
-    }, [tokenInicial]);
+    }, [recarregarUsuario, tokenInicial]);
 
     // -------------------------------------------------------------------------
     // login — salva token e carrega dados do usuário
@@ -62,7 +65,7 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider
-            value={{ usuario, setUsuario, carregando, login, logout }}
+            value={{ usuario, setUsuario, carregando, login, logout, recarregarUsuario }}
         >
             {children}
         </AuthContext.Provider>

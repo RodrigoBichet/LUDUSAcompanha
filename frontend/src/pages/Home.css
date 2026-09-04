@@ -38,6 +38,18 @@
     line-height: 1.55;
 }
 
+.vinculo-pendente-acoes {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.vinculo-pendente-acoes span {
+    color: var(--cor-texto-leve);
+    font-size: 0.82rem;
+}
+
 .jogos-selecao {
     display: flex;
     flex-direction: column;
@@ -231,6 +243,11 @@
 @media (max-width: 780px) {
     .vinculo-pendente {
         grid-template-columns: 1fr;
+    }
+
+    .vinculo-pendente-acoes {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .jogos-selecao {

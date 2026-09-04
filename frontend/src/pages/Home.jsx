@@ -35,7 +35,7 @@ const JOGOS_DISPONIVEIS = [
 ];
 
 export default function Home() {
-    const { usuario } = useAuth();
+    const { usuario, recarregarUsuario } = useAuth();
     const vinculoPendente = Boolean(
         usuario?.role === "professor" &&
         !usuario?.institutionId &&
@@ -47,6 +47,8 @@ export default function Home() {
     const [jogos, setJogos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
+    const [verificandoVinculo, setVerificandoVinculo] = useState(false);
+    const [mensagemVinculo, setMensagemVinculo] = useState("");
     const [mostrarCadastroJogo, setMostrarCadastroJogo] = useState(
         Boolean(nomeJogoSugerido),
     );
@@ -105,6 +107,21 @@ export default function Home() {
         if (!jogo.ativo) return;
 
         navegar(`/jogos/${encodeURIComponent(jogo.id)}/alunos`);
+    };
+
+    const verificarAprovacao = async () => {
+        try {
+            setVerificandoVinculo(true);
+            setMensagemVinculo("");
+            const usuarioAtualizado = await recarregarUsuario();
+            if (!usuarioAtualizado?.institutionId) {
+                setMensagemVinculo("O vínculo ainda aguarda análise da administração.");
+            }
+        } catch {
+            setMensagemVinculo("Não foi possível verificar agora. Tente novamente em alguns instantes.");
+        } finally {
+            setVerificandoVinculo(false);
+        }
     };
 
     const handleCadastrarJogo = async (evento) => {
@@ -219,6 +236,17 @@ export default function Home() {
                             <p className="texto-leve">
                                 Uma pessoa administradora precisa confirmar a instituição antes de liberar as turmas e coletas. Você não precisa enviar o cadastro novamente.
                             </p>
+                            <div className="vinculo-pendente-acoes">
+                                <button
+                                    type="button"
+                                    className="btn-primario"
+                                    onClick={verificarAprovacao}
+                                    disabled={verificandoVinculo}
+                                >
+                                    {verificandoVinculo ? "Verificando..." : "Verificar aprovação"}
+                                </button>
+                                {mensagemVinculo && <span role="status">{mensagemVinculo}</span>}
+                            </div>
                         </div>
                     </section>
                 )}

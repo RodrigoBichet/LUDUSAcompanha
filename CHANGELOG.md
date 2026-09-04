@@ -19,6 +19,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   vínculos institucionais que ainda aguardam análise;
 - o filtro de vínculos pendentes volta automaticamente à lista completa quando
   a última solicitação exibida é resolvida;
+- professora pode verificar a aprovação do vínculo na própria página inicial e
+  liberar o dashboard sem sair da conta ou recarregar manualmente;
 - criação administrativa de usuários usa uma rota autenticada própria, com
   validação de papel, instituição, email único e senha mínima de oito caracteres;
 - cadastro público de professoras com confirmação de email antes do primeiro login;
