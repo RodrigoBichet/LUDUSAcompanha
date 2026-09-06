@@ -725,7 +725,7 @@ export default function Coletas() {
                                                                                 <span>{formatarDuracao(sessao.durationMs)}</span>
                                                                                 <span>{sessao.totalCliques} cliques</span>
                                                                                 <span>{sessao.totalPontosMovimento} movimentos</span>
-                                                                                <span>{sessao.totalPontosArraste} arrastes</span>
+                                                                                <span>{sessao.totalPontosArraste} pontos de arraste</span>
                                                                             </li>
                                                                         ))}
                                                                     </ul>
