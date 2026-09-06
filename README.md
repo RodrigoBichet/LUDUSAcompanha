@@ -397,6 +397,10 @@ payload bruto, digest e credenciais não são expostos nessa listagem.
 
 Em **Revisar aluno**, selecione um cadastro da mesma turma ou confirme a criação
 de um novo. Depois use **Adicionar sessões ao histórico** e confirme o nome.
+Quando houver sessões pendentes de alunos já confirmados, a caixa também oferece
+uma única confirmação coletiva. Participantes que ainda aguardam revisão ficam
+fora dessa ação e cada falha parcial permanece disponível para nova tentativa,
+sem duplicar as sessões concluídas.
 Essa confirmação aparece em um modal do próprio dashboard; cancelar ou usar
 Escape antes do envio não altera as sessões.
 As sessões passam a aparecer no perfil do aluno, separadas por jogo. Repetir

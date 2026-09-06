@@ -40,6 +40,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- confirmação coletiva para adicionar aos respectivos históricos todas as
+  sessões pendentes de alunos já identificados com segurança, preservando
+  revisão individual, falhas parciais e idempotência;
 - vínculo automático do participante a um único aluno com nome exato na turma,
   mantendo alunos inexistentes, homônimos e nomes apenas parecidos sob revisão
   explícita da professora;

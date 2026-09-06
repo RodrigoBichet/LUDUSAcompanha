@@ -37,6 +37,17 @@ const formatarDuracao = (valor) => {
     return minutos > 0 ? `${minutos}min ${resto}s` : `${resto}s`;
 };
 
+const listarImportacoesConfirmadas = (caixa) =>
+    (caixa?.recebimentos || [])
+        .filter((recebimento) => recebimento.resolutionStatus === "resolved")
+        .map((recebimento) => ({
+            recebimento,
+            pendentes: recebimento.sessoes
+                .filter((sessao) => sessao.status === "pending")
+                .slice(0, 100),
+        }))
+        .filter((item) => item.pendentes.length > 0);
+
 export default function Coletas() {
     const [coletas, setColetas] = useState([]);
     const [turmas, setTurmas] = useState([]);
@@ -280,6 +291,20 @@ export default function Coletas() {
         setConfirmacaoHistorico({ coleta, recebimento, pendentes });
     };
 
+    const adicionarConfirmadosAoHistorico = (coleta, caixa) => {
+        const importacoes = listarImportacoesConfirmadas(caixa);
+        if (!importacoes.length || importacaoEmCurso.current) return;
+        setErroConfirmacao("");
+        setConfirmacaoHistorico({
+            coleta,
+            importacoes,
+            quantidade: importacoes.reduce(
+                (total, item) => total + item.pendentes.length,
+                0,
+            ),
+        });
+    };
+
     const confirmarAdicaoAoHistorico = async () => {
         if (!confirmacaoHistorico || importacaoEmCurso.current) return;
         importacaoEmCurso.current = true;
@@ -301,6 +326,72 @@ export default function Coletas() {
             setConfirmacaoHistorico(null);
         } catch (falha) {
             setErroConfirmacao(falha.response?.data?.mensagem || "Não foi possível confirmar a importação. Você pode tentar novamente sem duplicar as sessões.");
+        } finally {
+            importacaoEmCurso.current = false;
+            setImportandoParticipante(null);
+        }
+    };
+
+    const confirmarAdicaoColetiva = async () => {
+        if (!confirmacaoHistorico?.importacoes || importacaoEmCurso.current) return;
+        importacaoEmCurso.current = true;
+        const { coleta, importacoes } = confirmacaoHistorico;
+        const chaveColeta = `coleta:${coleta.collectionId}`;
+        const atualizacoes = {};
+        let totalAdicionadas = 0;
+        let totalFalhas = 0;
+
+        setImportandoParticipante(chaveColeta);
+        setErroConfirmacao("");
+        setErro("");
+        try {
+            for (const { recebimento, pendentes } of importacoes) {
+                try {
+                    const resposta = await importarSessoesColeta(
+                        coleta.collectionId,
+                        recebimento.participantRef,
+                        pendentes.map((item) => item.receiptId),
+                    );
+                    const resultados = resposta.data.resultados || [];
+                    const adicionadas = resultados.filter(
+                        (item) => item.status === "imported",
+                    ).length;
+                    totalAdicionadas += adicionadas;
+                    totalFalhas += pendentes.length - adicionadas;
+                    atualizacoes[recebimento.participantRef] = {
+                        mensagem: resposta.data.mensagem,
+                        tipo: resposta.data.sucesso ? "sucesso" : "atencao",
+                    };
+                    for (const item of resultados) {
+                        atualizacoes[item.receiptId] = item.mensagem || "";
+                    }
+                } catch (falha) {
+                    totalFalhas += pendentes.length;
+                    atualizacoes[recebimento.participantRef] = {
+                        mensagem:
+                            falha.response?.data?.mensagem ||
+                            "Não foi possível adicionar as sessões deste aluno. Tente novamente.",
+                        tipo: "atencao",
+                    };
+                }
+            }
+
+            atualizacoes[chaveColeta] = {
+                mensagem: totalFalhas
+                    ? `${totalAdicionadas} sessões foram adicionadas e ${totalFalhas} continuam pendentes.`
+                    : `${totalAdicionadas} sessões foram adicionadas aos históricos confirmados.`,
+                tipo: totalFalhas ? "atencao" : "sucesso",
+            };
+            setResultadoImportacao((atuais) => ({
+                ...atuais,
+                ...atualizacoes,
+            }));
+            try {
+                await carregarRecebimentos(coleta);
+            } catch {
+                setErro("As sessões foram processadas, mas a lista não pôde ser atualizada. Reabra os recebimentos.");
+            }
+            setConfirmacaoHistorico(null);
         } finally {
             importacaoEmCurso.current = false;
             setImportandoParticipante(null);
@@ -571,6 +662,12 @@ export default function Coletas() {
                                 );
                                 const estado = descreverEstado(coleta);
                                 const podeRevogar = estado === "Ativa";
+                                const caixa = caixasPorColeta[coleta.collectionId];
+                                const importacoesConfirmadas = listarImportacoesConfirmadas(caixa);
+                                const totalSessoesConfirmadas = importacoesConfirmadas.reduce(
+                                    (total, item) => total + item.pendentes.length,
+                                    0,
+                                );
 
                                 return (
                                     <article className="card coleta-card" key={coleta.collectionId}>
@@ -686,24 +783,46 @@ export default function Coletas() {
                                         </button>
 
                                         {coletaAberta === coleta.collectionId &&
-                                            caixasPorColeta[coleta.collectionId] && (
+                                            caixa && (
                                                 <section className="caixa-recebimentos-coleta">
                                                     <div className="resumo-recebimentos-coleta">
                                                         <strong>
-                                                            {caixasPorColeta[coleta.collectionId].totalParticipantes} alunos
+                                                            {caixa.totalParticipantes} alunos
                                                         </strong>
-                                                        <span>
-                                                            {caixasPorColeta[coleta.collectionId].totalPendentes} pendentes • {caixasPorColeta[coleta.collectionId].totalImportadas} no histórico
-                                                        </span>
+                                                        <div className="acoes-resumo-recebimentos">
+                                                            <span>
+                                                                {caixa.totalPendentes} pendentes • {caixa.totalImportadas} no histórico
+                                                            </span>
+                                                            {totalSessoesConfirmadas > 0 && (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={Boolean(importandoParticipante)}
+                                                                    onClick={() => adicionarConfirmadosAoHistorico(coleta, caixa)}
+                                                                >
+                                                                    {importandoParticipante === `coleta:${coleta.collectionId}`
+                                                                        ? "Adicionando sessões..."
+                                                                        : `Adicionar ${totalSessoesConfirmadas} ${totalSessoesConfirmadas === 1 ? "sessão" : "sessões"} ao histórico`}
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    {caixasPorColeta[coleta.collectionId].recebimentos.length === 0 ? (
+                                                    {resultadoImportacao[`coleta:${coleta.collectionId}`] && (
+                                                        <p
+                                                            role="status"
+                                                            className={`aviso-importacao-coleta aviso-importacao-coleta--${resultadoImportacao[`coleta:${coleta.collectionId}`].tipo}`}
+                                                        >
+                                                            {resultadoImportacao[`coleta:${coleta.collectionId}`].mensagem}
+                                                        </p>
+                                                    )}
+
+                                                    {caixa.recebimentos.length === 0 ? (
                                                         <p className="recebimentos-vazios">
                                                             Nenhuma sessão foi recebida nesta coleta.
                                                         </p>
                                                     ) : (
                                                         <div className="lista-recebimentos-coleta">
-                                                            {caixasPorColeta[coleta.collectionId].recebimentos.map((recebimento) => (
+                                                            {caixa.recebimentos.map((recebimento) => (
                                                                 <article key={recebimento.participantRef}>
                                                                     <header>
                                                                         <div>
@@ -817,15 +936,20 @@ export default function Coletas() {
 
             {confirmacaoHistorico && (
                 <ConfirmacaoHistorico
-                    nome={confirmacaoHistorico.recebimento.resolvedStudent?.name || confirmacaoHistorico.recebimento.displayName}
-                    quantidade={confirmacaoHistorico.pendentes.length}
+                    nome={confirmacaoHistorico.recebimento
+                        ? confirmacaoHistorico.recebimento.resolvedStudent?.name || confirmacaoHistorico.recebimento.displayName
+                        : null}
+                    quantidade={confirmacaoHistorico.quantidade || confirmacaoHistorico.pendentes.length}
+                    quantidadeAlunos={confirmacaoHistorico.importacoes?.length}
                     ocupado={Boolean(importandoParticipante)}
                     erro={erroConfirmacao}
                     focoAlternativo={focoListaColetas}
                     onCancelar={() => {
                         if (!importacaoEmCurso.current) setConfirmacaoHistorico(null);
                     }}
-                    onConfirmar={confirmarAdicaoAoHistorico}
+                    onConfirmar={confirmacaoHistorico.importacoes
+                        ? confirmarAdicaoColetiva
+                        : confirmarAdicaoAoHistorico}
                 />
             )}
 

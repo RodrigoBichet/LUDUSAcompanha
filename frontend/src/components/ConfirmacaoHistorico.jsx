@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import "./ConfirmacaoHistorico.css";
 
-export default function ConfirmacaoHistorico({ nome, quantidade, ocupado, erro, onCancelar, onConfirmar, focoAlternativo }) {
+export default function ConfirmacaoHistorico({ nome, quantidade, quantidadeAlunos = null, ocupado, erro, onCancelar, onConfirmar, focoAlternativo }) {
     const dialogo = useRef(null);
     const cancelar = useRef(null);
 
@@ -36,11 +36,21 @@ export default function ConfirmacaoHistorico({ nome, quantidade, ocupado, erro, 
                 if (!ocupado) onCancelar();
             }}
         >
-            <h2 id="titulo-confirmacao-historico">Adicionar ao histórico?</h2>
-            <p id="descricao-confirmacao-historico">
-                Você vai adicionar <strong>{quantidade} {quantidade === 1 ? "sessão" : "sessões"}</strong> ao histórico de <strong>{nome}</strong>.
+            <h2 id="titulo-confirmacao-historico">
+                {quantidadeAlunos ? "Adicionar sessões aos históricos?" : "Adicionar ao histórico?"}
+            </h2>
+            {quantidadeAlunos ? (
+                <p id="descricao-confirmacao-historico">
+                    Você vai adicionar <strong>{quantidade} {quantidade === 1 ? "sessão" : "sessões"}</strong> {quantidadeAlunos === 1 ? "ao histórico de" : "aos históricos de"} <strong>{quantidadeAlunos} {quantidadeAlunos === 1 ? "aluno confirmado" : "alunos confirmados"}</strong>.
+                </p>
+            ) : (
+                <p id="descricao-confirmacao-historico">
+                    Você vai adicionar <strong>{quantidade} {quantidade === 1 ? "sessão" : "sessões"}</strong> ao histórico de <strong>{nome}</strong>.
+                </p>
+            )}
+            <p className="confirmacao-historico-ajuda">
+                Cada jogo será mantido separado. {quantidadeAlunos ? "Alunos que ainda aguardam revisão não serão incluídos." : "Confira o aluno antes de confirmar."}
             </p>
-            <p className="confirmacao-historico-ajuda">Cada jogo será mantido separado. Confira o aluno antes de confirmar.</p>
             {erro && <p className="confirmacao-historico-erro" role="alert">{erro}</p>}
             {ocupado && <p role="status">Adicionando sessões. Aguarde a confirmação…</p>}
             <div className="confirmacao-historico-acoes">
