@@ -34,5 +34,10 @@ router.patch(
     autenticar,
     controller.revogarColeta,
 );
+router.patch(
+    "/:collectionId/replace-code",
+    autenticar,
+    controller.substituirCodigoColeta,
+);
 
 module.exports = router;

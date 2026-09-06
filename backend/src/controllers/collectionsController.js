@@ -316,6 +316,45 @@ const revogarColeta = async (req, res) => {
     }
 };
 
+const substituirCodigoColeta = async (req, res) => {
+    try {
+        const coleta = await ObservationCollection.findOne({
+            collectionId: req.params.collectionId,
+            ownerUserId: req.usuarioId,
+        });
+
+        if (!coleta) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Coleta não encontrada ou sem permissão de acesso.",
+            });
+        }
+        if (coleta.status !== "active" || coleta.expiresAt.getTime() <= Date.now()) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Somente uma coleta ativa e dentro da validade pode receber um novo código.",
+            });
+        }
+
+        const credencial = gerarCredencialColeta();
+        coleta.pairingCodeHash = credencial.hash;
+        await coleta.save();
+
+        return res.json({
+            sucesso: true,
+            mensagem: "Novo código gerado. O código anterior deixou de aceitar novos vínculos.",
+            codigoTemporario: credencial.codigo,
+            coleta: resumirColeta(coleta),
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao substituir código da coleta:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao gerar um novo código para a coleta.",
+        });
+    }
+};
+
 const responderCodigoIndisponivel = (res) =>
     res.status(401).json({
         sucesso: false,
@@ -928,4 +967,5 @@ module.exports = {
     receberLoteObservacional,
     resolverParticipanteColeta,
     revogarColeta,
+    substituirCodigoColeta,
 };

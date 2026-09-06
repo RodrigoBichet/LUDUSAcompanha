@@ -11,6 +11,7 @@ import {
     listarTurmas,
     listarJogos,
     revogarColeta,
+    substituirCodigoColeta,
 } from "../services/api";
 import "./Coletas.css";
 
@@ -55,6 +56,8 @@ export default function Coletas() {
     const [modoApresentacao, setModoApresentacao] = useState(false);
     const [confirmandoRevogacao, setConfirmandoRevogacao] = useState(null);
     const [revogando, setRevogando] = useState(null);
+    const [confirmandoNovoCodigo, setConfirmandoNovoCodigo] = useState(null);
+    const [gerandoNovoCodigo, setGerandoNovoCodigo] = useState(null);
     const [coletaAberta, setColetaAberta] = useState(null);
     const [caixasPorColeta, setCaixasPorColeta] = useState({});
     const [carregandoRecebimentos, setCarregandoRecebimentos] = useState(null);
@@ -223,6 +226,34 @@ export default function Coletas() {
             );
         } finally {
             setRevogando(null);
+        }
+    };
+
+    const handleSubstituirCodigo = async (coleta) => {
+        try {
+            setGerandoNovoCodigo(coleta.collectionId);
+            setErro("");
+            setSucesso("");
+            const resposta = await substituirCodigoColeta(coleta.collectionId);
+            setColetas((atuais) => atuais.map((item) =>
+                item.collectionId === coleta.collectionId ? resposta.data.coleta : item,
+            ));
+            setCodigoGerado({
+                codigo: resposta.data.codigoTemporario,
+                coleta: resposta.data.coleta,
+            });
+            setCodigoCopiado(false);
+            setModoApresentacao(false);
+            setConfirmandoNovoCodigo(null);
+            setSucesso("Novo código gerado. O código anterior não aceita mais novos vínculos.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (erroRequisicao) {
+            setErro(
+                erroRequisicao.response?.data?.mensagem ||
+                    "Não foi possível gerar um novo código para a coleta.",
+            );
+        } finally {
+            setGerandoNovoCodigo(null);
         }
     };
 
@@ -511,8 +542,8 @@ export default function Coletas() {
                         </div>
                         <small>
                             Cada estudante informa este código e seu nome uma
-                            única vez. Se ele for perdido ou exposto, revogue a
-                            coleta e gere outra.
+                            única vez. Se ele for perdido ou exposto, gere um
+                            novo código na própria coleta.
                         </small>
                     </section>
                 )}
@@ -566,6 +597,44 @@ export default function Coletas() {
                                         </div>
 
                                         {podeRevogar &&
+                                            (confirmandoNovoCodigo === coleta.collectionId ? (
+                                                <div className="confirmacao-revogacao">
+                                                    <p>
+                                                        O código anterior deixará de aceitar novos computadores. Os alunos já vinculados continuarão normalmente. Deseja gerar outro?
+                                                    </p>
+                                                    <div>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-primario"
+                                                            onClick={() => handleSubstituirCodigo(coleta)}
+                                                            disabled={gerandoNovoCodigo === coleta.collectionId}
+                                                        >
+                                                            {gerandoNovoCodigo === coleta.collectionId ? "Gerando..." : "Sim, gerar novo código"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-secundario"
+                                                            onClick={() => setConfirmandoNovoCodigo(null)}
+                                                            disabled={gerandoNovoCodigo === coleta.collectionId}
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="btn-recebimentos-coleta"
+                                                    onClick={() => {
+                                                        setConfirmandoRevogacao(null);
+                                                        setConfirmandoNovoCodigo(coleta.collectionId);
+                                                    }}
+                                                >
+                                                    Gerar novo código
+                                                </button>
+                                            ))}
+
+                                        {podeRevogar &&
                                             (confirmandoRevogacao === coleta.collectionId ? (
                                                 <div className="confirmacao-revogacao">
                                                     <p>
@@ -594,7 +663,10 @@ export default function Coletas() {
                                                 <button
                                                     type="button"
                                                     className="btn-revogar-coleta"
-                                                    onClick={() => setConfirmandoRevogacao(coleta.collectionId)}
+                                                    onClick={() => {
+                                                        setConfirmandoNovoCodigo(null);
+                                                        setConfirmandoRevogacao(coleta.collectionId);
+                                                    }}
                                                 >
                                                     Revogar código
                                                 </button>

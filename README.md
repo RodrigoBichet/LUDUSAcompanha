@@ -282,6 +282,7 @@ local controlado; nunca em producao.
 | POST   | `/api/collections/submissions`     | Recebe sessões pareadas em uma caixa pendente, com recibos idempotentes |
 | GET    | `/api/collections/:collectionId/submissions` | Lista resumos pendentes da coleta para revisão da professora |
 | GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
+| PATCH  | `/api/collections/:collectionId/replace-code` | Substitui o código de uma coleta ativa sem expor ou persistir o valor anterior |
 | PATCH  | `/api/collections/:collectionId/revoke` | Revoga o código de uma coleta |
 | GET    | `/api/sessions/:sessionId`          | Busca uma sessao especifica   |
 | GET    | `/api/sessions/student/:studentId`  | Historico por aluno real      |
@@ -355,10 +356,13 @@ a conta da professora, não substitui sua senha ou JWT e não permite consultar 
 Dashboard. Ele será usado posteriormente para parear os computadores da sala
 somente com a coleta, instituição e turma escolhidas.
 
-O valor legível aparece apenas na resposta de criação. O banco guarda somente
-um HMAC do código, que possui validade entre 15 minutos e 8 horas e pode ser
-revogado pela professora. O pareamento da extensão emite uma credencial limitada
-ao envio daquela coleta e daquele participante temporário.
+O valor legível aparece apenas na resposta de criação ou substituição. O banco
+guarda somente um HMAC do código, que possui validade entre 15 minutos e 8 horas
+e pode ser revogado pela professora. Se o código for perdido ou exposto, a
+professora pode gerar outro na mesma coleta: o valor anterior deixa de aceitar
+novos computadores, enquanto as credenciais dos computadores já pareados
+continuam válidas até o encerramento da coleta. O pareamento da extensão emite
+uma credencial limitada ao envio daquela coleta e daquele participante temporário.
 
 O formato curto permite que a professora projete o código como em uma dinâmica
 de sala: cada estudante informa o próprio nome e o mesmo código uma única vez

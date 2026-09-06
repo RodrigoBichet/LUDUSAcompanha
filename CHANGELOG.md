@@ -49,6 +49,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Segurança
 
+- professora pode substituir o código temporário perdido ou exposto em uma
+  coleta ainda ativa; o código anterior deixa de aceitar novos computadores,
+  sem interromper os alunos que já estavam pareados;
+
 - cadastro público sempre cria uma conta de professora sem permitir elevação
   para `admin` ou vínculo institucional informado pelo cliente;
 - criação de instituições restrita ao administrador no backend e removida da

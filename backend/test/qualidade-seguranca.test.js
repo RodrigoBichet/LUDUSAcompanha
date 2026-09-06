@@ -737,6 +737,102 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
         .expect(401);
 });
 
+test("substitui codigo da coleta sem invalidar computadores ja pareados", async () => {
+    const { professoraA, professoraB, turmaA } = await criarCenarioEscolar();
+    const autorizacaoA = `Bearer ${tokenDe(professoraA)}`;
+    const criada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacaoA)
+        .send({ title: "Coleta com código substituído", groupId: String(turmaA._id) })
+        .expect(201);
+    const codigoAnterior = criada.body.codigoTemporario;
+    const collectionId = criada.body.coleta.collectionId;
+
+    const pareadaAntes = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: codigoAnterior,
+            participantName: "Participante já vinculado",
+        })
+        .expect(200);
+
+    await request(app)
+        .patch(`/api/collections/${collectionId}/replace-code`)
+        .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+        .expect(404);
+
+    const substituida = await request(app)
+        .patch(`/api/collections/${collectionId}/replace-code`)
+        .set("Authorization", autorizacaoA)
+        .expect(200);
+    assert.match(
+        substituida.body.codigoTemporario,
+        /^[A-HJ-NP-Z2-9]{3}-[A-HJ-NP-Z2-9]{3}$/,
+    );
+    assert.notEqual(substituida.body.codigoTemporario, codigoAnterior);
+    assert.equal(
+        Object.hasOwn(substituida.body.coleta, "pairingCodeHash"),
+        false,
+    );
+
+    const persistida = await ObservationCollection.findOne({
+        collectionId,
+    }).select("+pairingCodeHash");
+    assert.equal(compararCodigoColeta(codigoAnterior, persistida.pairingCodeHash), false);
+    assert.equal(
+        compararCodigoColeta(
+            substituida.body.codigoTemporario,
+            persistida.pairingCodeHash,
+        ),
+        true,
+    );
+
+    await request(app)
+        .post("/api/collections/pair")
+        .send({ code: codigoAnterior, participantName: "Novo computador antigo" })
+        .expect(401);
+    await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: substituida.body.codigoTemporario,
+            participantName: "Novo computador válido",
+        })
+        .expect(200);
+
+    const lote = loteObservacionalDeTeste("Participante já vinculado");
+    lote.collectionRef = collectionId;
+    lote.participant.participantRef =
+        pareadaAntes.body.participante.participantRef;
+    await request(app)
+        .post("/api/collections/submissions")
+        .set("Authorization", `Bearer ${pareadaAntes.body.credencial.token}`)
+        .send({ lote })
+        .expect(201);
+
+    await request(app)
+        .patch(`/api/collections/${collectionId}/revoke`)
+        .set("Authorization", autorizacaoA)
+        .expect(200);
+    await request(app)
+        .patch(`/api/collections/${collectionId}/replace-code`)
+        .set("Authorization", autorizacaoA)
+        .expect(409);
+
+    const expirada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacaoA)
+        .send({ title: "Coleta expirada", groupId: String(turmaA._id) })
+        .expect(201);
+    await ObservationCollection.updateOne(
+        { collectionId: expirada.body.coleta.collectionId },
+        { $set: { expiresAt: new Date(Date.now() - 1000) } },
+    );
+    await request(app)
+        .patch(`/api/collections/${expirada.body.coleta.collectionId}/replace-code`)
+        .set("Authorization", autorizacaoA)
+        .expect(409);
+});
+
 test("recusa pareamento indisponivel e limita tentativas de codigo", async () => {
     const { professoraA, turmaA } = await criarCenarioEscolar();
     const autorizacao = `Bearer ${tokenDe(professoraA)}`;

@@ -108,6 +108,8 @@ export const importarSessoesColeta = (collectionId, participantRef, receiptIds) 
     );
 export const revogarColeta = (collectionId) =>
     api.patch(`/collections/${encodeURIComponent(collectionId)}/revoke`);
+export const substituirCodigoColeta = (collectionId) =>
+    api.patch(`/collections/${encodeURIComponent(collectionId)}/replace-code`);
 
 // -------------------------------------------------------------------------
 // Students (Alunos)
