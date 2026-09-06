@@ -737,6 +737,68 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
         .expect(401);
 });
 
+test("associa automaticamente somente um aluno com nome exato na mesma turma", async () => {
+    const { professoraA, turmaA, turmaB } = await criarCenarioEscolar();
+    const alunoEsperado = await Student.create({
+        name: "Áluna Única",
+        groupId: turmaA._id,
+        enrollmentMode: "school",
+    });
+    await Student.create({
+        name: "Áluna Única",
+        groupId: turmaB._id,
+        enrollmentMode: "school",
+    });
+    const criada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ title: "Coleta com aluno conhecido", groupId: String(turmaA._id) })
+        .expect(201);
+
+    const pareada = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario,
+            participantName: "  ALUNA UNICA  ",
+        })
+        .expect(200);
+
+    assert.equal(pareada.body.participante.resolutionStatus, "resolved");
+    assert.equal(Object.hasOwn(pareada.body.participante, "studentId"), false);
+    const participante = await CollectionParticipant.findOne({
+        participantRef: pareada.body.participante.participantRef,
+    });
+    assert.equal(String(participante.studentId), String(alunoEsperado._id));
+});
+
+test("mantem homonimos pendentes para revisao da professora", async () => {
+    const { professoraA, turmaA, alunoA } = await criarCenarioEscolar();
+    await Student.create({
+        name: alunoA.name,
+        groupId: turmaA._id,
+        enrollmentMode: "school",
+    });
+    const criada = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({ title: "Coleta com homônimos", groupId: String(turmaA._id) })
+        .expect(201);
+
+    const pareada = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario,
+            participantName: alunoA.name,
+        })
+        .expect(200);
+
+    assert.equal(pareada.body.participante.resolutionStatus, "pending");
+    const participante = await CollectionParticipant.findOne({
+        participantRef: pareada.body.participante.participantRef,
+    });
+    assert.equal(participante.studentId, null);
+});
+
 test("substitui codigo da coleta sem invalidar computadores ja pareados", async () => {
     const { professoraA, professoraB, turmaA } = await criarCenarioEscolar();
     const autorizacaoA = `Bearer ${tokenDe(professoraA)}`;

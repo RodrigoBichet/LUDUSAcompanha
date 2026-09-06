@@ -373,9 +373,13 @@ mesmo código em um link de entrada, sem criar uma segunda credencial.
 O endpoint público de pareamento aceita somente nome e código. Ele valida se a
 coleta está ativa, dentro da validade e não revogada, aplica limite de
 tentativas e cria uma referência temporária de participante pendente. Nenhum
-aluno definitivo é criado nessa etapa. A credencial retornada expira junto com
-a coleta, em no máximo 8 horas, não contém o nome nem a identidade da professora e é recusada pelas
-rotas autenticadas comuns do Dashboard. O limite de tentativas usa memória da
+aluno definitivo é criado nessa etapa. Quando o nome corresponde exatamente a
+um único aluno da turma, desconsiderando apenas diferenças triviais de espaços,
+caixa e acentuação, o vínculo é confirmado automaticamente. Nomes inexistentes,
+homônimos ou apenas parecidos continuam pendentes para decisão da professora.
+A credencial retornada expira junto com a coleta, em no máximo 8 horas, não
+contém o nome nem a identidade da professora e é recusada pelas rotas
+autenticadas comuns do Dashboard. O limite de tentativas usa memória da
 instância no piloto; uma implantação horizontal deverá adotar armazenamento
 compartilhado, como Redis.
 

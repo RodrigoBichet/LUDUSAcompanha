@@ -361,6 +361,22 @@ const responderCodigoIndisponivel = (res) =>
         mensagem: "Código inválido, expirado ou indisponível.",
     });
 
+const localizarAlunoUnicoNaTurma = async (coleta, identidade) => {
+    const alunos = await Student.find({ groupId: coleta.groupId })
+        .select("_id name")
+        .lean();
+    const correspondencias = alunos.filter((aluno) => {
+        try {
+            return normalizarIdentidadeParticipante(aluno.name).normalizedName ===
+                identidade.normalizedName;
+        } catch {
+            return false;
+        }
+    });
+
+    return correspondencias.length === 1 ? correspondencias[0] : null;
+};
+
 const obterOuCriarParticipante = async (coleta, identidade) => {
     const filtro = {
         collectionRef: coleta._id,
@@ -369,13 +385,16 @@ const obterOuCriarParticipante = async (coleta, identidade) => {
     const existente = await CollectionParticipant.findOne(filtro);
     if (existente) return existente;
 
+    const alunoUnico = await localizarAlunoUnicoNaTurma(coleta, identidade);
+
     try {
         return await CollectionParticipant.create({
             participantRef: `participant-${crypto.randomUUID()}`,
             collectionRef: coleta._id,
             displayName: identidade.displayName,
             normalizedName: identidade.normalizedName,
-            resolutionStatus: "pending",
+            resolutionStatus: alunoUnico ? "resolved" : "pending",
+            studentId: alunoUnico?._id,
         });
     } catch (erro) {
         if (erro?.code === 11000) {

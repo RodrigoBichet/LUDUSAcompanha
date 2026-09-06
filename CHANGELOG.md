@@ -40,6 +40,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Adicionado
 
+- vínculo automático do participante a um único aluno com nome exato na turma,
+  mantendo alunos inexistentes, homônimos e nomes apenas parecidos sob revisão
+  explícita da professora;
+
 - redefinição administrativa pontual com senha temporária aleatória, validação
   do papel `admin` e preservação integral dos dados pedagógicos;
 - conta administrativa fictícia no ambiente efêmero de teste do lote, permitindo
