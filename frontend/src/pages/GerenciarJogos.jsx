@@ -6,10 +6,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
+import ConfirmacaoExcluirJogo from "../components/ConfirmacaoExcluirJogo";
 import Header from "../components/layout/Header";
 import {
     arquivarJogo,
     atualizarJogo,
+    excluirJogo,
     listarJogos,
 } from "../services/api";
 import "./GerenciarJogos.css";
@@ -24,6 +26,8 @@ export default function GerenciarJogos() {
     const [salvando, setSalvando] = useState(false);
     const [confirmacaoJogo, setConfirmacaoJogo] = useState(null);
     const [erroConfirmacao, setErroConfirmacao] = useState("");
+    const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(null);
+    const [erroExclusao, setErroExclusao] = useState("");
     const alteracaoEmCurso = useRef(false);
 
     const carregarJogos = useCallback(async () => {
@@ -107,6 +111,41 @@ export default function GerenciarJogos() {
         }
     };
 
+    const abrirConfirmacaoExclusao = (jogo, origemFoco) => {
+        if (alteracaoEmCurso.current) return;
+        setErroExclusao("");
+        setConfirmacaoExclusao({ ...jogo, origemFoco });
+    };
+
+    const processarExclusao = async (somenteArquivar) => {
+        if (!confirmacaoExclusao || alteracaoEmCurso.current) return;
+        alteracaoEmCurso.current = true;
+        const jogo = confirmacaoExclusao;
+        try {
+            setSalvando(true);
+            setErroExclusao("");
+            if (somenteArquivar) {
+                const resposta = await arquivarJogo(jogo._id);
+                setJogos((atuais) => atuais.map((item) =>
+                    item._id === jogo._id ? resposta.data.jogo : item,
+                ));
+            } else {
+                await excluirJogo(jogo._id);
+                setJogos((atuais) => atuais.filter((item) => item._id !== jogo._id));
+                if (editandoId === jogo._id) setEditandoId(null);
+            }
+            setConfirmacaoExclusao(null);
+        } catch (erroProcessamento) {
+            setErroExclusao(
+                erroProcessamento.response?.data?.mensagem ||
+                    "Não foi possível processar o jogo.",
+            );
+        } finally {
+            alteracaoEmCurso.current = false;
+            setSalvando(false);
+        }
+    };
+
     return (
         <div>
             <Header
@@ -182,6 +221,9 @@ export default function GerenciarJogos() {
                                             <button className="btn-secundario" disabled={salvando} onClick={(evento) => abrirConfirmacaoArquivo(jogo, evento.currentTarget)}>
                                                 {jogo.active === false ? "Reativar" : "Arquivar"}
                                             </button>
+                                            <button className="btn-excluir-jogo" disabled={salvando} onClick={(evento) => abrirConfirmacaoExclusao(jogo, evento.currentTarget)}>
+                                                Excluir
+                                            </button>
                                         </div>
                                     </>
                                 )}
@@ -199,6 +241,18 @@ export default function GerenciarJogos() {
                         if (!alteracaoEmCurso.current) setConfirmacaoJogo(null);
                     }}
                     onConfirmar={alternarArquivo}
+                />
+            )}
+            {confirmacaoExclusao && (
+                <ConfirmacaoExcluirJogo
+                    jogo={confirmacaoExclusao}
+                    ocupado={salvando}
+                    erro={erroExclusao}
+                    onCancelar={() => {
+                        if (!alteracaoEmCurso.current) setConfirmacaoExclusao(null);
+                    }}
+                    onArquivar={() => processarExclusao(true)}
+                    onExcluir={() => processarExclusao(false)}
                 />
             )}
         </div>

@@ -169,5 +169,6 @@ export const criarJogo = (dados) => api.post("/games", dados);
 export const criarJogoDetectado = (dados) => api.post("/games/detected", dados);
 export const atualizarJogo = (id, dados) => api.patch(`/games/${id}`, dados);
 export const arquivarJogo = (id) => api.delete(`/games/${id}`);
+export const excluirJogo = (id) => api.delete(`/games/${id}/permanent`);
 
 export default api;

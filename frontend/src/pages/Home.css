@@ -97,13 +97,27 @@
 
 .form-cadastro-jogo {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-    align-items: end;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: 0.8rem;
     padding: 1rem;
     border: 1px solid var(--cor-borda);
     border-radius: 8px;
     background: var(--cor-fundo);
+}
+
+.form-cadastro-jogo-largura-total,
+.btn-salvar-cadastro-jogo {
+    grid-column: 1 / -1;
+}
+
+.form-cadastro-jogo textarea {
+    min-height: 76px;
+    resize: vertical;
+}
+
+.btn-salvar-cadastro-jogo {
+    justify-self: start;
 }
 
 .erro-cadastro-jogo {
@@ -228,6 +242,10 @@
     opacity: 1;
 }
 
+.jogo-opcao-acoes .jogo-opcao-excluir:hover:not(:disabled) {
+    background: rgba(189, 38, 61, 0.12);
+}
+
 .jogo-opcao-acoes button:disabled {
     cursor: not-allowed;
     opacity: 0.45;
@@ -289,6 +307,10 @@
 
     .form-cadastro-jogo {
         grid-template-columns: 1fr;
+    }
+
+    .btn-salvar-cadastro-jogo {
+        justify-self: stretch;
     }
 
     .proximo-passo-jogo {

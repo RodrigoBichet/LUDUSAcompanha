@@ -7,6 +7,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Cadastro de jogos
+
+- o cadastro inicial de um jogo agora permite informar nome, descrição, página
+  pública e os endereços incorporados usados pela captura, sem exigir salvar e
+  editar o registro em uma segunda etapa;
+- os textos do formulário explicam os endereços de maneira amigável para a
+  preparação de jogos hospedados em portais como o Unity Play.
+- o link público é opcional no cadastro inicial; ao informar uma página do
+  Unity Play, a origem interna do WebGL é preparada automaticamente.
+- jogos ativos e arquivados agora podem ser excluídos definitivamente do
+  catálogo, com arquivamento recomendado como alternativa e preservação das
+  sessões e dos dados dos alunos.
+
 ### Autenticação
 
 - cadastro público registra o nome e a cidade informados para a instituição

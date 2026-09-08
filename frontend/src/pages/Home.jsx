@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
+import ConfirmacaoExcluirJogo from "../components/ConfirmacaoExcluirJogo";
 import Header from "../components/layout/Header";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -16,6 +17,7 @@ import {
     criarJogo,
     atualizarJogo,
     arquivarJogo,
+    excluirJogo,
     atualizarSolicitacaoInstituicao,
 } from "../services/api";
 import "./Home.css";
@@ -34,6 +36,19 @@ const JOGOS_DISPONIVEIS = [
         ativo: true,
     },
 ];
+
+const ORIGEM_WEBGL_UNITY_PLAY = "https://play-prod.struckd.com";
+const preencherOrigemUnityPlay = (entryUrl, origensAtuais) => {
+    try {
+        if (new URL(entryUrl).hostname !== "play.unity.com") return origensAtuais;
+        const origens = origensAtuais.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+        return origens.includes(ORIGEM_WEBGL_UNITY_PLAY)
+            ? origensAtuais
+            : [...origens, ORIGEM_WEBGL_UNITY_PLAY].join("\n");
+    } catch {
+        return origensAtuais;
+    }
+};
 
 export default function Home() {
     const { usuario, recarregarUsuario } = useAuth();
@@ -64,12 +79,19 @@ export default function Home() {
     );
     const [salvandoJogo, setSalvandoJogo] = useState(false);
     const [erroJogo, setErroJogo] = useState("");
-    const [formJogo, setFormJogo] = useState({ name: nomeJogoSugerido });
+    const [formJogo, setFormJogo] = useState({
+        name: nomeJogoSugerido,
+        description: "",
+        entryUrl: "",
+        captureOrigins: "",
+    });
     const [jogoEmEdicao, setJogoEmEdicao] = useState(null);
     const [formEdicaoJogo, setFormEdicaoJogo] = useState({});
     const [processandoJogoId, setProcessandoJogoId] = useState(null);
     const [confirmacaoJogo, setConfirmacaoJogo] = useState(null);
     const [erroConfirmacao, setErroConfirmacao] = useState("");
+    const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(null);
+    const [erroExclusao, setErroExclusao] = useState("");
     const alteracaoEmCurso = useRef(false);
 
     const jogosDisponiveis = useMemo(() => {
@@ -164,13 +186,25 @@ export default function Home() {
             setSalvandoJogo(true);
             setErroJogo("");
             const resposta = await criarJogo({
-                ...formJogo,
+                name: formJogo.name,
+                description: formJogo.description,
                 scopeType: "personal",
                 sourceType: "external-json",
+                observationTarget: {
+                    entryUrl: formJogo.entryUrl,
+                    captureOrigins: formJogo.captureOrigins
+                        .split(/\r?\n/)
+                        .filter((item) => item.trim()),
+                },
             });
             const jogo = resposta.data.jogo;
             setJogos((atuais) => [...atuais, jogo]);
-            setFormJogo({ name: "" });
+            setFormJogo({
+                name: "",
+                description: "",
+                entryUrl: "",
+                captureOrigins: "",
+            });
             setMostrarCadastroJogo(false);
         } catch (erroCadastro) {
             setErroJogo(
@@ -251,6 +285,41 @@ export default function Home() {
             setErroConfirmacao(
                 erroArquivo.response?.data?.mensagem ||
                     "Não foi possível alterar o estado do jogo.",
+            );
+        } finally {
+            alteracaoEmCurso.current = false;
+            setProcessandoJogoId(null);
+        }
+    };
+
+    const abrirConfirmacaoExclusao = (jogo, origemFoco) => {
+        if (alteracaoEmCurso.current) return;
+        setErroExclusao("");
+        setConfirmacaoExclusao({ ...jogo, origemFoco });
+    };
+
+    const processarExclusao = async (somenteArquivar) => {
+        if (!confirmacaoExclusao || alteracaoEmCurso.current) return;
+        alteracaoEmCurso.current = true;
+        const jogo = confirmacaoExclusao;
+        try {
+            setProcessandoJogoId(jogo.registroId);
+            setErroExclusao("");
+            if (somenteArquivar) {
+                const resposta = await arquivarJogo(jogo.registroId);
+                setJogos((atuais) => atuais.map((item) =>
+                    item._id === jogo.registroId ? resposta.data.jogo : item,
+                ));
+            } else {
+                await excluirJogo(jogo.registroId);
+                setJogos((atuais) => atuais.filter((item) => item._id !== jogo.registroId));
+                if (jogoEmEdicao?.registroId === jogo.registroId) setJogoEmEdicao(null);
+            }
+            setConfirmacaoExclusao(null);
+        } catch (erroProcessamento) {
+            setErroExclusao(
+                erroProcessamento.response?.data?.mensagem ||
+                    "Não foi possível processar o jogo.",
             );
         } finally {
             alteracaoEmCurso.current = false;
@@ -382,11 +451,12 @@ export default function Home() {
                                 >
                                     <label className="campo-grupo">
                                         <span className="campo-label">
-                                            Nome do jogo
+                                            Nome que aparecerá no LUDUS
                                         </span>
                                         <input
                                             className="campo-input"
                                             value={formJogo.name}
+                                            placeholder="Ex.: Para que serve?"
                                             onChange={(evento) =>
                                                 setFormJogo((atual) => ({
                                                     ...atual,
@@ -397,6 +467,69 @@ export default function Home() {
                                             maxLength={120}
                                         />
                                     </label>
+                                    <label className="campo-grupo">
+                                        <span className="campo-label">
+                                            Breve descrição (opcional)
+                                        </span>
+                                        <input
+                                            className="campo-input"
+                                            value={formJogo.description}
+                                            placeholder="Ex.: Jogo para relacionar objetos às suas funções"
+                                            onChange={(evento) =>
+                                                setFormJogo((atual) => ({
+                                                    ...atual,
+                                                    description: evento.target.value,
+                                                }))
+                                            }
+                                            maxLength={1000}
+                                        />
+                                    </label>
+                                    <label className="campo-grupo form-cadastro-jogo-largura-total">
+                                        <span className="campo-label">
+                                            Página onde a criança abre o jogo (opcional)
+                                        </span>
+                                        <input
+                                            className="campo-input"
+                                            type="url"
+                                            value={formJogo.entryUrl}
+                                            placeholder="https://play.unity.com/pt/games/..."
+                                            onChange={(evento) =>
+                                                setFormJogo((atual) => ({
+                                                    ...atual,
+                                                    entryUrl: evento.target.value,
+                                                    captureOrigins: preencherOrigemUnityPlay(
+                                                        evento.target.value,
+                                                        atual.captureOrigins,
+                                                    ),
+                                                }))
+                                            }
+                                        />
+                                        <small className="texto-leve">
+                                            Cole o endereço que aparece no navegador quando o jogo está aberto. Você pode deixar vazio e informar depois.
+                                        </small>
+                                    </label>
+                                    <details className="configuracao-avancada-jogo form-cadastro-jogo-largura-total">
+                                        <summary>Configuração técnica do site (normalmente automática)</summary>
+                                        <label className="campo-grupo">
+                                            <span className="campo-label">
+                                                Endereço interno do jogo
+                                            </span>
+                                            <textarea
+                                                className="campo-input"
+                                                value={formJogo.captureOrigins}
+                                                placeholder="Ex.: https://play-prod.struckd.com"
+                                                onChange={(evento) =>
+                                                    setFormJogo((atual) => ({
+                                                        ...atual,
+                                                        captureOrigins: evento.target.value,
+                                                    }))
+                                                }
+                                            />
+                                            <small className="texto-leve">
+                                                No Unity Play, este endereço é preenchido automaticamente. Só altere se receber orientação técnica.
+                                            </small>
+                                        </label>
+                                    </details>
                                     {erroJogo && (
                                         <p className="erro-cadastro-jogo">
                                             {erroJogo}
@@ -404,7 +537,7 @@ export default function Home() {
                                     )}
                                     <button
                                         type="submit"
-                                        className="btn-primario"
+                                        className="btn-primario btn-salvar-cadastro-jogo"
                                         disabled={salvandoJogo}
                                     >
                                         {salvandoJogo
@@ -472,7 +605,17 @@ export default function Home() {
                                                 >
                                                     {processandoJogoId === jogo.registroId
                                                         ? "…"
-                                                        : jogo.ativo ? "🗑️" : "↩️"}
+                                                        : jogo.ativo ? "📦" : "↩️"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="jogo-opcao-excluir"
+                                                    title="Excluir jogo definitivamente"
+                                                    aria-label={`Excluir ${jogo.nome} definitivamente`}
+                                                    onClick={(evento) => abrirConfirmacaoExclusao(jogo, evento.currentTarget)}
+                                                    disabled={Boolean(processandoJogoId)}
+                                                >
+                                                    🗑️
                                                 </button>
                                             </div>
                                         )}
@@ -485,30 +628,39 @@ export default function Home() {
                                     <form className="modal-edicao-jogo" onSubmit={handleSalvarEdicaoJogo}>
                                         <h3>Editar jogo</h3>
                                         <label className="campo-grupo">
-                                            <span className="campo-label">Nome do jogo</span>
+                                            <span className="campo-label">Nome que aparecerá no LUDUS</span>
                                             <input className="campo-input" value={formEdicaoJogo.name} required maxLength={120}
+                                                placeholder="Ex.: Para que serve?"
                                                 onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, name: evento.target.value }))} />
                                         </label>
                                         <label className="campo-grupo">
-                                            <span className="campo-label">Descrição (opcional)</span>
+                                            <span className="campo-label">Breve descrição (opcional)</span>
                                             <input className="campo-input" value={formEdicaoJogo.description}
+                                                placeholder="Ex.: Jogo para relacionar objetos às suas funções"
                                                 onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, description: evento.target.value }))} />
                                         </label>
                                         <label className="campo-grupo">
-                                            <span className="campo-label">Link do jogo (opcional)</span>
+                                            <span className="campo-label">Página onde a criança abre o jogo (opcional)</span>
                                             <input className="campo-input" type="url" value={formEdicaoJogo.entryUrl}
-                                                placeholder="https://portal.exemplo.org/jogos/meu-jogo"
-                                                onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, entryUrl: evento.target.value }))} />
-                                            <small className="texto-leve">Copie aqui o endereço que aparece no navegador quando o jogo está aberto.</small>
+                                                placeholder="Ex.: https://play.unity.com/pt/games/..."
+                                                onChange={(evento) => setFormEdicaoJogo((atual) => ({
+                                                    ...atual,
+                                                    entryUrl: evento.target.value,
+                                                    captureOrigins: preencherOrigemUnityPlay(
+                                                        evento.target.value,
+                                                        atual.captureOrigins,
+                                                    ),
+                                                }))} />
+                                            <small className="texto-leve">Cole o endereço que aparece no navegador quando o jogo está aberto. Você pode deixar vazio e informar depois.</small>
                                         </label>
                                         <details className="configuracao-avancada-jogo">
-                                            <summary>O jogo abre dentro de outra página?</summary>
+                                            <summary>Configuração técnica do site (normalmente automática)</summary>
                                             <label className="campo-grupo">
-                                                <span className="campo-label">Endereço onde o jogo é carregado</span>
+                                                <span className="campo-label">Endereço interno do jogo</span>
                                                 <textarea className="campo-input" value={formEdicaoJogo.captureOrigins}
-                                                    placeholder="https://conteudo.exemplo.org"
+                                                    placeholder="Ex.: https://play-prod.struckd.com"
                                                     onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, captureOrigins: evento.target.value }))} />
-                                                <small className="texto-leve">Normalmente você pode deixar este espaço vazio. Preencha somente se receber essa orientação ao preparar o jogo.</small>
+                                                <small className="texto-leve">No Unity Play, este endereço é preenchido automaticamente. Só altere se receber orientação técnica.</small>
                                             </label>
                                         </details>
                                         <div className="modal-edicao-jogo-acoes">
@@ -536,6 +688,18 @@ export default function Home() {
                         if (!alteracaoEmCurso.current) setConfirmacaoJogo(null);
                     }}
                     onConfirmar={handleAlternarArquivoJogo}
+                />
+            )}
+            {confirmacaoExclusao && (
+                <ConfirmacaoExcluirJogo
+                    jogo={confirmacaoExclusao}
+                    ocupado={Boolean(processandoJogoId)}
+                    erro={erroExclusao}
+                    onCancelar={() => {
+                        if (!alteracaoEmCurso.current) setConfirmacaoExclusao(null);
+                    }}
+                    onArquivar={() => processarExclusao(true)}
+                    onExcluir={() => processarExclusao(false)}
                 />
             )}
         </div>

@@ -14,6 +14,7 @@ router.post("/", autenticar, controller.criarJogo);
 router.post("/detected", autenticar, controller.criarJogoDetectado);
 router.patch("/:id", autenticar, controller.atualizarJogo);
 router.delete("/:id", autenticar, controller.arquivarJogo);
+router.delete("/:id/permanent", autenticar, controller.excluirJogo);
 router.get("/:id", autenticar, controller.buscarJogo);
 
 module.exports = router;

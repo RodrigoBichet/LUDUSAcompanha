@@ -38,6 +38,7 @@ const criarBaseGameId = (nome) =>
 
 const GAME_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,99}$/;
 const LIMITE_ORIGENS_CAPTURA = 10;
+const ORIGEM_WEBGL_UNITY_PLAY = "https://play-prod.struckd.com";
 
 const normalizarUrlEntrada = (valor) => {
     const texto = String(valor || "").trim();
@@ -88,10 +89,14 @@ const normalizarOrigensCaptura = (valores) => {
     return [...new Set(origens)];
 };
 
-const normalizarAlvoObservacional = (alvo = {}) => ({
-    entryUrl: normalizarUrlEntrada(alvo.entryUrl),
-    captureOrigins: normalizarOrigensCaptura(alvo.captureOrigins),
-});
+const normalizarAlvoObservacional = (alvo = {}) => {
+    const entryUrl = normalizarUrlEntrada(alvo.entryUrl);
+    const captureOrigins = normalizarOrigensCaptura(alvo.captureOrigins);
+    if (entryUrl && new URL(entryUrl).hostname === "play.unity.com") {
+        captureOrigins.push(ORIGEM_WEBGL_UNITY_PLAY);
+    }
+    return { entryUrl, captureOrigins: [...new Set(captureOrigins)] };
+};
 
 const buscarJogoGerenciavel = async (usuario, jogoId) => {
     if (!mongoose.isValidObjectId(jogoId)) return null;
@@ -438,6 +443,39 @@ const arquivarJogo = async (req, res) => {
 };
 
 // -------------------------------------------------------------------------
+// excluirJogo — DELETE /api/games/:id/permanent
+// Remove somente o cadastro do catálogo. Sessões e vínculos históricos usam
+// gameId e são preservados para não apagar evidências pedagógicas.
+// -------------------------------------------------------------------------
+
+const excluirJogo = async (req, res) => {
+    try {
+        const usuario = await obterUsuario(req.usuarioId);
+        if (!usuario) return responderUsuarioInvalido(res);
+
+        const jogo = await buscarJogoGerenciavel(usuario, req.params.id);
+        if (!jogo) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Jogo não encontrado ou sem permissão para excluí-lo.",
+            });
+        }
+
+        await Game.deleteOne({ _id: jogo._id });
+        return res.json({
+            sucesso: true,
+            mensagem: "Cadastro do jogo excluído. Sessões e dados dos alunos foram preservados.",
+        });
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao excluir jogo:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao excluir jogo.",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
 // buscarJogo — GET /api/games/:id
 // -------------------------------------------------------------------------
 
@@ -481,5 +519,6 @@ module.exports = {
     criarJogoDetectado,
     atualizarJogo,
     arquivarJogo,
+    excluirJogo,
     buscarJogo,
 };

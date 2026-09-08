@@ -351,6 +351,58 @@ test("normaliza alvo observacional do jogo sem guardar parâmetros sensíveis", 
         .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
         .send({ observationTarget: { entryUrl: "javascript:alert(1)", captureOrigins: [] } })
         .expect(400);
+
+    const unityPlay = await request(app)
+        .post("/api/games")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            name: "Jogo Unity Play fictício",
+            scopeType: "personal",
+            observationTarget: {
+                entryUrl: "https://play.unity.com/pt/games/id-ficticio/jogo",
+                captureOrigins: [],
+            },
+        })
+        .expect(201);
+    assert.deepEqual(
+        unityPlay.body.jogo.observationTarget.captureOrigins,
+        ["https://play-prod.struckd.com"],
+    );
+});
+
+test("exclui cadastro de jogo sem apagar sessões e permite recriá-lo", async () => {
+    const { professoraA, professoraB, alunoA } = await criarCenarioEscolar();
+    const autorizacaoA = `Bearer ${tokenDe(professoraA)}`;
+    const criada = await request(app)
+        .post("/api/games")
+        .set("Authorization", autorizacaoA)
+        .send({ name: "Jogo descartável", scopeType: "personal" })
+        .expect(201);
+
+    await Session.create({
+        ...sessaoDeTeste(alunoA, "jogo-preservado"),
+        gameId: criada.body.jogo.gameId,
+    });
+
+    await request(app)
+        .delete(`/api/games/${criada.body.jogo._id}/permanent`)
+        .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+        .expect(404);
+
+    await request(app)
+        .delete(`/api/games/${criada.body.jogo._id}/permanent`)
+        .set("Authorization", autorizacaoA)
+        .expect(200);
+
+    assert.equal(await Game.countDocuments({ _id: criada.body.jogo._id }), 0);
+    assert.equal(await Session.countDocuments({ gameId: criada.body.jogo.gameId }), 1);
+
+    const recriada = await request(app)
+        .post("/api/games")
+        .set("Authorization", autorizacaoA)
+        .send({ name: "Jogo descartável", scopeType: "personal" })
+        .expect(201);
+    assert.equal(recriada.body.jogo.gameId, criada.body.jogo.gameId);
 });
 
 test("administrador não remove a própria conta", async () => {

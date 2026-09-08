@@ -1,0 +1,31 @@
+.confirmacao-excluir-jogo {
+    position: fixed;
+    inset: 0;
+    width: min(560px, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    margin: auto;
+    padding: 1.5rem;
+    border: 0;
+    border-radius: 14px;
+    color: var(--cor-texto);
+    box-shadow: 0 22px 64px rgba(21, 37, 53, 0.28);
+}
+
+.confirmacao-excluir-jogo::backdrop { background: rgba(21, 37, 53, 0.58); }
+.confirmacao-excluir-jogo h2 { margin: 0 0 1rem; }
+.confirmacao-excluir-jogo p { line-height: 1.55; }
+.confirmacao-excluir-jogo-ajuda,
+.confirmacao-excluir-jogo-recomendacao { padding: 0.9rem; border-radius: 9px; }
+.confirmacao-excluir-jogo-ajuda { background: #fff4f4; color: #812837; }
+.confirmacao-excluir-jogo-recomendacao { background: #eef9f5; color: #17664f; }
+.confirmacao-excluir-jogo-erro { color: var(--cor-erro); }
+.confirmacao-excluir-jogo-acoes { display: flex; justify-content: flex-end; gap: 0.7rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.confirmacao-excluir-jogo-acoes button { min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--cor-borda); border-radius: 9px; background: #fff; color: var(--cor-texto); font: inherit; font-weight: 700; cursor: pointer; }
+.confirmacao-excluir-jogo-acoes .confirmar-arquivo { border-color: #267f8a; color: #17656e; }
+.confirmacao-excluir-jogo-acoes .confirmar-exclusao { border-color: #bd263d; background: #bd263d; color: #fff; }
+.confirmacao-excluir-jogo-acoes button:disabled { opacity: 0.6; cursor: wait; }
+
+@media (max-width: 620px) {
+    .confirmacao-excluir-jogo-acoes { flex-direction: column; }
+    .confirmacao-excluir-jogo-acoes button { width: 100%; }
+}
