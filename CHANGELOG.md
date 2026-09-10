@@ -7,6 +7,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Descoberta assistida de jogos
+
+- a professora pode criar uma coleta automática sem cadastrar jogos ou informar
+  sites antecipadamente;
+- o pareamento informa somente que a coleta permite descoberta assistida e não
+  solicita acesso a portais antes de um adulto localizar o primeiro jogo.
+
 ### Cadastro de jogos
 
 - o cadastro inicial de um jogo agora permite informar nome, descrição, página

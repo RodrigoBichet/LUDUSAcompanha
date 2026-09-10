@@ -78,6 +78,11 @@ const ObservationCollectionSchema = new mongoose.Schema(
             ],
             default: [],
         },
+        discoveryMode: {
+            type: String,
+            enum: ["prepared-only", "assisted"],
+            default: "prepared-only",
+        },
         closedAt: {
             type: Date,
             default: null,

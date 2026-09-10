@@ -631,6 +631,44 @@ test("cria coleta com jogos preparados e deriva permissões automaticamente", as
     assert.equal(resposta.body.coleta.gameTargets[0].name, "Jogo preparado fictício");
 });
 
+test("cria coleta para descoberta assistida sem antecipar sites", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+
+    const resposta = await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            title: "Coleta automática",
+            groupId: String(turmaA._id),
+            durationMinutes: 60,
+            discoveryMode: "assisted",
+        })
+        .expect(201);
+
+    assert.deepEqual(resposta.body.coleta.allowedOrigins, []);
+    assert.deepEqual(resposta.body.coleta.gameTargets, []);
+    assert.equal(resposta.body.coleta.discoveryMode, "assisted");
+
+    const pareamento = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            participantName: "Aluno Portal Fictício",
+            code: resposta.body.codigoTemporario,
+        })
+        .expect(200);
+    assert.equal(pareamento.body.coleta.discoveryMode, "assisted");
+
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .send({
+            title: "Modo forjado",
+            groupId: String(turmaA._id),
+            discoveryMode: "qualquer-site-sem-confirmacao",
+        })
+        .expect(400);
+});
+
 test("isola coleta por professora e permite revogacao idempotente", async () => {
     const { professoraA, professoraB, turmaA, turmaB } =
         await criarCenarioEscolar();

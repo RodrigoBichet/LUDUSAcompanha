@@ -58,6 +58,7 @@ const resumirColeta = (coleta) => ({
     expiresAt: coleta.expiresAt,
     allowedOrigins: coleta.allowedOrigins,
     gameTargets: coleta.gameTargets,
+    discoveryMode: coleta.discoveryMode,
     closedAt: coleta.closedAt,
     revokedAt: coleta.revokedAt,
     createdAt: coleta.createdAt,
@@ -209,11 +210,22 @@ const criarColeta = async (req, res) => {
             });
         }
 
+        const discoveryMode = req.body?.discoveryMode ?? "prepared-only";
+        if (!["prepared-only", "assisted"].includes(discoveryMode)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "O modo de escolha dos jogos é inválido.",
+            });
+        }
+
         const origensDosJogos = gameTargets.flatMap((alvo) => [
             new URL(alvo.entryUrl).origin,
             ...alvo.captureOrigins,
         ]);
-        allowedOrigins = [...new Set([...allowedOrigins, ...origensDosJogos])];
+        allowedOrigins = [...new Set([
+            ...allowedOrigins,
+            ...origensDosJogos,
+        ])];
 
         const agora = new Date();
         const credencial = gerarCredencialColeta();
@@ -231,6 +243,7 @@ const criarColeta = async (req, res) => {
             pairingCodeHash: credencial.hash,
             allowedOrigins,
             gameTargets,
+            discoveryMode,
         });
 
         return res.status(201).json({
@@ -493,6 +506,7 @@ const parearParticipante = async (req, res) => {
                 expiresAt: coleta.expiresAt,
                 allowedOrigins: coleta.allowedOrigins,
                 gameTargets: coleta.gameTargets,
+                discoveryMode: coleta.discoveryMode,
             },
             credencial: {
                 token,

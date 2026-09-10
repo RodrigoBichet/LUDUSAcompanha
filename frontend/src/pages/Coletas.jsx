@@ -28,6 +28,17 @@ const formatarData = (valor) =>
         timeStyle: "short",
     }).format(new Date(valor));
 
+const formatarNomeJogo = (gameId) => {
+    const identificador = String(gameId || "Jogo");
+    const legado = identificador.match(/^maisludus-com-br-([a-f0-9]{16,})$/u);
+    if (legado) return `Jogo do Mais LUDUS (${legado[1].slice(0, 6)})`;
+    return identificador
+        .split(/[-_]+/u)
+        .filter(Boolean)
+        .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1))
+        .join(" ");
+};
+
 const obterId = (valor) => valor?._id || valor || "";
 
 const formatarDuracao = (valor) => {
@@ -62,6 +73,7 @@ export default function Coletas() {
     const [jogos, setJogos] = useState([]);
     const [usarTodosJogos, setUsarTodosJogos] = useState(false);
     const [jogosSelecionados, setJogosSelecionados] = useState([]);
+    const [modoJogos, setModoJogos] = useState("automatico");
     const [codigoGerado, setCodigoGerado] = useState(null);
     const [codigoCopiado, setCodigoCopiado] = useState(false);
     const [modoApresentacao, setModoApresentacao] = useState(false);
@@ -160,12 +172,12 @@ export default function Coletas() {
             .map((origem) => origem.trim())
             .filter(Boolean);
 
-        if (
-            !usarTodosJogos &&
-            jogosSelecionados.length === 0 &&
-            allowedOrigins.length === 0
-        ) {
-            setErro("Escolha pelo menos um jogo ou adicione um site externo.");
+        if (modoJogos === "especificos" && !usarTodosJogos && jogosSelecionados.length === 0) {
+            setErro("Escolha pelo menos um jogo para esta coleta.");
+            return;
+        }
+        if (modoJogos === "externo" && allowedOrigins.length === 0) {
+            setErro("Informe o endereço do site onde os jogos serão abertos.");
             return;
         }
 
@@ -175,10 +187,11 @@ export default function Coletas() {
                 title: titulo.trim(),
                 groupId: turmaId,
                 durationMinutes: Number(duracao),
-                allowedOrigins,
-                gameIds: (usarTodosJogos
+                allowedOrigins: modoJogos === "externo" ? allowedOrigins : [],
+                gameIds: modoJogos === "especificos" && usarTodosJogos
                     ? jogosPreparados.map((jogo) => jogo._id)
-                    : jogosSelecionados),
+                    : modoJogos === "especificos" ? jogosSelecionados : [],
+                discoveryMode: modoJogos === "automatico" ? "assisted" : "prepared-only",
             });
             setCodigoGerado({
                 codigo: resposta.data.codigoTemporario,
@@ -189,6 +202,7 @@ export default function Coletas() {
             setOrigens("");
             setUsarTodosJogos(false);
             setJogosSelecionados([]);
+            setModoJogos("automatico");
             setSucesso("Coleta criada. Compartilhe o código apenas com os computadores desta turma.");
         } catch (erroRequisicao) {
             setErro(
@@ -541,10 +555,23 @@ export default function Coletas() {
                         </select>
                     </label>
 
-                    <fieldset className="jogos-coleta">
-                        <legend>Jogos da coleta</legend>
-                        {jogosPreparados.length > 0 ? (
-                            <>
+                    <fieldset className="modos-jogos-coleta">
+                        <legend>Como os jogos serão escolhidos?</legend>
+                        <label className={`modo-jogos-opcao ${modoJogos === "automatico" ? "selecionado" : ""}`}>
+                            <input type="radio" name="modo-jogos" value="automatico"
+                                checked={modoJogos === "automatico"}
+                                onChange={() => setModoJogos("automatico")} disabled={salvando} />
+                            <span><strong>Reconhecer jogos durante a atividade</strong><small>Recomendado. Não exige cadastro prévio de jogos ou sites. No primeiro acesso a um portal, um adulto autoriza somente aquele local.</small></span>
+                        </label>
+                        <label className={`modo-jogos-opcao ${modoJogos === "especificos" ? "selecionado" : ""}`}>
+                            <input type="radio" name="modo-jogos" value="especificos"
+                                checked={modoJogos === "especificos"}
+                                onChange={() => setModoJogos("especificos")} disabled={salvando} />
+                            <span><strong>Escolher jogos específicos</strong><small>Use quando a atividade deve ficar limitada aos jogos selecionados.</small></span>
+                        </label>
+                        {modoJogos === "especificos" && (
+                            <div className="conteudo-modo-jogos">
+                            {jogosPreparados.length > 0 ? <>
                                 <label className="opcao-todos-jogos">
                                     <input type="checkbox" checked={usarTodosJogos}
                                         onChange={(evento) => {
@@ -577,23 +604,28 @@ export default function Coletas() {
                                         </label>
                                     ))}
                                 </div>
-                            </>
-                        ) : (
-                            <p className="texto-leve">Nenhum jogo possui link preparado ainda. Você ainda pode criar uma coleta para um site externo.</p>
+                            </> : (
+                                <p className="texto-leve">Nenhum jogo específico possui link preparado ainda.</p>
+                            )}
+                            </div>
+                        )}
+                        <label className={`modo-jogos-opcao ${modoJogos === "externo" ? "selecionado" : ""}`}>
+                            <input type="radio" name="modo-jogos" value="externo"
+                                checked={modoJogos === "externo"}
+                                onChange={() => setModoJogos("externo")} disabled={salvando} />
+                            <span><strong>Usar jogos de outro site</strong><small>Informe somente o endereço do portal; não é necessário cadastrar cada jogo agora.</small></span>
+                        </label>
+                        {modoJogos === "externo" && (
+                            <label className="campo-origens-coleta conteudo-modo-jogos">
+                                <span>Endereço do site</span>
+                                <textarea value={origens}
+                                    onChange={(evento) => setOrigens(evento.target.value)}
+                                    placeholder="Ex.: https://jogos.exemplo.org"
+                                    rows={2} disabled={salvando} />
+                                <small>Se os jogos estiverem em mais de um portal, informe um endereço por linha.</small>
+                            </label>
                         )}
                     </fieldset>
-
-                    <details className="sites-externos-coleta">
-                        <summary>Adicionar um site externo</summary>
-                        <label className="campo-origens-coleta">
-                            <span>Endereços permitidos</span>
-                            <textarea value={origens}
-                                onChange={(evento) => setOrigens(evento.target.value)}
-                                placeholder="https://jogos.exemplo.org"
-                                rows={3} disabled={salvando} />
-                            <small>Use somente para jogos que ainda não aparecem na lista acima.</small>
-                        </label>
-                    </details>
 
                     {turmas.length === 0 && !carregando && (
                         <p className="mensagem-coleta aviso">
@@ -908,7 +940,7 @@ export default function Coletas() {
                                                                         {recebimento.sessoes.map((sessao) => (
                                                                             <li key={sessao.receiptId}>
                                                                                 <div>
-                                                                                    <strong>{sessao.gameId}</strong>
+                                                                                    <strong>{formatarNomeJogo(sessao.gameId)}</strong>
                                                                                     <small>{formatarData(sessao.receivedAt)}</small>
                                                                                     <small>{sessao.status === "imported" ? "Adicionada ao histórico" : sessao.status === "rejected" ? "Recusada" : "Pendente"}</small>
                                                                                     {resultadoImportacao[sessao.receiptId] && <small role="alert">{resultadoImportacao[sessao.receiptId]}</small>}

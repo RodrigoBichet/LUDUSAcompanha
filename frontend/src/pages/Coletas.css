@@ -55,9 +55,9 @@
     outline: 3px solid rgba(78, 203, 160, 0.15);
 }
 
-.campo-origens-coleta,
-.jogos-coleta,
-.sites-externos-coleta,
+  .campo-origens-coleta,
+  .jogos-coleta,
+  .modos-jogos-coleta,
 .formulario-coleta > .mensagem-coleta,
 .formulario-coleta > .btn-primario {
     grid-column: 1 / -1;
@@ -69,6 +69,57 @@
     border: 1px solid var(--cor-borda);
     border-radius: 10px;
     padding: 1rem;
+}
+
+.modos-jogos-coleta {
+    display: grid;
+    gap: 0.75rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.modos-jogos-coleta legend {
+    padding: 0 0.35rem;
+    font-weight: 700;
+}
+
+.modo-jogos-opcao {
+    display: flex !important;
+    grid-template-columns: none !important;
+    align-items: flex-start;
+    gap: 0.75rem !important;
+    padding: 0.85rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 9px;
+    cursor: pointer;
+}
+
+.modo-jogos-opcao.selecionado {
+    border-color: var(--cor-primaria);
+    background: rgba(78, 203, 160, 0.09);
+}
+
+.modo-jogos-opcao input {
+    width: auto;
+    margin-top: 0.2rem;
+}
+
+.modo-jogos-opcao span {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.modo-jogos-opcao small,
+.conteudo-modo-jogos small {
+    color: var(--cor-texto-leve);
+    font-weight: 400;
+}
+
+.conteudo-modo-jogos {
+    margin: 0 0 0 2.5rem;
+    padding: 0.85rem;
+    border-left: 3px solid rgba(78, 203, 160, 0.45);
 }
 
 .jogos-coleta legend {
