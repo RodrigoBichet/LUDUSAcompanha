@@ -11,12 +11,22 @@ require("dotenv").config(); // Carrega o .env
 
 const app = require("./src/app"); // Configuração do Express
 const conectarBanco = require("./src/config/database");
+const { validarAmbiente } = require("./src/config/validarAmbiente");
 
-const PORT = process.env.PORT || 3000;
+const iniciarServidor = async () => {
+    const { porta } = validarAmbiente();
+    await conectarBanco();
 
-// Conecta ao banco e inicia o servidor
-conectarBanco().then(() => {
-    app.listen(PORT, () => {
-        console.log(`[LUDUS] Servidor rodando na porta ${PORT}`);
+    return app.listen(porta, () => {
+        console.log(`[LUDUS] Servidor rodando na porta ${porta}`);
     });
-});
+};
+
+if (require.main === module) {
+    iniciarServidor().catch((erro) => {
+        console.error(`[LUDUS] Falha ao iniciar: ${erro.message}`);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { iniciarServidor };

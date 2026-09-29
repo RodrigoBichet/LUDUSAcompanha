@@ -9,13 +9,8 @@
 const mongoose = require("mongoose");
 
 const conectarBanco = async () => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log("[LUDUS] MongoDB conectado com sucesso!");
-    } catch (erro) {
-        console.error("[LUDUS] Erro ao conectar com MongoDB:", erro.message);
-        process.exit(1); // Encerra o servidor se não conseguir conectar
-    }
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("[LUDUS] MongoDB conectado com sucesso!");
 };
 
 module.exports = conectarBanco;

@@ -9,14 +9,26 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const { criarPoliticaCors } = require("./config/cors");
 
 const app = express();
+const politicaCors = criarPoliticaCors();
 
 // -------------------------------------------------------------------------
 // Middlewares
 // -------------------------------------------------------------------------
 
-app.use(cors()); // Permite requisições de qualquer origem (Unity, Dashboard)
+app.disable("x-powered-by");
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+app.use(cors(politicaCors.opcoes));
+app.use((req, res, next) => {
+    res.set("X-Content-Type-Options", "nosniff");
+    res.set("Referrer-Policy", "no-referrer");
+    res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    if (req.path.startsWith("/api/")) res.set("Cache-Control", "no-store");
+    next();
+});
 app.use(express.json({ limit: "25mb" })); // Interpreta JSON no corpo das requisições
 //Screenshots em base64 podem passar do limite padrão do Express e causar erro antes de chegar no controller
 app.use("/api/users", require("./routes/users"));
