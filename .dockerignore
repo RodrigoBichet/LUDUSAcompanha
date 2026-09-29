@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/node_modules
+**/.env
+**/.env.*
+frontend
+backend/uploads
+docs/*
+!docs/schema
+!docs/schema/**
+*.log
+

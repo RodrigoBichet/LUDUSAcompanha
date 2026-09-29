@@ -1,0 +1,35 @@
+name: ludus-acompanha
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - /etc/ludus-acompanha/backend.env
+    ports:
+      - "127.0.0.1:3010:3000"
+    volumes:
+      - /srv/ludus-acompanha/uploads:/app/backend/uploads
+    mem_limit: 384m
+    cpus: 0.50
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then((resposta) => { if (!resposta.ok) process.exit(1); }).catch(() => process.exit(1));"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 15s
+
