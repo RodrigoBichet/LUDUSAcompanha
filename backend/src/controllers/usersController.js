@@ -12,6 +12,8 @@ const Institution = require("../models/Institution");
 const papeisValidos = new Set(["admin", "professor"]);
 const emailValido = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const normalizarEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizarTexto = (valor) => String(valor || "").trim().replace(/\s+/g, " ");
+const escaparRegex = (valor) => valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const validarInstituicao = async (institutionId) => {
     if (!institutionId) return null;
@@ -207,4 +209,98 @@ const recusarSolicitacaoInstituicao = async (req, res) => {
     }
 };
 
-module.exports = { criarUsuario, listarUsuarios, deletarUsuario, atualizarUsuario, recusarSolicitacaoInstituicao };
+const criarInstituicaoEVincular = async (req, res) => {
+    let instituicaoCriada = null;
+
+    try {
+        const usuario = await User.findById(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado" });
+        }
+        if (
+            usuario.role !== "professor" ||
+            usuario.institutionId ||
+            usuario.institutionRequest?.status !== "pending"
+        ) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Este usuário não possui uma solicitação institucional pendente.",
+            });
+        }
+
+        const nome = normalizarTexto(usuario.institutionRequest.name);
+        const cidade = normalizarTexto(usuario.institutionRequest.city);
+        if (!nome || nome.length > 160 || cidade.length > 120) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "A solicitação possui nome ou cidade inválidos. Peça a correção dos dados.",
+            });
+        }
+
+        const instituicaoExistente = await Institution.findOne({
+            name: new RegExp(`^${escaparRegex(nome)}$`, "i"),
+            city: new RegExp(`^${escaparRegex(cidade)}$`, "i"),
+        }).select("_id name city");
+        if (instituicaoExistente) {
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "Esta instituição já está cadastrada. Selecione-a no campo Instituição e salve o vínculo.",
+                instituicao: instituicaoExistente,
+            });
+        }
+
+        instituicaoCriada = await Institution.create({
+            name: nome,
+            city: cidade,
+            ownerUserId: req.usuarioId,
+        });
+
+        const usuarioVinculado = await User.findOneAndUpdate(
+            {
+                _id: usuario._id,
+                role: "professor",
+                institutionId: null,
+                "institutionRequest.status": "pending",
+            },
+            {
+                $set: { institutionId: instituicaoCriada._id },
+                $unset: { institutionRequest: 1 },
+            },
+            { returnDocument: "after", runValidators: true },
+        ).populate("institutionId", "name city");
+
+        if (!usuarioVinculado) {
+            await Institution.findByIdAndDelete(instituicaoCriada._id);
+            instituicaoCriada = null;
+            return res.status(409).json({
+                sucesso: false,
+                mensagem: "A solicitação foi alterada durante a análise. Recarregue os dados antes de continuar.",
+            });
+        }
+
+        return res.status(201).json({
+            sucesso: true,
+            mensagem: "Instituição criada e professora vinculada com sucesso.",
+            instituicao: instituicaoCriada,
+            usuario: usuarioVinculado,
+        });
+    } catch (erro) {
+        if (instituicaoCriada?._id) {
+            await Institution.findByIdAndDelete(instituicaoCriada._id).catch(() => undefined);
+        }
+        console.error("[LUDUS] Erro ao criar instituição e aprovar vínculo:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao criar a instituição e aprovar o vínculo.",
+        });
+    }
+};
+
+module.exports = {
+    criarUsuario,
+    listarUsuarios,
+    deletarUsuario,
+    atualizarUsuario,
+    recusarSolicitacaoInstituicao,
+    criarInstituicaoEVincular,
+};

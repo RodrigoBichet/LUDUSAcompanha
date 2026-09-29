@@ -145,6 +145,30 @@
     color: var(--cor-texto-leve);
 }
 
+.btn-criar-instituicao-vinculo {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #2d9f7d;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #237c62;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-criar-instituicao-vinculo:hover:not(:disabled) {
+    background: #edf9f5;
+}
+
+.btn-criar-instituicao-vinculo:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
 .motivo-recusa {
     margin-top: 0.55rem;
 }

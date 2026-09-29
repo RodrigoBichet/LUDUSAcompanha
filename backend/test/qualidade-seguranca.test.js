@@ -219,6 +219,73 @@ test("administrador vincula solicitação a instituição existente", async () =
     assert.equal(atualizado.institutionRequest, undefined);
 });
 
+test("administrador cria instituição solicitada e aprova vínculo em uma ação", async () => {
+    const { admin, professoraA } = await criarCenarioEscolar();
+    const pendente = await User.create({
+        name: "Professora de nova instituição",
+        email: "nova.instituicao@ludus.local",
+        password: "Senha@123",
+        role: "professor",
+        emailVerifiedAt: new Date(),
+        institutionRequest: { name: "  Escola   Nova  ", city: "  Bagé  " },
+    });
+
+    await request(app)
+        .post(`/api/users/${pendente._id}/institution-request/approve-new`)
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(403);
+
+    const resposta = await request(app)
+        .post(`/api/users/${pendente._id}/institution-request/approve-new`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .expect(201);
+
+    assert.equal(resposta.body.instituicao.name, "Escola Nova");
+    assert.equal(resposta.body.instituicao.city, "Bagé");
+    assert.equal(String(resposta.body.instituicao.ownerUserId), String(admin._id));
+    assert.equal(resposta.body.usuario.institutionId.name, "Escola Nova");
+
+    const atualizado = await User.findById(pendente._id);
+    assert.equal(String(atualizado.institutionId), String(resposta.body.instituicao._id));
+    assert.equal(atualizado.institutionRequest, undefined);
+});
+
+test("aprovação rápida impede instituição duplicada e preserva solicitação", async () => {
+    const { admin } = await criarCenarioEscolar();
+    await Institution.create({ name: "Escola já cadastrada", city: "Pelotas" });
+    const pendente = await User.create({
+        name: "Professora de instituição repetida",
+        email: "instituicao.repetida@ludus.local",
+        password: "Senha@123",
+        role: "professor",
+        institutionRequest: { name: "escola JÁ cadastrada", city: "pelotas" },
+    });
+    const totalAntes = await Institution.countDocuments();
+
+    const resposta = await request(app)
+        .post(`/api/users/${pendente._id}/institution-request/approve-new`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .expect(409);
+
+    assert.match(resposta.body.mensagem, /já está cadastrada/i);
+    assert.equal(await Institution.countDocuments(), totalAntes);
+    const preservado = await User.findById(pendente._id);
+    assert.equal(preservado.institutionId, undefined);
+    assert.equal(preservado.institutionRequest.status, "pending");
+});
+
+test("aprovação rápida recusa usuário sem solicitação pendente", async () => {
+    const { admin, professoraA } = await criarCenarioEscolar();
+    const totalAntes = await Institution.countDocuments();
+
+    await request(app)
+        .post(`/api/users/${professoraA._id}/institution-request/approve-new`)
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .expect(409);
+
+    assert.equal(await Institution.countDocuments(), totalAntes);
+});
+
 test("administrador devolve vínculo e professora corrige a solicitação", async () => {
     const { admin } = await criarCenarioEscolar();
     const professora = await User.create({
@@ -1516,6 +1583,59 @@ test("protege leituras por autenticacao e isola professoras", async () => {
         .set("Authorization", `Bearer ${tokenDe(admin)}`)
         .expect(200);
     assert.equal(respostaAdmin.body.total, 1);
+});
+
+test("atualiza vínculo escolar sem permitir turma externa nem perder acesso ao desvincular", async () => {
+    const {
+        professoraA,
+        instituicaoA,
+        turmaB,
+        alunoA,
+    } = await criarCenarioEscolar();
+    const authorization = `Bearer ${tokenDe(professoraA)}`;
+    const novaTurma = await Group.create({
+        name: "Nova turma A de teste",
+        institutionId: instituicaoA._id,
+        professorId: professoraA._id,
+    });
+
+    const vinculado = await request(app)
+        .put(`/api/students/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .send({ name: alunoA.name, groupId: String(novaTurma._id) })
+        .expect(200);
+
+    assert.equal(vinculado.body.aluno.groupId.name, "Nova turma A de teste");
+    let persistido = await Student.findById(alunoA._id);
+    assert.equal(String(persistido.groupId), String(novaTurma._id));
+    assert.equal(String(persistido.institutionId), String(instituicaoA._id));
+    assert.equal(persistido.enrollmentMode, "school");
+
+    await request(app)
+        .put(`/api/students/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .send({ name: alunoA.name, groupId: String(turmaB._id) })
+        .expect(403);
+
+    persistido = await Student.findById(alunoA._id);
+    assert.equal(String(persistido.groupId), String(novaTurma._id));
+
+    await request(app)
+        .put(`/api/students/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .send({ name: alunoA.name, groupId: null })
+        .expect(200);
+
+    persistido = await Student.findById(alunoA._id);
+    assert.equal(persistido.groupId, null);
+    assert.equal(persistido.institutionId, null);
+    assert.equal(String(persistido.ownerUserId), String(professoraA._id));
+    assert.equal(persistido.enrollmentMode, "individual");
+
+    await request(app)
+        .get(`/api/students/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .expect(200);
 });
 
 test("lista alunos acessiveis com os jogos realmente registrados", async () => {

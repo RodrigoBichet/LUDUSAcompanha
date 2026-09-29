@@ -434,7 +434,7 @@ const buscarAluno = async (req, res) => {
             });
         }
 
-        await aluno.populate("groupId", "name");
+        await aluno.populate("groupId", "name institutionId");
 
         // Busca sessões vinculadas ao ID do aluno
         const sessoes = await Session.find({ studentId: aluno._id })
@@ -472,6 +472,7 @@ const atualizarAluno = async (req, res) => {
             guardianName,
             guardianContact,
         } = req.body;
+        const atualizaVinculoEscolar = Object.hasOwn(req.body, "groupId");
 
         const alunoAtual = await buscarAlunoComAcesso(req.usuarioId, req.params.id);
         if (!alunoAtual) {
@@ -481,10 +482,20 @@ const atualizarAluno = async (req, res) => {
             });
         }
 
-        if (groupId) {
+        let turmaSelecionada = null;
+        if (atualizaVinculoEscolar && groupId) {
             const contexto = await obterContextoEscolar(req.usuarioId);
-            const turma = await Group.findById(groupId).select("institutionId");
-            if (!contexto || !turma || !podeAcessarInstituicao(contexto, turma.institutionId)) {
+            turmaSelecionada = await Group.findById(groupId).select(
+                "institutionId",
+            );
+            if (
+                !contexto ||
+                !turmaSelecionada ||
+                !podeAcessarInstituicao(
+                    contexto,
+                    turmaSelecionada.institutionId,
+                )
+            ) {
                 return res.status(403).json({
                     sucesso: false,
                     mensagem: "Sem permissão para vincular o aluno a esta turma.",
@@ -492,20 +503,34 @@ const atualizarAluno = async (req, res) => {
             }
         }
 
+        const atualizacoes = {
+            name,
+            birthDate,
+            notes,
+            supportLevel,
+            otherConditions,
+            guardianName,
+            guardianContact,
+        };
+
+        if (atualizaVinculoEscolar) {
+            atualizacoes.groupId = groupId || null;
+            atualizacoes.institutionId = turmaSelecionada?.institutionId || null;
+            atualizacoes.enrollmentMode = turmaSelecionada
+                ? "school"
+                : "individual";
+            if (!turmaSelecionada && !alunoAtual.ownerUserId) {
+                // Evita que um aluno escolar antigo fique sem responsável e
+                // desapareça do acesso após ser desvinculado da turma.
+                atualizacoes.ownerUserId = req.usuarioId;
+            }
+        }
+
         const aluno = await Student.findByIdAndUpdate(
             req.params.id,
-            {
-                name,
-                birthDate,
-                groupId,
-                notes,
-                supportLevel,
-                otherConditions,
-                guardianName,
-                guardianContact,
-            },
+            atualizacoes,
             { returnDocument: "after", runValidators: true },
-        );
+        ).populate("groupId", "name institutionId");
 
         console.log(`[LUDUS] Aluno atualizado: ${aluno.name}`);
 

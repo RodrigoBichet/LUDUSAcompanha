@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
@@ -19,6 +20,7 @@ import {
     criarUsuario,
     atualizarUsuario,
     recusarSolicitacaoInstituicao,
+    criarInstituicaoEVincularProfessor,
 } from "../services/api";
 import "./GerenciarUsuarios.css";
 
@@ -48,6 +50,7 @@ export default function GerenciarUsuarios() {
     const [erroForm, setErroForm] = useState(null);
     const [motivoRecusa, setMotivoRecusa] = useState("");
     const [recusando, setRecusando] = useState(false);
+    const [criandoInstituicao, setCriandoInstituicao] = useState(false);
     const [editando, setEditando] = useState(null); // usuário sendo editado ou null
     const remocao = useConfirmacaoRemocao();
     const totalPendentes = usuarios.filter(ehVinculoPendente).length;
@@ -127,6 +130,25 @@ export default function GerenciarUsuarios() {
         }
     };
 
+    const criarEAprovarVinculo = async () => {
+        if (!editando || !ehVinculoPendente(editando) || instituicaoId) return;
+
+        try {
+            setCriandoInstituicao(true);
+            setErroForm(null);
+            await criarInstituicaoEVincularProfessor(editando._id);
+            cancelarForm();
+            await carregarDados();
+        } catch (erroCriacao) {
+            setErroForm(
+                erroCriacao.response?.data?.mensagem ||
+                "Não foi possível criar a instituição e aprovar o vínculo.",
+            );
+        } finally {
+            setCriandoInstituicao(false);
+        }
+    };
+
     // -------------------------------------------------------------------------
     // Cancela e fecha o formulário
     // -------------------------------------------------------------------------
@@ -197,7 +219,7 @@ export default function GerenciarUsuarios() {
     // Label amigável do papel do usuário
     // -------------------------------------------------------------------------
     const labelRole = (role) =>
-        role === "admin" ? "⚙️ Admin" : "👨‍🏫 Professor";
+        role === "admin" ? "Admin" : "Professor";
 
     return (
         <div>
@@ -297,7 +319,23 @@ export default function GerenciarUsuarios() {
                                         : "Vínculo solicitado no cadastro"}
                                 </strong>
                                 <span>{editando.institutionRequest.name}{editando.institutionRequest.city ? ` • ${editando.institutionRequest.city}` : ""}</span>
-                                <small>Selecione acima a instituição correspondente. Se ela ainda não existir, cadastre-a primeiro em Admin → Instituições.</small>
+                                <small>
+                                    Se a instituição já existir, selecione-a acima. Caso contrário,
+                                    revise o nome e a cidade informados e crie o cadastro por aqui.
+                                </small>
+                                {!ehVinculoRecusado(editando) && !instituicaoId && (
+                                    <button
+                                        type="button"
+                                        className="btn-criar-instituicao-vinculo"
+                                        onClick={criarEAprovarVinculo}
+                                        disabled={salvando || recusando || criandoInstituicao}
+                                    >
+                                        <Icone nome="instituicao" />
+                                        {criandoInstituicao
+                                            ? "Criando e vinculando..."
+                                            : "Criar instituição e aprovar vínculo"}
+                                    </button>
+                                )}
                                 {!ehVinculoRecusado(editando) && (
                                     <label className="campo-grupo motivo-recusa">
                                         <span className="campo-label">Motivo para pedir correção</span>
@@ -314,13 +352,13 @@ export default function GerenciarUsuarios() {
                             </div>
                         )}
 
-                        {erroForm && <p className="form-erro">⚠️ {erroForm}</p>}
+                        {erroForm && <p className="form-erro"><Icone nome="aviso" /> {erroForm}</p>}
 
                         <div className="form-acoes">
                             <button
                                 className="btn-primario"
                                 onClick={salvarUsuario}
-                                disabled={salvando}
+                                disabled={salvando || recusando || criandoInstituicao}
                             >
                                 {salvando
                                     ? "Salvando..."
@@ -332,7 +370,7 @@ export default function GerenciarUsuarios() {
                                 <button
                                     className="btn-secundario btn-recusar-vinculo"
                                     onClick={recusarVinculo}
-                                    disabled={salvando || recusando}
+                                    disabled={salvando || recusando || criandoInstituicao}
                                 >
                                     {recusando ? "Devolvendo..." : "Pedir correção"}
                                 </button>
@@ -373,7 +411,7 @@ export default function GerenciarUsuarios() {
                 {!carregando && !erro && totalPendentes > 0 && (
                     <section className="card resumo-vinculos-pendentes">
                         <div>
-                            <span className="resumo-vinculos-icone" aria-hidden="true">🏫</span>
+                            <Icone nome="instituicao" className="resumo-vinculos-icone" />
                             <div>
                                 <strong>
                                     {totalPendentes === 1
@@ -405,7 +443,7 @@ export default function GerenciarUsuarios() {
                 {/* Erro de carregamento */}
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -415,7 +453,7 @@ export default function GerenciarUsuarios() {
                     <>
                         {usuariosExibidos.length === 0 ? (
                             <div className="card estado-vazio">
-                                <span className="estado-vazio-icone">👥</span>
+                                <Icone nome="pessoas" tamanho={34} className="estado-vazio-icone" />
                                 <p>
                                     {mostrarSomentePendentes
                                         ? "Nenhum vínculo institucional está pendente."
@@ -446,7 +484,7 @@ export default function GerenciarUsuarios() {
                                                     </span>
                                                     {u.institutionId && (
                                                         <span className="tag-instituicao">
-                                                            🏫{" "}
+                                                            <Icone nome="instituicao" tamanho={15} />{" "}
                                                             {
                                                                 u.institutionId
                                                                     .name
@@ -467,7 +505,7 @@ export default function GerenciarUsuarios() {
                                                 className="btn-acao editar"
                                                 onClick={() => abrirForm(u)}
                                             >
-                                                ✏️ Editar
+                                                <Icone nome="editar" /> Editar
                                             </button>
                                             {u._id === usuario?.id ? (
                                                 <span className="tag-role">Conta atual</span>
@@ -477,7 +515,7 @@ export default function GerenciarUsuarios() {
                                                     onClick={(evento) => abrirRemocaoUsuario(u, evento.currentTarget)}
                                                     disabled={remocao.ocupado}
                                                 >
-                                                    🗑️ Remover
+                                                    <Icone nome="excluir" /> Remover
                                                 </button>
                                             )}
                                         </div>

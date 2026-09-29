@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ConfirmacaoHistorico from "../components/ConfirmacaoHistorico";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import {
     criarColeta,
     listarColetas,
@@ -9,6 +11,7 @@ import {
     resolverParticipanteColeta,
     importarSessoesColeta,
     listarTurmas,
+    listarInstituicoes,
     listarJogos,
     revogarColeta,
     substituirCodigoColeta,
@@ -60,8 +63,10 @@ const listarImportacoesConfirmadas = (caixa) =>
         .filter((item) => item.pendentes.length > 0);
 
 export default function Coletas() {
+    const navegar = useNavigate();
     const [coletas, setColetas] = useState([]);
     const [turmas, setTurmas] = useState([]);
+    const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [salvando, setSalvando] = useState(false);
     const [erro, setErro] = useState("");
@@ -111,14 +116,16 @@ export default function Coletas() {
         try {
             setCarregando(true);
             setErro("");
-            const [resColetas, resTurmas, resJogos] = await Promise.all([
+            const [resColetas, resTurmas, resJogos, resInstituicoes] = await Promise.all([
                 listarColetas(),
                 listarTurmas(),
                 listarJogos(),
+                listarInstituicoes(),
             ]);
             setColetas(resColetas.data.coletas || []);
             setTurmas(resTurmas.data.turmas || []);
             setJogos(resJogos.data.jogos || []);
+            setInstituicoes(resInstituicoes.data.instituicoes || []);
         } catch (erroRequisicao) {
             setErro(
                 erroRequisicao.response?.data?.mensagem ||
@@ -507,7 +514,7 @@ export default function Coletas() {
                             turma e pelo período escolhido.
                         </p>
                     </div>
-                    <span aria-hidden="true">🔐</span>
+                    <Icone nome="cadeado" />
                 </section>
 
                 <form className="card formulario-coleta" onSubmit={handleCriar}>
@@ -628,10 +635,34 @@ export default function Coletas() {
                     </fieldset>
 
                     {turmas.length === 0 && !carregando && (
-                        <p className="mensagem-coleta aviso">
-                            Cadastre uma instituição e uma turma antes de criar
-                            a coleta.
-                        </p>
+                        <div className="mensagem-coleta aviso aviso-sem-turmas">
+                            <div>
+                                <strong>
+                                    {instituicoes.length > 0
+                                        ? "Sua instituição ainda não possui turmas."
+                                        : "Nenhuma instituição está vinculada à sua conta."}
+                                </strong>
+                                <span>
+                                    {instituicoes.length > 0
+                                        ? "Cadastre a primeira turma para gerar um código de coleta."
+                                        : "Solicite o vínculo a uma pessoa administradora antes de criar uma coleta."}
+                                </span>
+                            </div>
+                            {instituicoes.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="btn-cadastrar-primeira-turma"
+                                    onClick={() => {
+                                        const destino = instituicoes.length === 1
+                                            ? `/turmas?institutionId=${encodeURIComponent(instituicoes[0]._id)}&nova=1`
+                                            : "/turmas";
+                                        navegar(destino);
+                                    }}
+                                >
+                                    Cadastrar primeira turma
+                                </button>
+                            )}
+                        </div>
                     )}
                     {erro && <p className="mensagem-coleta erro">{erro}</p>}
                     {sucesso && (

@@ -203,6 +203,38 @@
     color: #785400;
 }
 
+.aviso-sem-turmas {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.aviso-sem-turmas > div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.aviso-sem-turmas span {
+    font-size: 0.88rem;
+    font-weight: 400;
+}
+
+.btn-cadastrar-primeira-turma {
+    flex: 0 0 auto;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #9a6b00;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #785400;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-cadastrar-primeira-turma:hover {
+    background: #fffdf5;
+}
+
 .codigo-coleta {
     display: grid;
     justify-items: center;
@@ -630,6 +662,15 @@
 
     .formulario-coleta > * {
         grid-column: 1;
+    }
+
+    .aviso-sem-turmas {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .btn-cadastrar-primeira-turma {
+        width: 100%;
     }
 
     .coleta-card-principal,

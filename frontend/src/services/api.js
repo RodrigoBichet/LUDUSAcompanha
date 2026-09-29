@@ -157,6 +157,8 @@ export const deletarUsuario = (id) => api.delete(`/users/${id}`);
 export const atualizarUsuario = (id, dados) => api.put(`/users/${id}`, dados);
 export const recusarSolicitacaoInstituicao = (id, reason) =>
     api.patch(`/users/${id}/institution-request/reject`, { reason });
+export const criarInstituicaoEVincularProfessor = (id) =>
+    api.post(`/users/${id}/institution-request/approve-new`);
 export const atualizarPerfil = (dados) => api.put("/auth/perfil", dados);
 export const atualizarSolicitacaoInstituicao = (dados) =>
     api.put("/auth/institution-request", dados);

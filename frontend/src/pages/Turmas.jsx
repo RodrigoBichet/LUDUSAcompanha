@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
@@ -28,16 +29,21 @@ export default function Turmas() {
 
     const institutionIdSelecionada = searchParams.get("institutionId");
     const gameIdSelecionado = searchParams.get("gameId");
+    const abrirNovaTurma = searchParams.get("nova") === "1";
 
     const [turmas, setTurmas] = useState([]);
     const [instituicoes, setInstituicoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
-    const [mostrarForm, setMostrarForm] = useState(false);
+    const [mostrarForm, setMostrarForm] = useState(
+        Boolean(institutionIdSelecionada && abrirNovaTurma),
+    );
 
     // Campos do formulário
     const [nomeTurma, setNomeTurma] = useState("");
-    const [instituicaoId, setInstituicaoId] = useState("");
+    const [instituicaoId, setInstituicaoId] = useState(
+        institutionIdSelecionada || "",
+    );
     const [salvando, setSalvando] = useState(false);
     const [erroForm, setErroForm] = useState("");
     const [editando, setEditando] = useState(null);
@@ -91,6 +97,37 @@ export default function Turmas() {
 
         iniciarCarregamento();
     }, [carregarDados]);
+
+    useEffect(() => {
+        if (carregando) return;
+
+        if (!institutionIdSelecionada && instituicoes.length === 1) {
+            const params = new URLSearchParams(searchParams);
+            params.set("institutionId", instituicoes[0]._id);
+            navegar(`/turmas?${params.toString()}`, { replace: true });
+            return;
+        }
+
+        if (institutionIdSelecionada && abrirNovaTurma) {
+            const params = new URLSearchParams(searchParams);
+            params.delete("nova");
+            navegar(`/turmas?${params.toString()}`, { replace: true });
+        }
+    }, [
+        abrirNovaTurma,
+        carregando,
+        institutionIdSelecionada,
+        instituicoes,
+        navegar,
+        searchParams,
+    ]);
+
+    const montarUrlInstituicao = (institutionId) => {
+        const params = new URLSearchParams();
+        params.set("institutionId", institutionId);
+        if (gameIdSelecionado) params.set("gameId", gameIdSelecionado);
+        return `/turmas?${params.toString()}`;
+    };
 
     const abrirEdicao = (turma) => {
         setEditando(turma);
@@ -201,13 +238,11 @@ export default function Turmas() {
                                             : "card instituicao-escolar-card"
                                     }
                                     onClick={() =>
-                                        navegar(
-                                            `/turmas?institutionId=${encodeURIComponent(instituicao._id)}`,
-                                        )
+                                        navegar(montarUrlInstituicao(instituicao._id))
                                     }
                                 >
                                     <span className="instituicao-escolar-icone">
-                                        🏫
+                                        <Icone nome="instituicao" />
                                     </span>
                                     <span>
                                         <strong>{instituicao.name}</strong>
@@ -236,7 +271,7 @@ export default function Turmas() {
 
                 {!institutionIdSelecionada ? (
                     <div className="card estado-vazio turma-sem-instituicao">
-                        <span className="estado-vazio-icone">🏫</span>
+                        <Icone nome="instituicao" tamanho={34} className="estado-vazio-icone" />
                         <p>
                             Selecione uma instituição para visualizar ou
                             cadastrar turmas.
@@ -343,7 +378,7 @@ export default function Turmas() {
                         {/* Erro */}
                         {erro && (
                             <div className="card erro-card">
-                                <span>⚠️</span>
+                                <Icone nome="aviso" titulo="Atenção" />
                                 <p>{erro}</p>
                             </div>
                         )}
@@ -354,7 +389,7 @@ export default function Turmas() {
                             (turmasFiltradas.length === 0 ? (
                                 <div className="card estado-vazio">
                                     <span className="estado-vazio-icone">
-                                        📚
+                                        <Icone nome="instituicao" />
                                     </span>
                                     <p>Nenhuma turma cadastrada ainda.</p>
                                     <p className="texto-leve">
@@ -379,7 +414,7 @@ export default function Turmas() {
                                                 }
                                             >
                                                 <span className="turma-icone">
-                                                    📚
+                                                    <Icone nome="instituicao" />
                                                 </span>
                                                 <div>
                                                     <h3>{turma.name}</h3>
@@ -409,14 +444,14 @@ export default function Turmas() {
                                                         abrirEdicao(turma)
                                                     }
                                                 >
-                                                    ✏️
+                                                    <Icone nome="editar" />
                                                 </button>
                                                 <button
                                                     className="btn-deletar"
                                                     onClick={(evento) => abrirRemocaoTurma(turma, evento.currentTarget)}
                                                     disabled={remocao.ocupado}
                                                 >
-                                                    🗑️
+                                                    <Icone nome="excluir" />
                                                 </button>
                                             </div>
                                         </div>
