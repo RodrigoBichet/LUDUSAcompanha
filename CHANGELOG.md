@@ -7,6 +7,60 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Preparação de produção
+
+- inicialização do backend valida MongoDB, JWT e porta antes de abrir o servidor;
+- produção exige frontend público em HTTPS, segredo JWT forte e links locais de
+  autenticação desativados;
+- conexão com o banco passa a propagar falhas ao ponto de entrada, permitindo
+  encerramento controlado e testes sem chamadas internas a `process.exit`;
+- exemplo de ambiente diferencia explicitamente desenvolvimento local e
+  configuração segura de produção;
+- testes isolados validam configurações aceitas e recusadas sem acessar
+  o MongoDB Atlas.
+- serviço de email usa timeout, mensagens controladas e validação da
+  configuração do Resend sem incluir a chave no conteúdo enviado;
+- produção exige chave do Resend e remetente válido antes de iniciar, enquanto
+  o desenvolvimento preserva os links locais de teste;
+- CORS deixa de aceitar qualquer site e passa a usar frontend, origens WebGL e
+  extensões explicitamente configurados;
+- respostas removem a identificação do Express e recebem cabeçalhos básicos de
+  proteção, preservando o carregamento externo das imagens dos mapas.
+- a primeira versão Web fica fechada sem captura visual pela extensão;
+  screenshots do SDK permanecem com a limitação documentada do filesystem
+  efêmero até a adoção de storage persistente.
+
+### Interface e linguagem
+
+- a interface passa a usar Roboto de forma consistente em títulos, textos,
+  formulários e relatórios;
+- emojis usados como comandos e indicadores foram substituídos por ícones
+  vetoriais consistentes, com significado visual e textual preservado;
+- textos do acompanhamento usam “atividade” e orientações mais diretas para
+  diferenciar ações do professor, dados coletados e recursos futuros.
+- navegação compartilhada adapta-se a telas menores e recebe atalho para o
+  conteúdo, foco visível e respeito à preferência por movimento reduzido.
+- a administração pode criar a instituição informada por uma professora e
+  aprovar seu vínculo em uma única ação, com proteção contra duplicidade.
+- a tela de coletas diferencia ausência de instituição e ausência de turma,
+  oferecendo acesso direto ao cadastro da primeira turma; contas com uma única
+  instituição entram automaticamente no contexto correto.
+
+### Acompanhamento pós-coleta
+
+- atividades registradas passam a destacar o nome amigável do jogo e um
+  contexto secundário, facilitando a navegação no perfil do aluno;
+- resumo apresenta horários de início e término por jogo e, ao filtrar um
+  jogo, compara até oito atividades recentes por duração e cliques;
+- detalhes observacionais apresentam métricas descritivas de trajetória,
+  gestos de arraste, linha do tempo e mapa com arrastes roxos tracejados;
+- edição do aluno permite escolher instituição e turma acessíveis, mantendo os
+  vínculos sincronizados e preservando o acesso ao remover o vínculo escolar;
+- recurso ainda não implementado de captura visual é apresentado como
+  indisponível, sem sugerir uma ação que o sistema ainda não executa;
+- testes com banco temporário cobrem vínculo, troca, isolamento entre
+  professoras e desvínculo escolar sem acessar dados reais.
+
 ### Descoberta assistida de jogos
 
 - a professora pode criar uma coleta automática sem cadastrar jogos ou informar

@@ -437,11 +437,32 @@ Plan: Free
 Variaveis configuradas no Render:
 
 ```env
+NODE_ENV=production
 MONGODB_URI=<connection-string-do-Atlas>
 JWT_SECRET=<segredo-gerado-ou-definido-em-ambiente-seguro>
+FRONTEND_URL=https://ludus-acompanha.netlify.app
+AUTH_EXPOSE_DEV_LINKS=false
+RESEND_API_KEY=<chave-criada-no-provedor>
+EMAIL_FROM=LUDUS Acompanha <nao-responda@dominio-validado.org>
+CORS_ALLOW_BROWSER_EXTENSIONS=true
+CORS_ORIGINS=
 ```
 
 Nao definir `PORT` manualmente: o Render fornece a porta pelo ambiente. O health check esta disponivel em `GET /` e deve retornar `status: "ok"`.
+
+O processo valida essas variáveis antes de conectar ao banco. O segredo JWT de
+produção deve ser aleatório e possuir pelo menos 32 caracteres. Alterá-lo
+invalida as sessões autenticadas existentes, mas não remove usuários nem dados
+pedagógicos. Nunca usar `npm run dev:lote:temp` como comando de inicialização no
+Render: ele cria um banco descartável exclusivamente para testes locais.
+
+`RESEND_API_KEY` e `EMAIL_FROM` são obrigatórios em produção porque cadastro,
+confirmação e recuperação dependem da entrega de email. O domínio usado em
+`EMAIL_FROM` deve estar validado no provedor. `CORS_ORIGINS` recebe, separados
+por vírgula, apenas endereços WebGL adicionais que realmente precisem acessar a
+API diretamente; o domínio definido em `FRONTEND_URL` já é autorizado
+automaticamente. A autorização de extensões não equivale a liberar sites Web:
+as rotas continuam protegidas por autenticação ou credencial temporária.
 
 ### Frontend no Netlify
 
@@ -467,10 +488,14 @@ O arquivo `frontend/public/_redirects` contem `/* /index.html 200`, necessario p
 
 ### Seguranca, CORS e limitacoes atuais
 
-- o CORS do backend esta aberto temporariamente com `app.use(cors())`; depois de estabilizar o ambiente, restringir as origens ao dominio do Netlify e ao desenvolvimento local;
+- o CORS aceita o domínio em `FRONTEND_URL`, a lista explícita de
+  `CORS_ORIGINS`, chamadas sem origem feitas diretamente à API e extensões de
+  navegador quando `CORS_ALLOW_BROWSER_EXTENSIONS=true`;
 - valores de `MONGODB_URI`, `JWT_SECRET`, senhas e tokens devem existir apenas nos provedores e nos arquivos `.env` locais ignorados pelo Git;
 - como o plano Free do Render pode hibernar, o primeiro acesso apos inatividade pode demorar;
 - o filesystem do Render e efemero. Portanto, screenshots em `backend/uploads/screenshots/` podem desaparecer depois de reinicios ou redeploys. Antes de uso continuado com dados reais, migrar imagens para storage persistente, como Cloudinary, S3 ou R2;
+- a primeira versão publicada da extensão mantém a captura visual indisponível e coleta apenas telemetria observacional. Por isso, o deploy da captura Web não depende de um storage de imagens;
+- screenshots originadas pelo SDK Unity continuam sujeitas à limitação do filesystem efêmero até a adoção futura de storage persistente;
 - o jogo Unity permanece configurado inicialmente para `localhost`; apontar o SDK e os controladores do jogo para a API publicada exige uma etapa propria e novo build WebGL.
 
 ---
