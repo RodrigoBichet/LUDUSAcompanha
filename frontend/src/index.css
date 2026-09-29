@@ -2,7 +2,7 @@
    index.css — LUDUS Acompanha Dashboard
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap");
 
 :root {
     /* Cores principais */
@@ -19,8 +19,8 @@
     --cor-sucesso: #4ecba0;
 
     /* Tipografia */
-    --fonte-titulo: "DM Serif Display", serif;
-    --fonte-corpo: "Nunito", sans-serif;
+    --fonte-titulo: "Roboto", Arial, sans-serif;
+    --fonte-corpo: "Roboto", Arial, sans-serif;
 
     /* Espaçamentos */
     --sidebar-largura: 240px;
@@ -42,6 +42,44 @@ body {
     min-height: 100vh;
 }
 
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.atalho-conteudo {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 1000;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    background: var(--cor-card);
+    color: var(--cor-texto);
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: var(--sombra);
+    transform: translateY(-160%);
+    transition: transform 0.15s;
+}
+
+.atalho-conteudo:focus {
+    transform: translateY(0);
+}
+
+.icone-vetor {
+    display: inline-block;
+    flex: 0 0 auto;
+    vertical-align: middle;
+}
+
 /* Layout principal */
 .app-layout {
     display: flex;
@@ -51,6 +89,7 @@ body {
 .conteudo-principal {
     margin-left: var(--sidebar-largura);
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -323,4 +362,45 @@ h3 {
 .campo-input:focus {
     outline: none;
     border-color: var(--cor-primaria);
+}
+
+@media (max-width: 760px) {
+    :root {
+        --header-altura: auto;
+    }
+
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .conteudo-principal {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .pagina-conteudo {
+        padding: 1rem;
+    }
+
+    .header {
+        min-height: 64px;
+        padding: 0.85rem 1rem;
+    }
+
+    .secao-titulo {
+        align-items: flex-start;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

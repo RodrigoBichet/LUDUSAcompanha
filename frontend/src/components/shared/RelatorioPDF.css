@@ -4,7 +4,7 @@
    ============================================================================= */
 
 .relatorio-pdf {
-    font-family: "Nunito", Arial, sans-serif;
+    font-family: "Roboto", Arial, sans-serif;
     font-size: 12px;
     color: #1a1a1a;
     background: white;
@@ -294,5 +294,5 @@
 .pdf-logo-titulo,
 .pdf-titulo-relatorio,
 .pdf-secao-titulo {
-    font-family: "Nunito", Arial, sans-serif;
+    font-family: "Roboto", Arial, sans-serif;
 }

@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import { useAuth } from "../contexts/AuthContext";
 import { atualizarPerfil } from "../services/api";
 import "./Perfil.css";
@@ -127,8 +128,8 @@ export default function Perfil() {
                         <p className="texto-leve">{usuario?.email}</p>
                         <p className="perfil-role">
                             {usuario?.role === "admin"
-                                ? "⚙️ Administrador"
-                                : "👨‍🏫 Professor"}
+                                ? "Administrador"
+                                : "Professor"}
                         </p>
                     </div>
                 </div>
@@ -159,9 +160,9 @@ export default function Perfil() {
                             </div>
                     </div>
 
-                    {erroDados && <p className="form-erro">⚠️ {erroDados}</p>}
+                    {erroDados && <p className="form-erro"><Icone nome="aviso" /> {erroDados}</p>}
                     {sucessoDados && (
-                        <p className="form-sucesso">✅ {sucessoDados}</p>
+                        <p className="form-sucesso"><Icone nome="sucesso" /> {sucessoDados}</p>
                     )}
 
                     <div className="form-acoes">
@@ -216,9 +217,9 @@ export default function Perfil() {
                         </div>
                     </div>
 
-                    {erroSenha && <p className="form-erro">⚠️ {erroSenha}</p>}
+                    {erroSenha && <p className="form-erro"><Icone nome="aviso" /> {erroSenha}</p>}
                     {sucessoSenha && (
-                        <p className="form-sucesso">✅ {sucessoSenha}</p>
+                        <p className="form-sucesso"><Icone nome="sucesso" /> {sucessoSenha}</p>
                     )}
 
                     <div className="form-acoes">

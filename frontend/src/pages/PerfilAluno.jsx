@@ -7,10 +7,11 @@
 // Dados cadastrais, anotações do professor e monitoramento.
 // =============================================================================
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemoverAnotacao from "../components/ConfirmacaoRemoverAnotacao";
 import {
     LineChart,
@@ -30,7 +31,6 @@ import {
     resumoAluno,
     historicoAluno,
     alertasAluno,
-    solicitarCaptura,
     previsualizarImportacaoSessao,
     confirmarImportacaoSessao,
     previsualizarImportacaoLote,
@@ -38,6 +38,8 @@ import {
     removerSessaoImportada,
     criarJogoDetectado,
     listarJogos,
+    listarInstituicoes,
+    listarTurmas,
 } from "../services/api";
 import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./PerfilAluno.css";
@@ -83,6 +85,8 @@ export default function PerfilAluno() {
     const [erro, setErro] = useState(null);
     const [jogosDoAluno, setJogosDoAluno] = useState([]);
     const [nomesJogos, setNomesJogos] = useState(new Map());
+    const [instituicoes, setInstituicoes] = useState([]);
+    const [turmas, setTurmas] = useState([]);
 
     // Edição de dados
     const [editando, setEditando] = useState(false);
@@ -99,11 +103,6 @@ export default function PerfilAluno() {
     const [erroRemocaoAnotacao, setErroRemocaoAnotacao] = useState("");
     const remocaoAnotacaoEmCurso = useRef(false);
     const tituloAnotacoes = useRef(null);
-
-    // Captura de screenshots
-    const [solicitandoCaptura, setSolicitandoCaptura] = useState(false);
-
-    const [modalCaptura, setModalCaptura] = useState(null);
 
     // Importação de telemetria: o arquivo permanece somente no estado do navegador
     // até a confirmação explícita da pessoa usuária.
@@ -149,15 +148,19 @@ export default function PerfilAluno() {
     const carregarDados = useCallback(async () => {
         try {
             setCarregando(true);
-            const [resAluno, resJogos] = await Promise.all([
+            const [resAluno, resJogos, resInstituicoes, resTurmas] = await Promise.all([
                 buscarAluno(id),
                 listarJogos().catch(() => null),
+                listarInstituicoes().catch(() => null),
+                listarTurmas().catch(() => null),
             ]);
             const aluno = resAluno.data.aluno;
             setAluno(aluno);
             setNomesJogos(
                 criarMapaNomesJogos(resJogos?.data?.jogos || []),
             );
+            setInstituicoes(resInstituicoes?.data?.instituicoes || []);
+            setTurmas(resTurmas?.data?.turmas || []);
 
             const jogosAgrupados = new Map();
             for (const sessao of resAluno.data.sessoes || []) {
@@ -190,6 +193,13 @@ export default function PerfilAluno() {
                 otherConditions: aluno.otherConditions || "",
                 guardianName: aluno.guardianName || "",
                 guardianContact: aluno.guardianContact || "",
+                institutionId:
+                    aluno.groupId?.institutionId?._id ||
+                    aluno.groupId?.institutionId ||
+                    aluno.institutionId?._id ||
+                    aluno.institutionId ||
+                    "",
+                groupId: aluno.groupId?._id || aluno.groupId || "",
             });
 
             // Busca dados de monitoramento pelo ID do aluno
@@ -251,6 +261,66 @@ export default function PerfilAluno() {
         return `${Math.floor(s / 60)}m ${s % 60}s`;
     };
 
+    const formatarHora = (iso) =>
+        new Date(iso).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        });
+
+    const obterFimAtividade = (sessao) => {
+        if (sessao.endedAt) return sessao.endedAt;
+        return new Date(
+            new Date(sessao.startedAt).getTime() + (sessao.durationMs || 0),
+        ).toISOString();
+    };
+
+    const horariosRecentesPorJogo = useMemo(() => {
+        const recentes = new Map();
+        for (const sessao of sessoes) {
+            if (!sessao?.gameId || recentes.has(sessao.gameId)) continue;
+            recentes.set(sessao.gameId, sessao);
+        }
+        return [...recentes.values()];
+    }, [sessoes]);
+
+    const comparacaoAtividades = useMemo(
+        () =>
+            sessoes
+                .slice(0, 8)
+                .reverse()
+                .map((sessao, indice) => ({
+                    atividade: indice + 1,
+                    horario: formatarHora(sessao.startedAt),
+                    duracao: Math.max(
+                        0,
+                        Math.round((sessao.durationMs || 0) / 1000),
+                    ),
+                    cliques:
+                        sessao.metrics?.totalClicks ??
+                        sessao.clicks?.length ??
+                        0,
+                })),
+        [sessoes],
+    );
+    const turmasDaInstituicao = useMemo(
+        () =>
+            turmas.filter((turma) => {
+                const institutionId =
+                    turma.institutionId?._id || turma.institutionId;
+                return institutionId === formAluno.institutionId;
+            }),
+        [formAluno.institutionId, turmas],
+    );
+    const instituicaoAtual = instituicoes.find(
+        (instituicao) =>
+            instituicao._id ===
+            (aluno?.groupId?.institutionId?._id ||
+                aluno?.groupId?.institutionId ||
+                aluno?.institutionId?._id ||
+                aluno?.institutionId),
+    );
+
     const solicitarExclusaoSessao = (sessao) => {
         setSessaoParaExcluir(sessao);
         setErroExclusaoSessao("");
@@ -271,11 +341,6 @@ export default function PerfilAluno() {
             await removerSessaoImportada(sessaoParaExcluir.sessionId);
             setSessaoParaExcluir(null);
             await carregarDados();
-            setModalCaptura({
-                titulo: "Sessão removida",
-                mensagem:
-                    "A sessão importada por JSON foi removida do acompanhamento.",
-            });
         } catch (erro) {
             setErroExclusaoSessao(
                 erro.response?.data?.mensagem ||
@@ -292,24 +357,32 @@ export default function PerfilAluno() {
         if (taxa >= 75)
             return {
                 cor: "#4ECBA0",
-                icone: "🟢",
                 label: "Indicadores positivos",
             };
         if (taxa >= 50)
-            return { cor: "#F6AD55", icone: "🟡", label: "Em desenvolvimento" };
-        return { cor: "#FC8181", icone: "🔴", label: "Sugere atenção" };
+            return { cor: "#F6AD55", label: "Em desenvolvimento" };
+        return { cor: "#FC8181", label: "Sugere atenção" };
     };
 
     const handleSalvarDados = async (e) => {
         e.preventDefault();
+        if (formAluno.institutionId && !formAluno.groupId) {
+            setErroEdicaoAluno(
+                "Selecione uma turma para concluir o vínculo com a instituição.",
+            );
+            return;
+        }
         try {
             setSalvando(true);
             setErroEdicaoAluno("");
             await atualizarAluno(id, formAluno);
             setEditando(false);
             carregarDados();
-        } catch {
-            setErroEdicaoAluno("Não foi possível salvar os dados. Tente novamente.");
+        } catch (erro) {
+            setErroEdicaoAluno(
+                erro.response?.data?.mensagem ||
+                    "Não foi possível salvar os dados. Tente novamente.",
+            );
         } finally {
             setSalvando(false);
         }
@@ -351,46 +424,6 @@ export default function PerfilAluno() {
         } finally {
             remocaoAnotacaoEmCurso.current = false;
             setRemovendoAnotacao(false);
-        }
-    };
-
-    const handleSolicitarCaptura = async () => {
-        if (!aluno?._id) return;
-
-        if (
-            aluno.capturaSolicitada &&
-            aluno.capturaSolicitadaOrigem === "unity"
-        ) {
-            setModalCaptura({
-                titulo: "Captura visual já ativada no jogo",
-                mensagem:
-                    "A captura visual já foi ativada no jogo. Aguarde a próxima sessão ser registrada ou desative a opção no jogo.",
-            });
-
-            return;
-        }
-
-        const novoEstado = !aluno.capturaSolicitada;
-
-        try {
-            setSolicitandoCaptura(true);
-
-            const resposta = await solicitarCaptura(aluno._id, novoEstado);
-
-            setAluno((alunoAtual) => ({
-                ...alunoAtual,
-                capturaSolicitada: resposta.data.capturaSolicitada,
-                capturaSolicitadaOrigem: resposta.data.capturaSolicitadaOrigem,
-            }));
-        } catch (erro) {
-            setModalCaptura({
-                titulo: "Não foi possível salvar",
-                mensagem:
-                    erro.response?.data?.mensagem ||
-                    "Não foi possível atualizar a solicitação de captura visual.",
-            });
-        } finally {
-            setSolicitandoCaptura(false);
         }
     };
 
@@ -1003,23 +1036,6 @@ export default function PerfilAluno() {
         navegar(`/aluno/${id}${query ? `?${query}` : ""}`);
     };
 
-    const capturaAtivaPelaUnity =
-        aluno?.capturaSolicitada && aluno?.capturaSolicitadaOrigem === "unity";
-
-    const textoCaptura = capturaAtivaPelaUnity
-        ? "Solicitação ativada pelo jogo. Se a próxima sessão for compatível, as capturas visuais estarão disponíveis no mapa de interações."
-        : aluno?.capturaSolicitada
-          ? "Solicitação ativada nesta tela. Ela será atendida somente por jogos compatíveis com capturas visuais."
-          : "Recurso opcional para jogos compatíveis com capturas visuais.";
-
-    const textoBotaoCaptura = solicitandoCaptura
-        ? "Salvando..."
-        : capturaAtivaPelaUnity
-          ? "Ativado no jogo"
-          : aluno?.capturaSolicitada
-            ? "Cancelar solicitação"
-            : "Solicitar captura";
-
     const desempenho = temDadosDesempenho ? indicadorDesempenho() : null;
 
     const traduzirCategoria = (cat) => {
@@ -1044,7 +1060,7 @@ export default function PerfilAluno() {
         return payload.category || null;
     };
 
-    const extrairTituloSessao = (sessao) => {
+    const extrairContextoSessao = (sessao) => {
         const categoria = extrairCategoria(sessao);
         if (categoria) return traduzirCategoria(categoria);
 
@@ -1074,12 +1090,12 @@ export default function PerfilAluno() {
         }
 
         if (sessao.captureMode === "observational") {
-            return "Sessão observacional";
+            return "Observação pelo navegador";
         }
         if (sessao.captureMode === "sdk") {
-            return "Sessão instrumentada";
+            return "Dados enviados pelo jogo";
         }
-        return "Sessão registrada";
+        return "Atividade registrada";
     };
 
     const montarUrlSessao = (sessionId) => {
@@ -1148,7 +1164,7 @@ export default function PerfilAluno() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -1201,7 +1217,7 @@ export default function PerfilAluno() {
                                 ))}
                                 {jogosDoAluno.length === 0 && (
                                     <span className="texto-leve">
-                                        Nenhuma sessão registrada até o momento.
+                                        Nenhuma atividade registrada até o momento.
                                     </span>
                                 )}
                             </div>
@@ -1231,7 +1247,11 @@ export default function PerfilAluno() {
                                                     color: desempenho.cor,
                                                 }}
                                             >
-                                                {desempenho.icone}{" "}
+                                                <span
+                                                    className="indicador-status"
+                                                    style={{ background: desempenho.cor }}
+                                                    aria-hidden="true"
+                                                />
                                                 {desempenho.label}
                                             </span>
                                         )}
@@ -1240,13 +1260,34 @@ export default function PerfilAluno() {
                                         className="btn-editar"
                                         onClick={() => setEditando(!editando)}
                                     >
-                                        {editando ? "✕" : "✏️"}
+                                        <Icone
+                                            nome={editando ? "fechar" : "editar"}
+                                            titulo={editando ? "Fechar edição" : "Editar aluno"}
+                                        />
                                     </button>
                                 </div>
 
                                 {/* Modo visualização */}
                                 {!editando && (
                                     <div className="info-lista">
+                                        <div className="info-item">
+                                            <span className="texto-leve">
+                                                Instituição
+                                            </span>
+                                            <span>
+                                                {instituicaoAtual?.name ||
+                                                    "Sem vínculo escolar"}
+                                            </span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="texto-leve">
+                                                Turma
+                                            </span>
+                                            <span>
+                                                {aluno.groupId?.name ||
+                                                    "Não informada"}
+                                            </span>
+                                        </div>
                                         <div className="info-item">
                                             <span className="texto-leve">
                                                 Nível de suporte relacionado ao
@@ -1289,41 +1330,27 @@ export default function PerfilAluno() {
                                 )}
 
                                 {!editando && (
-                                    <div
-                                        className={
-                                            aluno.capturaSolicitada
-                                                ? "captura-card captura-card-ativo"
-                                                : "captura-card"
-                                        }
-                                    >
+                                    <div className="captura-card recurso-futuro">
                                         <div className="captura-card-icone">
-                                            🖼️
+                                            <Icone nome="imagem" />
                                         </div>
 
                                         <div className="captura-card-texto">
                                             <strong>
-                                                Solicitar captura visual para a
-                                                próxima sessão
+                                                Captura visual do jogo
                                             </strong>
                                             <p className="texto-leve">
-                                                {textoCaptura}
+                                                Recurso planejado para uma versão
+                                                futura e ainda indisponível.
                                             </p>
                                         </div>
 
                                         <button
                                             type="button"
-                                            className={
-                                                aluno.capturaSolicitada
-                                                    ? "btn-captura ativo"
-                                                    : "btn-captura"
-                                            }
-                                            onClick={handleSolicitarCaptura}
-                                            disabled={
-                                                solicitandoCaptura ||
-                                                capturaAtivaPelaUnity
-                                            }
+                                            className="btn-captura"
+                                            disabled
                                         >
-                                            {textoBotaoCaptura}
+                                            Disponível futuramente
                                         </button>
                                     </div>
                                 )}
@@ -1331,13 +1358,13 @@ export default function PerfilAluno() {
                                 {!editando && (
                                     <div className="importacao-card">
                                         <div className="captura-card-icone">
-                                            📥
+                                            <Icone nome="importar" />
                                         </div>
                                         <div className="captura-card-texto">
-                                            <strong>Importar telemetria</strong>
+                                            <strong>Importar atividade de um arquivo</strong>
                                             <p className="texto-leve">
-                                                Valide um arquivo JSON antes de
-                                                registrá-lo para este aluno.
+                                                Selecione um arquivo JSON exportado
+                                                por um jogo ou pelo LUDUS Observa.
                                             </p>
                                         </div>
                                         <button
@@ -1390,6 +1417,88 @@ export default function PerfilAluno() {
                                                 }
                                             />
                                         </div>
+                                        <fieldset className="vinculo-escolar-campos">
+                                            <legend>Vínculo escolar</legend>
+                                            <p className="texto-leve">
+                                                Se o aluno não pertence a uma
+                                                turma cadastrada, mantenha a
+                                                opção sem vínculo escolar.
+                                            </p>
+                                            <div className="campo-grupo">
+                                                <label className="campo-label">
+                                                    Instituição
+                                                </label>
+                                                <select
+                                                    className="campo-input"
+                                                    value={
+                                                        formAluno.institutionId
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormAluno({
+                                                            ...formAluno,
+                                                            institutionId:
+                                                                e.target.value,
+                                                            groupId: "",
+                                                        })
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        Sem vínculo escolar
+                                                    </option>
+                                                    {instituicoes.map(
+                                                        (instituicao) => (
+                                                            <option
+                                                                key={
+                                                                    instituicao._id
+                                                                }
+                                                                value={
+                                                                    instituicao._id
+                                                                }
+                                                            >
+                                                                {
+                                                                    instituicao.name
+                                                                }
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </div>
+                                            <div className="campo-grupo">
+                                                <label className="campo-label">
+                                                    Turma
+                                                </label>
+                                                <select
+                                                    className="campo-input"
+                                                    value={formAluno.groupId}
+                                                    disabled={
+                                                        !formAluno.institutionId
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormAluno({
+                                                            ...formAluno,
+                                                            groupId:
+                                                                e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        {formAluno.institutionId
+                                                            ? "Selecione a turma"
+                                                            : "Escolha primeiro a instituição"}
+                                                    </option>
+                                                    {turmasDaInstituicao.map(
+                                                        (turma) => (
+                                                            <option
+                                                                key={turma._id}
+                                                                value={turma._id}
+                                                            >
+                                                                {turma.name}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </div>
+                                        </fieldset>
                                         <div className="campo-grupo">
                                             <label className="campo-label">
                                                 Nível de suporte relacionado ao
@@ -1531,7 +1640,7 @@ export default function PerfilAluno() {
                                                     {alerta.descricao}
                                                 </p>
                                                 <p className="alerta-sugestao">
-                                                    💡 {alerta.sugestao}
+                                                    Sugestão: {alerta.sugestao}
                                                 </p>
                                             </div>
                                         ))}
@@ -1542,7 +1651,7 @@ export default function PerfilAluno() {
                             {/* Sem alertas */}
                             {alertas.length === 0 && resumo && (
                                 <div className="card secao-card alerta-ok">
-                                    <span>🟢</span>
+                                    <span className="indicador-status sucesso" aria-hidden="true" />
                                     <p>
                                         {temDadosDesempenho
                                             ? "Nenhum alerta pedagógico no momento — indicadores recentes sem pontos de atenção."
@@ -1561,7 +1670,7 @@ export default function PerfilAluno() {
                                                 {resumo.totalSessoes}
                                             </span>
                                             <span className="metrica-mini-label">
-                                                Sessões
+                                                Atividades
                                             </span>
                                         </div>
                                         {temDadosDesempenho && (
@@ -1601,52 +1710,148 @@ export default function PerfilAluno() {
 
                                     {!temDadosDesempenho && (
                                         <p className="texto-leve">
-                                            As sessões disponíveis registram
-                                            interações observacionais. Acertos,
-                                            erros e taxa de acerto não são
-                                            calculados sem eventos semânticos do
-                                            jogo.
+                                            Estas atividades mostram interações
+                                            observadas no navegador. Acertos e
+                                            erros só aparecem quando o próprio
+                                            jogo fornece essas informações.
                                         </p>
                                     )}
 
-                                    {/* Última sessão */}
-                                    {sessoes.length > 0 && (
-                                        <div className="ultima-sessao">
-                                            <p className="texto-leve">
-                                                Última sessão
+                                    {horariosRecentesPorJogo.length > 0 && (
+                                        <div className="horarios-atividades">
+                                            <p className="horarios-atividades-titulo">
+                                                {gameIdSelecionado
+                                                    ? "Horário mais recente"
+                                                    : "Horários mais recentes por jogo"}
                                             </p>
-                                            <p className="ultima-sessao-data">
-                                                {formatarData(
-                                                    sessoes[0].startedAt,
-                                                )}
-                                            </p>
-                                            <div className="ultima-sessao-meta">
-                                                {sessaoTemDadosDesempenho(
-                                                    sessoes[0],
-                                                ) && (
-                                                    <>
-                                                        <span className="chip-acerto">
-                                                            ✅{" "}
-                                                            {sessoes[0].metrics
-                                                                ?.totalCorrect ||
-                                                                0}
+                                            <div
+                                                className="horarios-atividades-lista"
+                                                role="list"
+                                            >
+                                                {horariosRecentesPorJogo.map((sessao) => (
+                                                    <div
+                                                        className="horario-atividade"
+                                                        key={sessao.sessionId}
+                                                        role="listitem"
+                                                    >
+                                                        <strong>
+                                                            {obterNomeJogo(
+                                                                sessao.gameId,
+                                                                nomesJogos,
+                                                            )}
+                                                        </strong>
+                                                        <span>
+                                                            {new Date(sessao.startedAt).toLocaleDateString("pt-BR")} •{" "}
+                                                            {formatarHora(sessao.startedAt)} →{" "}
+                                                            {formatarHora(obterFimAtividade(sessao))}
                                                         </span>
-                                                        <span className="chip-erro">
-                                                            ❌{" "}
-                                                            {sessoes[0].metrics
-                                                                ?.totalWrong ||
-                                                                0}
-                                                        </span>
-                                                    </>
-                                                )}
-                                                <span className="texto-leve">
-                                                    {formatarDuracao(
-                                                        sessoes[0].durationMs,
-                                                    )}
-                                                </span>
+                                                        <small>
+                                                            {formatarDuracao(sessao.durationMs)}
+                                                        </small>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
+
+                                    {gameIdSelecionado &&
+                                        comparacaoAtividades.length > 1 && (
+                                            <div className="comparacao-atividades">
+                                                <div className="comparacao-atividades-cabecalho">
+                                                    <strong>
+                                                        Evolução das atividades
+                                                        recentes
+                                                    </strong>
+                                                    <span>
+                                                        Até 8 registros deste
+                                                        jogo
+                                                    </span>
+                                                </div>
+                                                <div className="comparacao-atividades-grafico">
+                                                    <ResponsiveContainer
+                                                        width="100%"
+                                                        height={210}
+                                                    >
+                                                        <LineChart
+                                                            data={
+                                                                comparacaoAtividades
+                                                            }
+                                                            margin={{
+                                                                top: 12,
+                                                                right: 12,
+                                                                left: -18,
+                                                                bottom: 0,
+                                                            }}
+                                                        >
+                                                            <CartesianGrid
+                                                                strokeDasharray="3 3"
+                                                                vertical={false}
+                                                            />
+                                                            <XAxis
+                                                                dataKey="atividade"
+                                                                tickFormatter={(
+                                                                    valor,
+                                                                ) =>
+                                                                    `Ativ. ${valor}`
+                                                                }
+                                                            />
+                                                            <YAxis
+                                                                yAxisId="duracao"
+                                                                unit="s"
+                                                            />
+                                                            <YAxis
+                                                                yAxisId="cliques"
+                                                                orientation="right"
+                                                                hide
+                                                            />
+                                                            <Tooltip
+                                                                labelFormatter={(
+                                                                    valor,
+                                                                    itens,
+                                                                ) =>
+                                                                    `Atividade ${valor} • ${itens?.[0]?.payload?.horario || ""}`
+                                                                }
+                                                                formatter={(
+                                                                    valor,
+                                                                    nome,
+                                                                ) => [
+                                                                    nome ===
+                                                                    "Duração"
+                                                                        ? `${valor}s`
+                                                                        : valor,
+                                                                    nome,
+                                                                ]}
+                                                            />
+                                                            <Legend />
+                                                            <Line
+                                                                yAxisId="duracao"
+                                                                type="monotone"
+                                                                dataKey="duracao"
+                                                                name="Duração"
+                                                                stroke="#43c99a"
+                                                                strokeWidth={3}
+                                                                activeDot={{ r: 5 }}
+                                                            />
+                                                            <Line
+                                                                yAxisId="cliques"
+                                                                type="monotone"
+                                                                dataKey="cliques"
+                                                                name="Cliques"
+                                                                stroke="#4d97ff"
+                                                                strokeWidth={2}
+                                                            />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                                <p className="texto-leve comparacao-atividades-ajuda">
+                                                    A duração e os cliques são
+                                                    indícios de interação e
+                                                    devem ser interpretados
+                                                    junto à observação do
+                                                    professor.
+                                                </p>
+                                            </div>
+                                        )}
                                 </div>
                             )}
 
@@ -1658,10 +1863,8 @@ export default function PerfilAluno() {
                                         className="estado-vazio"
                                         style={{ padding: "1.5rem 0" }}
                                     >
-                                        <span className="estado-vazio-icone">
-                                            🎮
-                                        </span>
-                                        <p>Nenhuma sessão registrada ainda.</p>
+                                        <Icone nome="jogo" tamanho={34} className="estado-vazio-icone" />
+                                        <p>Nenhuma atividade registrada ainda.</p>
                                         <p className="texto-leve">
                                             Os dados aparecerão após o aluno
                                             jogar.
@@ -1675,7 +1878,7 @@ export default function PerfilAluno() {
                         <div className="perfil-coluna">
                             {/* Anotações */}
                             <div className="card secao-card">
-                                <h3 ref={tituloAnotacoes} tabIndex={-1}>📝 Anotações do Professor</h3>
+                                <h3 ref={tituloAnotacoes} tabIndex={-1}>Anotações do professor</h3>
 
                                 {/* Nova anotação */}
                                 <form
@@ -1742,7 +1945,7 @@ export default function PerfilAluno() {
                                                         disabled={removendoAnotacao}
                                                         onClick={(evento) => abrirRemocaoAnotacao(anot, evento.currentTarget)}
                                                     >
-                                                        🗑️
+                                                        <Icone nome="excluir" />
                                                     </button>
                                                 </div>
                                                 <p className="anotacao-texto">
@@ -1753,21 +1956,25 @@ export default function PerfilAluno() {
                                 </div>
                             </div>
 
-                            {/* Sessões registradas */}
+                            {/* Atividades registradas */}
                             {sessoes.length > 0 && (
                                 <div className="card secao-card">
-                                    <h3>Sessões registradas</h3>
+                                    <h3>Atividades registradas</h3>
                                     <p className="texto-leve descricao-sessoes-registradas">
                                         {gameIdSelecionado
-                                            ? "Telemetrias salvas para este aluno e jogo."
-                                            : "Telemetrias de todos os jogos acompanhados por este aluno."}{" "}
+                                            ? "Atividades salvas para este aluno neste jogo."
+                                            : "Atividades de todos os jogos acompanhados por este aluno."}{" "}
                                         Importações por JSON podem ser removidas
                                         em caso de engano.
                                     </p>
                                     <div className="lista-sessoes">
                                         {sessoes.map((sessao) => {
-                                            const tituloSessao =
-                                                extrairTituloSessao(sessao);
+                                            const contextoSessao =
+                                                extrairContextoSessao(sessao);
+                                            const nomeJogo = obterNomeJogo(
+                                                sessao.gameId,
+                                                nomesJogos,
+                                            );
                                             const importadaPorArquivo =
                                                 sessao.ingestionMethod ===
                                                 "file-import";
@@ -1788,23 +1995,17 @@ export default function PerfilAluno() {
                                                         }
                                                     >
                                                         <div className="sessao-info">
-                                                            <span className="sessao-categoria">
-                                                                🎮{" "}
-                                                                {tituloSessao}
+                                                            <span className="sessao-jogo-titulo">
+                                                                {nomeJogo}
+                                                            </span>
+                                                            <span className="sessao-contexto">
+                                                                {contextoSessao}
                                                             </span>
                                                             <span className="texto-leve sessao-data-menor">
                                                                 {formatarData(
                                                                     sessao.startedAt,
                                                                 )}
                                                             </span>
-                                                            {!gameIdSelecionado && (
-                                                                <span className="jogo-sessao-identificacao">
-                                                                    {obterNomeJogo(
-                                                                        sessao.gameId,
-                                                                        nomesJogos,
-                                                                    )}
-                                                                </span>
-                                                            )}
                                                             <span
                                                                 className={`origem-sessao ${
                                                                     importadaPorArquivo
@@ -1813,7 +2014,7 @@ export default function PerfilAluno() {
                                                                 }`}
                                                             >
                                                                 {importadaPorArquivo
-                                                                    ? "JSON importado"
+                                                                    ? "Importada por arquivo"
                                                                     : "Enviada pelo jogo"}
                                                             </span>
                                                         </div>
@@ -1833,14 +2034,14 @@ export default function PerfilAluno() {
                                                             ) && (
                                                                 <>
                                                                     <span className="chip-acerto">
-                                                                        ✅{" "}
+                                                                        Acertos:{" "}
                                                                         {sessao
                                                                             .metrics
                                                                             ?.totalCorrect ||
                                                                             0}
                                                                     </span>
                                                                     <span className="chip-erro">
-                                                                        ❌{" "}
+                                                                        Erros:{" "}
                                                                         {sessao
                                                                             .metrics
                                                                             ?.totalWrong ||
@@ -1871,7 +2072,7 @@ export default function PerfilAluno() {
                                                                 aria-label="Remover sessão importada"
                                                                 title="Remover sessão importada"
                                                             >
-                                                                🗑️
+                                                                <Icone nome="excluir" />
                                                             </button>
                                                         )}
                                                 </div>
@@ -1980,7 +2181,7 @@ export default function PerfilAluno() {
                 {aluno && resumo && (
                     <div style={{ textAlign: "center", marginTop: "1rem" }}>
                         <button className="btn-pdf" onClick={gerarPDF}>
-                            📄 Gerar Relatório PDF
+                            <Icone nome="documento" /> Gerar relatório PDF
                         </button>
                     </div>
                 )}
@@ -1998,30 +2199,6 @@ export default function PerfilAluno() {
                     />
                 )}
 
-                {modalCaptura && (
-                    <div className="modal-captura-backdrop">
-                        <div className="modal-captura">
-                            <div className="modal-captura-icone">🖼️</div>
-
-                            <div>
-                                <h3>{modalCaptura.titulo}</h3>
-                                <p>{modalCaptura.mensagem}</p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="btn-captura-modal"
-                                onClick={() => {
-                                    setModalCaptura(null);
-                                    carregarDados();
-                                }}
-                            >
-                                Entendi
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 {sessaoParaExcluir && (
                     <div className="modal-captura-backdrop" role="presentation">
                         <div
@@ -2030,21 +2207,24 @@ export default function PerfilAluno() {
                             aria-modal="true"
                             aria-labelledby="titulo-exclusao-sessao"
                         >
-                            <div className="modal-exclusao-icone" aria-hidden="true">
-                                🗑️
+                            <div className="modal-exclusao-icone">
+                                <Icone nome="excluir" />
                             </div>
                             <div>
                                 <h3 id="titulo-exclusao-sessao">
-                                    Remover sessão importada?
+                                    Remover atividade importada?
                                 </h3>
                                 <p>
-                                    Essa ação exclui permanentemente a sessão
+                                    Essa ação exclui permanentemente a atividade
                                     adicionada por JSON.
                                 </p>
                             </div>
                             <div className="resumo-exclusao-sessao">
                                 <strong>
-                                    {extrairTituloSessao(sessaoParaExcluir)}
+                                    {obterNomeJogo(
+                                        sessaoParaExcluir.gameId,
+                                        nomesJogos,
+                                    )}
                                 </strong>
                                 <span>
                                     {formatarData(sessaoParaExcluir.startedAt)} •{" "}
@@ -2090,7 +2270,9 @@ export default function PerfilAluno() {
                             aria-modal="true"
                             aria-labelledby="titulo-orientacao-importacao"
                         >
-                            <div className="modal-captura-icone">✅</div>
+                            <div className="modal-captura-icone">
+                                <Icone nome="sucesso" />
+                            </div>
                             <h3 id="titulo-orientacao-importacao">
                                 Agora sim!
                             </h3>
@@ -2119,7 +2301,7 @@ export default function PerfilAluno() {
                         >
                             <div>
                                 <h3 id="titulo-importacao">
-                                    Importar telemetria
+                                    Importar atividade
                                 </h3>
                                 <p>
                                     Selecione JSONs de sessão ou um lote
@@ -2150,7 +2332,7 @@ export default function PerfilAluno() {
                                 >
                                     {arquivosValidosImportacao.length > 0
                                         ? "✓"
-                                        : "📄"}
+                                        : <Icone nome="documento" />}
                                 </span>
                                 <strong>
                                     {arquivosImportacao.length > 0

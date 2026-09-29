@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { textosAnonimos } from "../../config/modoAnonimo";
 import "./RelatorioPDF.css";
+import Icone from "./Icone";
 
 export default function RelatorioPDF({
     aluno,
@@ -81,10 +82,10 @@ export default function RelatorioPDF({
                 "Foram registrados alguns momentos de pausa durante o jogo. Vale observar o contexto dessas pausas para compreender se ocorreram por reflexão, espera, cansaço ou necessidade de apoio.",
 
             sem_jogar_longo:
-                "Já se passaram mais de duas semanas desde a última sessão registrada. A regularidade pode apoiar a continuidade do acompanhamento pedagógico.",
+                "Já se passaram mais de duas semanas desde a última atividade registrada. A regularidade pode apoiar a continuidade do acompanhamento pedagógico.",
 
             sem_jogar:
-                "Já se passou uma semana desde a última sessão registrada. Pode ser interessante retomar as atividades para manter o acompanhamento.",
+                "Já se passou uma semana desde a última atividade registrada. Pode ser interessante retomar as atividades para manter o acompanhamento.",
             categoria_problematica:
                 "Uma das categorias apresentou maior ocorrência de erros. Esse dado pode apoiar o professor na escolha de itens que merecem nova mediação.",
 
@@ -123,7 +124,7 @@ export default function RelatorioPDF({
             }
         });
         if (estrelas === null) return "—";
-        return "⭐".repeat(estrelas);
+        return "●".repeat(estrelas);
     };
 
     const idade = calcularIdade(aluno?.birthDate);
@@ -155,7 +156,7 @@ export default function RelatorioPDF({
             {/* Cabeçalho */}
             <div className="pdf-cabecalho">
                 <div className="pdf-logo">
-                    <span className="pdf-logo-icone">🎮</span>
+                    <span className="pdf-logo-icone"><Icone nome="jogo" tamanho={30} /></span>
                     <div>
                         <div className="pdf-logo-titulo">LUDUS Acompanha</div>
                         <div className="pdf-logo-subtitulo">

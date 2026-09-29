@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import { listarJogos, listarVisaoGeralAlunos } from "../services/api";
 import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./Alunos.css";
@@ -66,7 +67,7 @@ export default function Alunos() {
         <div>
             <Header
                 titulo="Alunos"
-                subtitulo="Acompanhe cada aluno e os jogos com sessões registradas"
+                subtitulo="Consulte cada aluno e as atividades registradas nos jogos"
             />
 
             <div className="pagina-conteudo">
@@ -99,14 +100,14 @@ export default function Alunos() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
 
                 {!carregando && !erro && alunosFiltrados.length === 0 && (
                     <div className="card estado-vazio">
-                        <span className="estado-vazio-icone">👤</span>
+                        <Icone nome="usuario" tamanho={34} className="estado-vazio-icone" />
                         <p>
                             {busca
                                 ? "Nenhum aluno corresponde à busca."
@@ -140,13 +141,13 @@ export default function Alunos() {
                                 <div className="aluno-visao-resumo">
                                     <span>
                                         {aluno.totalSessoes === 1
-                                            ? "1 sessão registrada"
-                                            : `${aluno.totalSessoes} sessões registradas`}
+                                            ? "1 atividade registrada"
+                                            : `${aluno.totalSessoes} atividades registradas`}
                                     </span>
                                     <div className="aluno-visao-jogos">
                                         {(aluno.jogos || []).length === 0 ? (
                                             <span className="texto-leve">
-                                                Nenhum jogo com sessão registrada.
+                                                Nenhum jogo com atividade registrada.
                                             </span>
                                         ) : (
                                             aluno.jogos.map((jogo) => (

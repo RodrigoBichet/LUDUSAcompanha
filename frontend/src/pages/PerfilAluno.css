@@ -139,24 +139,119 @@
     margin-top: 0.3rem;
 }
 
-/* Última sessão */
-.ultima-sessao {
+.indicador-status {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+}
+
+.indicador-status.sucesso {
+    background: var(--cor-sucesso);
+}
+
+/* Horários resumidos das atividades mais recentes. */
+.horarios-atividades {
     padding-top: 1rem;
     border-top: 1px solid var(--cor-borda);
 }
 
-.ultima-sessao-data {
+.horarios-atividades-titulo {
+    margin: 0 0 0.65rem;
     font-weight: 700;
     font-size: 0.9rem;
-    margin: 0.25rem 0;
 }
 
-.ultima-sessao-meta {
-    display: flex;
-    gap: 0.75rem;
+.horarios-atividades-lista {
+    display: grid;
+    padding-left: 0.8rem;
+    border-left: 3px solid rgba(78, 203, 160, 0.45);
+}
+
+.horario-atividade {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) auto auto;
     align-items: center;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--cor-borda);
+    font-size: 0.78rem;
+}
+
+.horario-atividade:last-child {
+    border-bottom: 0;
+}
+
+.horario-atividade span,
+.horario-atividade small {
+    color: var(--cor-texto-leve);
+}
+
+.comparacao-atividades {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cor-borda);
+}
+
+.comparacao-atividades-cabecalho {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.45rem;
+}
+
+.comparacao-atividades-cabecalho strong {
+    font-size: 0.9rem;
+}
+
+.comparacao-atividades-cabecalho span,
+.comparacao-atividades-ajuda {
+    color: var(--cor-texto-leve);
+    font-size: 0.75rem;
+}
+
+.comparacao-atividades-grafico {
+    padding-top: 0.4rem;
+}
+
+.comparacao-atividades-ajuda {
+    margin: 0.4rem 0 0;
+    line-height: 1.45;
+}
+
+.captura-card.recurso-futuro {
+    border-color: var(--cor-borda);
+    background: var(--cor-fundo);
+}
+
+.vinculo-escolar-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    background: var(--cor-fundo);
+}
+
+.vinculo-escolar-campos legend {
+    padding: 0 0.35rem;
+    font-weight: 800;
+}
+
+.vinculo-escolar-campos > p {
+    grid-column: 1 / -1;
+    margin: -0.2rem 0 0;
+    font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+    .vinculo-escolar-campos {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* Anotações */
@@ -359,11 +454,18 @@
     transform: translateY(-1px);
 }
 
-/* Categoria em destaque no card de sessão */
-.sessao-categoria {
-    font-weight: 600;
-    font-size: 0.95rem;
+/* O jogo orienta a navegação; o modo de captura aparece como contexto. */
+.sessao-jogo-titulo {
+    font-weight: 800;
+    font-size: 1rem;
     color: var(--cor-texto);
+}
+
+.sessao-contexto {
+    margin-top: 0.1rem;
+    color: var(--cor-texto-leve);
+    font-size: 0.76rem;
+    font-weight: 600;
 }
 
 /* Data menor e secundária */
@@ -416,17 +518,6 @@
 .origem-sessao.jogo {
     background: rgba(78, 203, 160, 0.12);
     color: #1f6b53;
-}
-
-.jogo-sessao-identificacao {
-    width: fit-content;
-    margin-top: 0.15rem;
-    padding: 0.15rem 0.45rem;
-    border-radius: 999px;
-    background: rgba(111, 85, 214, 0.12);
-    color: #5741a8;
-    font-size: 0.68rem;
-    font-weight: 800;
 }
 
 .chip-cliques {
@@ -948,6 +1039,11 @@
 
     .jogos-aluno-opcoes {
         justify-content: flex-start;
+    }
+
+    .horario-atividade {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
     }
 }
 

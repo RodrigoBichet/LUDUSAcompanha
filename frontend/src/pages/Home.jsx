@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
 import ConfirmacaoExcluirJogo from "../components/ConfirmacaoExcluirJogo";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import { useAuth } from "../contexts/AuthContext";
 import {
     listarJogos,
@@ -20,6 +21,7 @@ import {
     excluirJogo,
     atualizarSolicitacaoInstituicao,
 } from "../services/api";
+import { humanizarGameId } from "../utils/jogos";
 import "./Home.css";
 
 const JOGOS_DISPONIVEIS = [
@@ -97,10 +99,13 @@ export default function Home() {
     const jogosDisponiveis = useMemo(() => {
         const cadastrados = jogos.map((jogo) => ({
             id: jogo.gameId,
-            nome: jogo.name,
+            nome:
+                String(jogo.name || "").trim() && jogo.name !== jogo.gameId
+                    ? jogo.name
+                    : humanizarGameId(jogo.gameId),
             descricao:
                 jogo.description ||
-                `Jogo cadastrado (${jogo.sourceType || "origem não informada"}).`,
+                "Jogo disponível para acompanhamento.",
             descricaoEditavel: jogo.description || "",
             ativo: jogo.active !== false,
             escopo: jogo.scopeType,
@@ -337,7 +342,9 @@ export default function Home() {
             <div className="pagina-conteudo">
                 {vinculoPendente && (
                     <section className="card vinculo-pendente" role="status">
-                        <div className="vinculo-pendente-icone" aria-hidden="true">🏫</div>
+                        <div className="vinculo-pendente-icone">
+                            <Icone nome="instituicao" tamanho={26} />
+                        </div>
                         <div>
                             <span className="vinculo-pendente-etapa">
                                 {solicitacaoRecusada ? "Correção necessária" : "Cadastro confirmado"}
@@ -413,7 +420,7 @@ export default function Home() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -550,7 +557,11 @@ export default function Home() {
                             <div className="jogos-opcoes">
                                 {jogosDisponiveis.length === 0 && (
                                     <div className="card estado-vazio">
-                                        <span className="estado-vazio-icone">🎮</span>
+                                        <Icone
+                                            nome="jogo"
+                                            tamanho={34}
+                                            className="estado-vazio-icone"
+                                        />
                                         <p>Nenhum jogo cadastrado ainda.</p>
                                         <p className="texto-leve">
                                             Cadastre um jogo ou importe o primeiro JSON de uma sessão.
@@ -594,7 +605,7 @@ export default function Home() {
                                                     onClick={() => abrirEdicaoJogo(jogo)}
                                                     disabled={Boolean(processandoJogoId)}
                                                 >
-                                                    ✏️
+                                                    <Icone nome="editar" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -605,7 +616,7 @@ export default function Home() {
                                                 >
                                                     {processandoJogoId === jogo.registroId
                                                         ? "…"
-                                                        : jogo.ativo ? "📦" : "↩️"}
+                                                        : <Icone nome={jogo.ativo ? "arquivar" : "restaurar"} />}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -615,7 +626,7 @@ export default function Home() {
                                                     onClick={(evento) => abrirConfirmacaoExclusao(jogo, evento.currentTarget)}
                                                     disabled={Boolean(processandoJogoId)}
                                                 >
-                                                    🗑️
+                                                    <Icone nome="excluir" />
                                                 </button>
                                             </div>
                                         )}

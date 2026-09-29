@@ -5,6 +5,40 @@
     align-items: start;
 }
 
+.detalhes-layout.observacional {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.detalhes-coluna.sem-conteudo {
+    display: none;
+}
+
+.resumo-interacoes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.7rem;
+    margin: 0 0 1rem;
+}
+
+.resumo-interacao-item {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.8rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    background: var(--cor-fundo);
+}
+
+.resumo-interacao-item span {
+    color: var(--cor-texto-leve);
+    font-size: 0.76rem;
+}
+
+.resumo-interacao-item strong {
+    color: var(--cor-texto);
+    font-size: 1.3rem;
+}
+
 /* Info geral */
 .info-lista {
     display: flex;
@@ -49,6 +83,12 @@
     height: auto;
     border-radius: 8px;
     display: block;
+}
+
+.heatmap-legenda-arraste {
+    display: inline-block;
+    width: 24px;
+    border-top: 3px dashed rgba(167, 139, 250, 1);
 }
 
 /* Timeline de eventos */
@@ -112,6 +152,76 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+}
+
+.linha-tempo-observacional {
+    position: relative;
+    display: grid;
+    gap: 0;
+    margin-top: 0.4rem;
+}
+
+.evento-observacional {
+    display: grid;
+    grid-template-columns: 54px 18px minmax(0, 1fr);
+    gap: 0.65rem;
+    min-height: 54px;
+}
+
+.evento-observacional-tempo {
+    padding-top: 0.1rem;
+    color: var(--cor-texto-leve);
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.evento-observacional-marcador {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    margin: 0.25rem auto 0;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: var(--cor-primaria);
+    box-shadow: 0 0 0 2px rgba(77, 151, 255, 0.3);
+}
+
+.evento-observacional:not(:last-child)
+    .evento-observacional-marcador::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 2px;
+    width: 2px;
+    height: 44px;
+    background: var(--cor-borda);
+}
+
+.evento-observacional.arraste .evento-observacional-marcador {
+    background: var(--cor-secundaria, #7b61ff);
+    box-shadow: 0 0 0 2px rgba(123, 97, 255, 0.25);
+}
+
+.evento-observacional.marco .evento-observacional-marcador {
+    background: var(--cor-sucesso, #42c996);
+    box-shadow: 0 0 0 2px rgba(66, 201, 150, 0.25);
+}
+
+.evento-observacional-conteudo {
+    display: grid;
+    align-content: start;
+    gap: 0.15rem;
+    padding-bottom: 0.9rem;
+}
+
+.evento-observacional-conteudo strong {
+    font-size: 0.86rem;
+}
+
+.evento-observacional-conteudo small {
+    color: var(--cor-texto-leve);
+    font-size: 0.76rem;
+    line-height: 1.35;
 }
 
 .eventos-fase-tabs {
@@ -426,6 +536,14 @@
 }
 
 @media (max-width: 640px) {
+    .detalhes-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .resumo-interacoes {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .heatmap-detalhe-topo {
         display: grid;
         gap: 0.2rem;

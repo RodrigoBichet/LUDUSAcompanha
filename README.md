@@ -23,12 +23,30 @@ A política pública de privacidade do capturador observacional está disponíve
 em `https://ludus-acompanha.netlify.app/privacidade/ludus-observa` e também pode
 ser conferida localmente em `/privacidade/ludus-observa`, sem autenticação.
 
+## Captura Web observacional
+
+O **LUDUS Observa** acompanha jogos Web externos depois que o computador do
+aluno é pareado conscientemente com uma coleta temporária. Nos portais
+suportados ou já preparados naquele navegador, cada jogo é reconhecido e a
+captura começa automaticamente quando uma única área compatível é confirmada.
+
+Ao sair do jogo, voltar para o portal ou fechar a guia, a atividade é
+consolidada e enviada para a caixa da coleta. A extensão mantém checkpoints e
+uma fila local até receber a confirmação do backend, reduzindo perdas em
+fechamentos rápidos ou indisponibilidade temporária da rede.
+
+No perfil do aluno, atividades observacionais apresentam duração, cliques,
+trajetória do ponteiro, gestos de arraste, mapa e linha do tempo. Esses dados
+são evidências técnicas parciais para apoiar a observação do professor. Sem
+eventos fornecidos pelo próprio jogo, não representam acertos, erros,
+aprendizagem, atenção ou diagnóstico.
+
 ---
 
 ## Arquitetura geral
 
 ```txt
-Unity (C# SDK) -> JSON -> Node.js + Express -> MongoDB -> API REST -> Dashboard React
+Unity (C# SDK) ou LUDUS Observa -> contrato LUDUS -> API -> MongoDB -> Dashboard React
 ```
 
 ---
@@ -149,6 +167,17 @@ O ambiente inicial de demonstracao esta publicado desde **20/07/2026**:
 | Health check | `https://ludus-acompanha-api.onrender.com/` |
 
 O dashboard publicado usa `VITE_API_URL` e `VITE_BACKEND_ORIGIN` para acessar a API e as screenshots. Para configuracao detalhada de deploy, variaveis de ambiente e limitacoes conhecidas, consulte [`docs/SETUP.md`](docs/SETUP.md).
+
+Ao iniciar pelo comando `npm start`, o backend valida a configuração antes de
+abrir a conexão. Em produção, são recusados MongoDB ausente, segredo JWT fraco,
+URL de frontend sem HTTPS, porta inválida e exposição de links locais de
+autenticação. O comando `npm run dev:lote:temp` continua isolado como ambiente
+efêmero de testes e não faz parte do deploy.
+
+O ambiente publicado também exige a configuração real de email pelo Resend e
+usa uma política de CORS restrita. O frontend informado em `FRONTEND_URL` é
+aceito automaticamente; outras origens WebGL devem ser listadas
+conscientemente em `CORS_ORIGINS`, sem liberar a Web inteira.
 
 > O plano Free do Render pode hibernar apos inatividade. O primeiro acesso posterior pode levar alguns segundos para responder.
 

@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
@@ -178,7 +179,7 @@ export default function GerenciarInstituicoes() {
                             </div>
                         </div>
 
-                        {erroForm && <p className="form-erro">⚠️ {erroForm}</p>}
+                        {erroForm && <p className="form-erro"><Icone nome="aviso" /> {erroForm}</p>}
 
                         <div className="admin-instituicao-form-acoes">
                             <button
@@ -236,7 +237,7 @@ export default function GerenciarInstituicoes() {
                 {/* Erro de carregamento */}
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -246,7 +247,7 @@ export default function GerenciarInstituicoes() {
                     <>
                         {instituicoes.length === 0 ? (
                             <div className="card estado-vazio">
-                                <span className="estado-vazio-icone">🏫</span>
+                                <Icone nome="instituicao" tamanho={34} className="estado-vazio-icone" />
                                 <p>Nenhuma instituição cadastrada ainda.</p>
                                 <p className="texto-leve">
                                     Clique em "Nova instituição" para começar.
@@ -261,7 +262,7 @@ export default function GerenciarInstituicoes() {
                                     >
                                         <div className="instituicao-info">
                                             <span className="instituicao-icone">
-                                                🏫
+                                                <Icone nome="instituicao" />
                                             </span>
                                             <div>
                                                 <p className="instituicao-nome">
@@ -280,14 +281,14 @@ export default function GerenciarInstituicoes() {
                                                     abrirFormEdicao(instituicao)
                                                 }
                                             >
-                                                ✏️ Editar
+                                                <Icone nome="editar" /> Editar
                                             </button>
                                             <button
                                                 className="btn-acao deletar"
                                                 onClick={(evento) => abrirRemocaoInstituicao(instituicao, evento.currentTarget)}
                                                 disabled={remocao.ocupado}
                                             >
-                                                🗑️ Remover
+                                                <Icone nome="excluir" /> Remover
                                             </button>
                                         </div>
                                     </div>

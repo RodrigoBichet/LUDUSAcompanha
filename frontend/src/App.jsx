@@ -25,8 +25,13 @@ import "./index.css";
 function Layout({ children }) {
     return (
         <div className="app-layout">
+            <a className="atalho-conteudo" href="#conteudo-principal">
+                Pular para o conteúdo principal
+            </a>
             <Sidebar />
-            <div className="conteudo-principal">{children}</div>
+            <main id="conteudo-principal" className="conteudo-principal">
+                {children}
+            </main>
         </div>
     );
 }

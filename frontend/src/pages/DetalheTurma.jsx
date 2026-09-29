@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
@@ -197,7 +198,7 @@ export default function DetalheTurma() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -380,7 +381,7 @@ export default function DetalheTurma() {
                         {/* Lista de alunos */}
                         {alunos.length === 0 ? (
                             <div className="card estado-vazio">
-                                <span className="estado-vazio-icone">👦</span>
+                                <Icone nome="usuario" tamanho={34} className="estado-vazio-icone" />
                                 <p>Nenhum aluno cadastrado nesta turma.</p>
                                 <p className="texto-leve">
                                     Clique em "+ Novo Aluno" para começar.
@@ -457,7 +458,7 @@ export default function DetalheTurma() {
                                                     onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
                                                     disabled={remocao.ocupado}
                                                 >
-                                                    🗑️
+                                                    <Icone nome="excluir" />
                                                 </button>
                                             </div>
                                         </div>

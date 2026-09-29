@@ -10,7 +10,9 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
-import { buscarSessao, heatmapSessao } from "../services/api";
+import Icone from "../components/shared/Icone";
+import { buscarSessao, heatmapSessao, listarJogos } from "../services/api";
+import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./DetalhesSessao.css";
 
 const CORES_FASES = [
@@ -74,6 +76,52 @@ const ROTULOS_CAPACIDADES = {
     customEvents: "Contextos e eventos registrados",
 };
 
+const obterTempoInteracao = (item) =>
+    Number(item?.timestamp ?? item?.t ?? item?.time ?? 0);
+
+const calcularDistanciaTrajeto = (pontos = []) =>
+    pontos.reduce((total, ponto, indice) => {
+        if (indice === 0) return total;
+        const anterior = pontos[indice - 1];
+        const x = Number(ponto?.x);
+        const y = Number(ponto?.y);
+        const xAnterior = Number(anterior?.x);
+        const yAnterior = Number(anterior?.y);
+
+        if (![x, y, xAnterior, yAnterior].every(Number.isFinite)) return total;
+        return total + Math.hypot(x - xAnterior, y - yAnterior);
+    }, 0);
+
+const agruparGestosArraste = (pontos = []) => {
+    const gestos = [];
+    let gestoAtual = null;
+
+    pontos.forEach((ponto) => {
+        if (ponto?.state === "start" || !gestoAtual) {
+            if (gestoAtual?.pontos?.length) gestos.push(gestoAtual);
+            gestoAtual = { inicio: obterTempoInteracao(ponto), pontos: [ponto] };
+            return;
+        }
+
+        gestoAtual.pontos.push(ponto);
+        if (ponto?.state === "end") {
+            gestos.push(gestoAtual);
+            gestoAtual = null;
+        }
+    });
+
+    if (gestoAtual?.pontos?.length) gestos.push(gestoAtual);
+    return gestos;
+};
+
+const formatarDistancia = (valor) => {
+    if (!Number.isFinite(valor) || valor <= 0) return "0 px";
+    if (valor >= 1000) {
+        return `${(valor / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil px`;
+    }
+    return `${Math.round(valor).toLocaleString("pt-BR")} px`;
+};
+
 export default function DetalhesSessao() {
     const { sessionId } = useParams();
     const navegar = useNavigate();
@@ -88,6 +136,7 @@ export default function DetalhesSessao() {
     const [heatmap, setHeatmap] = useState(null);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
+    const [nomesJogos, setNomesJogos] = useState(new Map());
 
     const [faseSelecionada, setFaseSelecionada] = useState(0);
     const [faseEventosSelecionada, setFaseEventosSelecionada] = useState(0);
@@ -100,6 +149,53 @@ export default function DetalhesSessao() {
     );
     const temFasesConfiaveis = possuiCapacidade("phaseEvents");
     const modoObservacional = sessao?.captureMode === "observational";
+    const totalMovimentos = sessao?.mousePath?.length || 0;
+    const gestosArraste = agruparGestosArraste(sessao?.dragPath || []);
+    const totalGestosArraste = gestosArraste.length;
+    const distanciaPonteiro = calcularDistanciaTrajeto(
+        sessao?.mousePath || [],
+    );
+    const distanciaArrastes = gestosArraste.reduce(
+        (total, gesto) => total + calcularDistanciaTrajeto(gesto.pontos),
+        0,
+    );
+    const linhaTempoObservacional = modoObservacional
+        ? [
+              {
+                  id: "inicio",
+                  tempo: 0,
+                  tipo: "marco",
+                  titulo: "Atividade iniciada",
+                  detalhe: "O acompanhamento começou neste jogo.",
+              },
+              ...(sessao?.clicks || []).map((clique, indice) => ({
+                  id: `clique-${indice}`,
+                  tempo: obterTempoInteracao(clique),
+                  tipo: "clique",
+                  titulo: "Clique registrado",
+                  detalhe: "Interação realizada dentro da área acompanhada.",
+              })),
+              ...gestosArraste.map((gesto, indice) => {
+                  const fim = obterTempoInteracao(
+                      gesto.pontos[gesto.pontos.length - 1],
+                  );
+                  return {
+                      id: `arraste-${indice}`,
+                      tempo: gesto.inicio,
+                      tipo: "arraste",
+                      titulo: "Gesto de arraste",
+                      detalhe: `${formatarDistancia(calcularDistanciaTrajeto(gesto.pontos))} em ${Math.max(0, (fim - gesto.inicio) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}s`,
+                  };
+              }),
+              {
+                  id: "fim",
+                  tempo: Number(sessao?.durationMs || 0),
+                  tipo: "marco",
+                  titulo: "Atividade encerrada",
+                  detalhe: "Os dados disponíveis foram consolidados.",
+              },
+          ].sort((a, b) => a.tempo - b.tempo)
+        : [];
     const dadosDisponiveis = Object.entries(ROTULOS_CAPACIDADES)
         .filter(([capacidade]) => possuiCapacidade(capacidade))
         .map(([, rotulo]) => rotulo);
@@ -137,12 +233,19 @@ export default function DetalhesSessao() {
     );
 
     useEffect(() => {
-        Promise.all([buscarSessao(sessionId), heatmapSessao(sessionId)])
-            .then(([resSessao, resHeatmap]) => {
+        Promise.all([
+            buscarSessao(sessionId),
+            heatmapSessao(sessionId),
+            listarJogos().catch(() => null),
+        ])
+            .then(([resSessao, resHeatmap, resJogos]) => {
                 const sessaoCarregada = resSessao.data.sessao;
 
                 setSessao(sessaoCarregada);
                 setHeatmap(resHeatmap.data);
+                setNomesJogos(
+                    criarMapaNomesJogos(resJogos?.data?.jogos || []),
+                );
                 setFaseSelecionada(
                     sessaoCarregada?.capabilities?.phaseEvents === false
                         ? -1
@@ -462,8 +565,11 @@ export default function DetalhesSessao() {
 
                 ctx.beginPath();
                 const corFase = obterCorFase(faseIndex ?? 0);
+                const corArraste = modoObservacional
+                    ? "rgba(167, 139, 250, 0.98)"
+                    : corFase.linha;
 
-                ctx.strokeStyle = corFase.linha;
+                ctx.strokeStyle = corArraste;
                 ctx.lineWidth = Math.max(4, W * 0.0018);
                 ctx.setLineDash([
                     Math.max(10, W * 0.008),
@@ -510,7 +616,9 @@ export default function DetalhesSessao() {
                     const pos = mapearCoordenada(p.x, p.y);
                     const tamanho = Math.max(7, W * 0.005);
 
-                    const corMarcador = obterCorFase(faseIndex ?? 0).linha;
+                    const corMarcador = modoObservacional
+                        ? "rgba(167, 139, 250, 1)"
+                        : obterCorFase(faseIndex ?? 0).linha;
 
                     ctx.save();
                     ctx.strokeStyle = corMarcador;
@@ -961,6 +1069,7 @@ export default function DetalhesSessao() {
         obterContextosCaptura,
         possuiCapacidade,
         temFasesConfiaveis,
+        modoObservacional,
     ]);
 
     const distanciaPontoSegmento = (px, py, item) => {
@@ -1152,8 +1261,8 @@ export default function DetalhesSessao() {
             DragAttempt: "Tentativa de Arraste",
             DragStarted: "Arraste iniciado",
             DragEnded: "Arraste encerrado",
-            CorrectMatch: "Acerto ✅",
-            WrongMatch: "Erro ❌",
+            CorrectMatch: "Acerto",
+            WrongMatch: "Erro",
             PhaseCompleted: "Fase Concluída",
             InactivityDetected: "Pausa registrada",
             FocusLost: "Jogo perdeu o foco",
@@ -1306,30 +1415,18 @@ export default function DetalhesSessao() {
 
     return (
         <div>
-            {/* Extrai a categoria da sessão para usar no Header */}
+            {/* O jogo é a referência principal de navegação da atividade. */}
             {(() => {
-                let categoriaSessao = "Detalhes da Sessão";
-                if (sessao?.gameEvents) {
-                    const ev = sessao.gameEvents.find(
-                        (e) => e.eventType === "CategorySelected",
-                    );
-                    if (ev) {
-                        try {
-                            const p = JSON.parse(ev.payload);
-                            if (p.category)
-                                categoriaSessao = `Categoria: ${p.category}`;
-                        } catch {
-                            // Mantém o título neutro quando o payload é inválido.
-                        }
-                    }
-                }
+                const nomeJogo = sessao
+                    ? obterNomeJogo(sessao.gameId, nomesJogos)
+                    : "Detalhes da atividade";
                 const subtituloSessao = sessao
                     ? `${sessao.playerId || "Aluno"} • ${formatarData(sessao.startedAt)} • ${formatarDuracao(sessao.durationMs)}`
                     : "";
 
                 return (
                     <Header
-                        titulo={categoriaSessao}
+                        titulo={nomeJogo}
                         subtitulo={subtituloSessao}
                     />
                 );
@@ -1355,18 +1452,20 @@ export default function DetalhesSessao() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
 
                 {!carregando && !erro && sessao && (
-                    <div className="detalhes-layout">
+                    <div
+                        className={`detalhes-layout ${modoObservacional ? "observacional" : ""}`}
+                    >
                         {/* Coluna esquerda */}
                         <div className="detalhes-coluna">
                             {/* Info geral */}
                             <div className="card secao-card detalhes-info-card">
-                                <h3>Informações Gerais</h3>
+                                <h3>Resumo da atividade</h3>
                                 {sessaoDemonstrativa && (
                                     <span className="badge-demo">
                                         Dados demonstrativos
@@ -1374,15 +1473,62 @@ export default function DetalhesSessao() {
                                 )}
                                 {modoObservacional && (
                                     <div className="telemetria-aviso">
-                                        <strong>Dados observacionais</strong>
+                                        <strong>Observação pelo navegador</strong>
                                         <span>
-                                            Esta sessão registra interações,
-                                            mas não permite inferir
-                                            automaticamente acertos, erros ou
-                                            objetivos internos do jogo.
+                                            Foram registradas interações com a
+                                            área do jogo. Esses dados apoiam a
+                                            observação do professor, mas não
+                                            identificam acertos, erros ou
+                                            objetivos internos automaticamente.
                                         </span>
                                     </div>
                                 )}
+                                <div className="resumo-interacoes" aria-label="Resumo numérico da atividade">
+                                    <div className="resumo-interacao-item">
+                                        <span>Duração</span>
+                                        <strong>{formatarDuracao(sessao.durationMs)}</strong>
+                                    </div>
+                                    {possuiCapacidade("clicks") && (
+                                        <div className="resumo-interacao-item">
+                                            <span>Cliques</span>
+                                            <strong>{sessao.metrics?.totalClicks || 0}</strong>
+                                        </div>
+                                    )}
+                                    {possuiCapacidade("mousePath") && (
+                                        <div className="resumo-interacao-item">
+                                            <span>Movimentos registrados</span>
+                                            <strong>{totalMovimentos}</strong>
+                                        </div>
+                                    )}
+                                    {possuiCapacidade("dragPath") && (
+                                        <div className="resumo-interacao-item">
+                                            <span>Gestos de arraste</span>
+                                            <strong>{totalGestosArraste}</strong>
+                                        </div>
+                                    )}
+                                    {modoObservacional &&
+                                        possuiCapacidade("mousePath") && (
+                                            <div className="resumo-interacao-item">
+                                                <span>Trajeto do ponteiro</span>
+                                                <strong>
+                                                    {formatarDistancia(
+                                                        distanciaPonteiro,
+                                                    )}
+                                                </strong>
+                                            </div>
+                                        )}
+                                    {modoObservacional &&
+                                        possuiCapacidade("dragPath") && (
+                                            <div className="resumo-interacao-item">
+                                                <span>Trajeto em arraste</span>
+                                                <strong>
+                                                    {formatarDistancia(
+                                                        distanciaArrastes,
+                                                    )}
+                                                </strong>
+                                            </div>
+                                        )}
+                                </div>
                                 <div className="info-lista">
                                     <div className="info-item">
                                         <span className="texto-leve">
@@ -1392,9 +1538,13 @@ export default function DetalhesSessao() {
                                     </div>
                                     <div className="info-item">
                                         <span className="texto-leve">
-                                            Plataforma
+                                            Ambiente
                                         </span>
-                                        <span>{sessao.platform}</span>
+                                        <span>
+                                            {sessao.platform === "browser"
+                                                ? "Navegador Web"
+                                                : sessao.platform}
+                                        </span>
                                     </div>
                                     <div className="info-item">
                                         <span className="texto-leve">
@@ -1402,14 +1552,6 @@ export default function DetalhesSessao() {
                                         </span>
                                         <span>
                                             {formatarData(sessao.startedAt)}
-                                        </span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="texto-leve">
-                                            Duração
-                                        </span>
-                                        <span>
-                                            {formatarDuracao(sessao.durationMs)}
                                         </span>
                                     </div>
                                     {possuiCapacidade("correctWrong") && (
@@ -1438,17 +1580,6 @@ export default function DetalhesSessao() {
                                             </div>
                                         </>
                                     )}
-                                    {possuiCapacidade("clicks") && (
-                                        <div className="info-item">
-                                            <span className="texto-leve">
-                                                Cliques
-                                            </span>
-                                            <span>
-                                                {sessao.metrics?.totalClicks ||
-                                                    0}
-                                            </span>
-                                        </div>
-                                    )}
                                     {possuiCapacidade("inactivity") && (
                                         <div className="info-item">
                                             <span className="texto-leve">
@@ -1462,7 +1593,7 @@ export default function DetalhesSessao() {
                                     )}
                                 </div>
                                 <div className="telemetria-aviso">
-                                    <strong>Dados disponíveis nesta sessão</strong>
+                                    <strong>O que foi registrado nesta atividade</strong>
                                     <span>{dadosDisponiveis.join(" • ")}</span>
                                 </div>
                             </div>
@@ -1471,7 +1602,7 @@ export default function DetalhesSessao() {
                             <div className="card secao-card">
                                 <div className="heatmap-cabecalho">
                                     <div>
-                                        <h3>Mapa de Interações</h3>
+                                        <h3>Mapa da atividade</h3>
                                         <div className="heatmap-legenda">
                                             {temFasesConfiaveis &&
                                                 CORES_FASES.map((fase) => (
@@ -1518,8 +1649,8 @@ export default function DetalhesSessao() {
                                             )}
                                             {possuiCapacidade("dragPath") && (
                                                 <span className="heatmap-legenda-item">
-                                                    Linha tracejada: ponteiro
-                                                    pressionado
+                                                    <span className="heatmap-legenda-arraste" />
+                                                    Roxo tracejado: arraste
                                                 </span>
                                             )}
                                             {possuiCapacidade("clicks") && (
@@ -1719,9 +1850,45 @@ export default function DetalhesSessao() {
                         {/* Coluna direita — sequência de eventos */}
                         <div className="detalhes-coluna">
                             <div className="card secao-card">
-                                <h3>Sequência da Sessão</h3>
+                                <h3>
+                                    {modoObservacional
+                                        ? "Linha do tempo da interação"
+                                        : "Sequência da sessão"}
+                                </h3>
 
-                                {(() => {
+                                {modoObservacional ? (
+                                    <div className="linha-tempo-observacional">
+                                        {linhaTempoObservacional.map(
+                                            (evento) => (
+                                                <div
+                                                    key={evento.id}
+                                                    className={`evento-observacional ${evento.tipo}`}
+                                                >
+                                                    <span className="evento-observacional-tempo">
+                                                        {(
+                                                            evento.tempo / 1000
+                                                        ).toLocaleString(
+                                                            "pt-BR",
+                                                            {
+                                                                maximumFractionDigits: 1,
+                                                            },
+                                                        )}
+                                                        s
+                                                    </span>
+                                                    <span className="evento-observacional-marcador" />
+                                                    <span className="evento-observacional-conteudo">
+                                                        <strong>
+                                                            {evento.titulo}
+                                                        </strong>
+                                                        <small>
+                                                            {evento.detalhe}
+                                                        </small>
+                                                    </span>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                ) : (() => {
                                     const fasesAgrupadas =
                                         agruparEventosPorFase(
                                             sessao.gameEvents || [],
@@ -1905,7 +2072,7 @@ export default function DetalhesSessao() {
                                                                 1}
                                                         </span>
                                                         <span className="fase-alvo">
-                                                            🎯 Item alvo:{" "}
+                                                            Item alvo:{" "}
                                                             <strong>
                                                                 {
                                                                     faseAtual.targetItem

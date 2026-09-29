@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { textosAnonimos } from "../../config/modoAnonimo";
 import logoLudus from "../../assets/logo-ludus.svg";
+import Icone from "../shared/Icone";
 import "./Sidebar.css";
 
 export default function Sidebar() {
@@ -13,7 +14,7 @@ export default function Sidebar() {
     );
 
     return (
-        <aside className="sidebar">
+        <aside className="sidebar" aria-label="Navegação principal">
             {/* Logo */}
             <div className="sidebar-logo">
                 <img
@@ -24,7 +25,7 @@ export default function Sidebar() {
             </div>
 
             {/* Navegação */}
-            <nav className="sidebar-nav">
+            <nav className="sidebar-nav" aria-label="Seções do sistema">
                 <NavLink
                     to="/"
                     end
@@ -32,7 +33,7 @@ export default function Sidebar() {
                         isActive ? "nav-item ativo" : "nav-item"
                     }
                 >
-                    <span className="nav-icone">📊</span>
+                    <Icone nome="jogos" className="nav-icone" />
                     <span>Jogos</span>
                 </NavLink>
 
@@ -44,7 +45,7 @@ export default function Sidebar() {
                                 isActive ? "nav-item ativo" : "nav-item"
                             }
                         >
-                            <span className="nav-icone">📚</span>
+                            <Icone nome="instituicao" className="nav-icone" />
                             <span>Instituições</span>
                         </NavLink>
 
@@ -54,7 +55,7 @@ export default function Sidebar() {
                                 isActive ? "nav-item ativo" : "nav-item"
                             }
                         >
-                            <span className="nav-icone">👥</span>
+                            <Icone nome="pessoas" className="nav-icone" />
                             <span>Alunos</span>
                         </NavLink>
 
@@ -64,7 +65,7 @@ export default function Sidebar() {
                                 isActive ? "nav-item ativo" : "nav-item"
                             }
                         >
-                            <span className="nav-icone">📥</span>
+                            <Icone nome="coleta" className="nav-icone" />
                             <span>Coletas</span>
                         </NavLink>
                     </>
@@ -88,7 +89,7 @@ export default function Sidebar() {
                             isActive ? "nav-item ativo" : "nav-item"
                         }
                     >
-                        <span className="nav-icone">🏫</span>
+                        <Icone nome="instituicao" className="nav-icone" />
                         <span>Instituições</span>
                     </NavLink>
 
@@ -98,7 +99,7 @@ export default function Sidebar() {
                             isActive ? "nav-item ativo" : "nav-item"
                         }
                     >
-                        <span className="nav-icone">👥</span>
+                        <Icone nome="pessoas" className="nav-icone" />
                         <span>Usuários</span>
                     </NavLink>
                 </>
@@ -118,9 +119,15 @@ export default function Sidebar() {
                     <div className="usuario-info">
                         <div className="usuario-nome">{usuario.name}</div>
                         <div className="usuario-papel">
-                            {usuario.role === "admin"
-                                ? "⚙️ Admin"
-                                : "👨‍🏫 Professor"}
+                            <Icone
+                                nome={
+                                    usuario.role === "admin"
+                                        ? "configuracao"
+                                        : "usuario"
+                                }
+                                tamanho={13}
+                            />
+                            {usuario.role === "admin" ? "Admin" : "Professor"}
                         </div>
                     </div>
                 </NavLink>

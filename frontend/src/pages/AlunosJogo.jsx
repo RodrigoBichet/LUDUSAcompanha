@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
+import Icone from "../components/shared/Icone";
 import ConfirmacaoRemocao from "../components/ConfirmacaoRemocao";
 import { useConfirmacaoRemocao } from "../components/useConfirmacaoRemocao";
 import {
@@ -171,7 +172,7 @@ export default function AlunosJogo() {
 
                 {erro && (
                     <div className="card erro-card">
-                        <span>⚠️</span>
+                        <Icone nome="aviso" titulo="Atenção" />
                         <p>{erro}</p>
                     </div>
                 )}
@@ -183,7 +184,7 @@ export default function AlunosJogo() {
                     </div>
                 ) : alunos.length === 0 ? (
                     <div className="card estado-vazio">
-                        <span className="estado-vazio-icone">👤</span>
+                        <Icone nome="usuario" tamanho={34} className="estado-vazio-icone" />
                         <p>Nenhum aluno associado a este jogo ainda.</p>
                         <p className="texto-leve">
                             Cadastre o primeiro aluno para importar ou acompanhar
@@ -225,7 +226,7 @@ export default function AlunosJogo() {
                                             onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
                                             disabled={remocao.ocupado}
                                         >
-                                            {remocao.ocupado && remocao.alvo?.id === aluno._id ? "…" : "🗑️"}
+                                            {remocao.ocupado && remocao.alvo?.id === aluno._id ? "…" : <Icone nome="excluir" />}
                                         </button>
                                     </div>
                                 )}

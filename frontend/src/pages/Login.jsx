@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { textosAnonimos } from "../config/modoAnonimo";
 import "./Login.css";
+import Icone from "../components/shared/Icone";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -44,7 +45,7 @@ export default function Login() {
             <div className="login-card">
                 {/* Logo */}
                 <div className="login-logo">
-                    <span className="login-logo-icone">🎮</span>
+                    <span className="login-logo-icone"><Icone nome="jogo" tamanho={34} /></span>
                     <div>
                         <div className="login-logo-titulo">LUDUS</div>
                         <div className="login-logo-subtitulo">ACOMPANHA</div>
@@ -90,7 +91,7 @@ export default function Login() {
                     </Link>
 
                     {/* Mensagem de erro */}
-                    {erro && <div className="login-erro">⚠️ {erro}</div>}
+                    {erro && <div className="login-erro"><Icone nome="aviso" titulo="Atenção" /> {erro}</div>}
                     {emailNaoConfirmado && (
                         <Link className="auth-link" to="/confirmar-email">
                             Reenviar confirmação
