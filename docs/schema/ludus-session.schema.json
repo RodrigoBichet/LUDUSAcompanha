@@ -28,7 +28,7 @@
     "mousePath": { "type": "array", "maxItems": 50000, "items": { "$ref": "#/$defs/pathPoint" } },
     "dragPath": { "type": "array", "maxItems": 25000, "items": { "$ref": "#/$defs/dragPoint" } },
     "gameEvents": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/gameEvent" } },
-    "screenshots": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/screenshot" } }
+    "screenshots": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/screenshot" } }
   },
   "$defs": {
     "capabilities": {
@@ -118,11 +118,16 @@
     "screenshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["timestamp", "caminho"],
+      "required": ["timestamp"],
       "properties": {
         "faseIndex": { "type": "integer", "minimum": 0 },
         "phaseId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "contextInstanceId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "timestamp": { "type": "integer", "minimum": 0 },
+        "mimeType": { "const": "image/jpeg" },
+        "widthPx": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "heightPx": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "screenshotBase64": { "type": "string", "minLength": 4, "maxLength": 2800000 },
         "caminho": { "type": "string", "minLength": 1, "maxLength": 2048 }
       }
     }

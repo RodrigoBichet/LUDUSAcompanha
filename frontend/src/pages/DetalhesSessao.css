@@ -91,6 +91,25 @@
     border-top: 3px dashed rgba(167, 139, 250, 1);
 }
 
+.heatmap-legenda-movimento {
+    display: inline-block;
+    width: 24px;
+    border-top: 3px solid var(--cor-primaria);
+}
+
+.heatmap-legenda-clique {
+    display: inline-block;
+    width: 0.72rem;
+    height: 0.72rem;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: #f43f5e;
+    box-shadow:
+        0 0 0 1px rgba(190, 24, 93, 0.72),
+        0 0 7px rgba(244, 63, 94, 0.55);
+    flex-shrink: 0;
+}
+
 /* Timeline de eventos */
 .timeline {
     display: flex;
@@ -226,9 +245,57 @@
 
 .eventos-fase-tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 0.45rem;
     margin-bottom: 0.8rem;
+}
+
+.recortes-navegacao {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 0.8rem;
+}
+
+.recortes-grupo {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 0.65rem;
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.recortes-grupo-cabecalho {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    margin-bottom: 0.55rem;
+}
+
+.recortes-grupo-cabecalho strong {
+    color: var(--cor-texto);
+    font-size: 0.86rem;
+}
+
+.recortes-grupo-cabecalho span {
+    color: var(--cor-texto-leve);
+    font-size: 0.76rem;
+}
+
+.recortes-grupo .heatmap-tabs,
+.recortes-grupo .eventos-fase-tabs {
+    margin-bottom: 0;
+}
+
+.sequencia-recortes-grupo {
+    margin-bottom: 0.75rem;
+}
+
+.eventos-da-fase {
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    margin-bottom: 0.65rem;
+    overflow: hidden;
+    background: var(--cor-card);
 }
 
 .eventos-fase-tab {
@@ -300,10 +367,23 @@
     padding: 0.1rem 0.6rem;
 }
 
+.atividade-contexto {
+    color: var(--cor-texto-leve);
+    font-size: 0.72rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+}
+
 .fase-alvo {
     font-size: 0.85rem;
     color: var(--cor-texto);
     flex: 1;
+}
+
+.fase-sem-eventos {
+    margin: 0;
+    padding: 1rem;
 }
 
 /* Opções da fase */
@@ -380,9 +460,14 @@
 
 .heatmap-tabs {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 0.45rem;
     margin-bottom: 0.8rem;
+}
+
+.heatmap-tab-geral {
+    justify-self: start;
+    min-width: 120px;
 }
 
 .heatmap-tab {

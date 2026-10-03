@@ -1,5 +1,7 @@
 const { after, before, beforeEach, test } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
@@ -1979,6 +1981,141 @@ test("recebe sessao WebGL do SDK e disponibiliza dados para heatmap", async () =
     assert.equal(heatmap.body.viewport.widthPx, 1123);
     assert.equal(heatmap.body.clicks.length, 2);
     assert.equal(heatmap.body.mousePath.length, 3);
+});
+
+test("recebe JPEG do SDK, persiste apenas a referencia e preserva o contexto", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
+    const jpegFicticio = Buffer.from([
+        0xff,
+        0xd8,
+        0xff,
+        0xe0,
+        0x00,
+        0x10,
+        0x4a,
+        0x46,
+        0x49,
+        0x46,
+        0xff,
+        0xd9,
+    ]);
+
+    sessaoWebgl.sessionId = "sdk-webgl-screenshot-ficticio";
+    sessaoWebgl.capabilities.screenshots = true;
+    sessaoWebgl.screenshots = [
+        {
+            contextInstanceId: "contexto-atividade-ficticia",
+            timestamp: 100,
+            mimeType: "image/jpeg",
+            widthPx: 1123,
+            heightPx: 702,
+            screenshotBase64: jpegFicticio.toString("base64"),
+        },
+    ];
+
+    let caminhoCompleto = null;
+
+    try {
+        await request(app).post("/api/sessions").send(sessaoWebgl).expect(201);
+
+        const sessaoSalva = await Session.findOne({
+            sessionId: sessaoWebgl.sessionId,
+        }).lean();
+        const screenshot = sessaoSalva.screenshots[0];
+
+        assert.equal(screenshot.contextInstanceId, "contexto-atividade-ficticia");
+        assert.equal(screenshot.mimeType, "image/jpeg");
+        assert.equal(screenshot.widthPx, 1123);
+        assert.equal(screenshot.heightPx, 702);
+        assert.equal(screenshot.screenshotBase64, undefined);
+        assert.match(
+            screenshot.caminho,
+            /^\/uploads\/screenshots\/sdk-webgl-screenshot-ficticio_captura0_100_[a-f0-9]{12}\.jpg$/,
+        );
+
+        caminhoCompleto = path.join(
+            __dirname,
+            "..",
+            screenshot.caminho.replace(/^\/+/, ""),
+        );
+        assert.equal(fs.existsSync(caminhoCompleto), true);
+        assert.deepEqual(fs.readFileSync(caminhoCompleto), jpegFicticio);
+
+        const heatmap = await request(app)
+            .get(`/api/dashboard/heatmap/${sessaoWebgl.sessionId}`)
+            .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+            .expect(200);
+
+        assert.equal(
+            heatmap.body.screenshots[0].contextInstanceId,
+            "contexto-atividade-ficticia",
+        );
+        assert.equal(heatmap.body.screenshots[0].caminho, screenshot.caminho);
+    } finally {
+        if (caminhoCompleto && fs.existsSync(caminhoCompleto)) {
+            fs.unlinkSync(caminhoCompleto);
+        }
+    }
+});
+
+test("recusa captura Base64 que nao representa JPEG", async () => {
+    const { alunoA } = await criarCenarioEscolar();
+    const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
+
+    sessaoWebgl.sessionId = "sdk-webgl-screenshot-invalido";
+    sessaoWebgl.capabilities.screenshots = true;
+    sessaoWebgl.screenshots = [
+        {
+            timestamp: 100,
+            mimeType: "image/jpeg",
+            screenshotBase64: Buffer.from("conteudo-invalido").toString(
+                "base64",
+            ),
+        },
+    ];
+
+    const resposta = await request(app)
+        .post("/api/sessions")
+        .send(sessaoWebgl)
+        .expect(400);
+
+    assert.equal(
+        resposta.body.mensagem,
+        "A captura visual não possui uma assinatura JPEG reconhecida.",
+    );
+    assert.equal(
+        await Session.countDocuments({ sessionId: sessaoWebgl.sessionId }),
+        0,
+    );
+});
+
+test("recusa referencia de screenshot pertencente a outra sessao", async () => {
+    const { alunoA } = await criarCenarioEscolar();
+    const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
+
+    sessaoWebgl.sessionId = "sdk-webgl-referencia-invalida";
+    sessaoWebgl.capabilities.screenshots = true;
+    sessaoWebgl.screenshots = [
+        {
+            timestamp: 100,
+            caminho: "/uploads/screenshots/outra-sessao_captura0.jpg",
+        },
+    ];
+
+    const resposta = await request(app)
+        .post("/api/sessions")
+        .send(sessaoWebgl)
+        .expect(400);
+
+    assert.equal(
+        resposta.body.mensagem,
+        "A referência de uma captura visual não pertence a esta sessão.",
+    );
+    assert.equal(
+        await Session.countDocuments({ sessionId: sessaoWebgl.sessionId }),
+        0,
+    );
 });
 
 test("exclusao protegida preserva aluno e sessoes vinculadas", async () => {

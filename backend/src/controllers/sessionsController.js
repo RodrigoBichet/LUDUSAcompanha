@@ -32,9 +32,161 @@ const {
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
 
-// Pasta onde os screenshots das fases serão salvos
+// Pasta onde as capturas visuais das sessões serão salvas.
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
 const PASTA_SCREENSHOTS = path.join(__dirname, "../../uploads/screenshots");
+const MAX_SCREENSHOTS_POR_SESSAO = 20;
+const MAX_BYTES_POR_SCREENSHOT = 2 * 1024 * 1024;
+const MAX_BYTES_SCREENSHOTS_POR_SESSAO = 8 * 1024 * 1024;
+const MAX_CARACTERES_BASE64 = 2800000;
+const PADRAO_BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+const PADRAO_CAMINHO_SCREENSHOT =
+    /^\/uploads\/screenshots\/[A-Za-z0-9._-]+$/;
+
+const criarErroScreenshot = (mensagem) =>
+    new ErroValidacaoTelemetria(mensagem, ["screenshots"]);
+
+const normalizarSessionIdParaArquivo = (sessionId) =>
+    String(sessionId).replace(/[^A-Za-z0-9._-]/g, "_");
+
+const removerArquivosCriados = (arquivos) => {
+    for (const arquivo of arquivos) {
+        try {
+            if (fs.existsSync(arquivo)) fs.unlinkSync(arquivo);
+        } catch (erro) {
+            console.warn(
+                "[LUDUS] Não foi possível limpar screenshot parcial:",
+                erro.message,
+            );
+        }
+    }
+};
+
+const decodificarJpegBase64 = (valor) => {
+    if (
+        typeof valor !== "string" ||
+        valor.length < 4 ||
+        valor.length > MAX_CARACTERES_BASE64 ||
+        valor.length % 4 !== 0 ||
+        !PADRAO_BASE64.test(valor)
+    ) {
+        throw criarErroScreenshot(
+            "Uma captura visual possui conteúdo Base64 inválido.",
+        );
+    }
+
+    const buffer = Buffer.from(valor, "base64");
+    const entradaCanonica = valor.replace(/=+$/u, "");
+    const bufferCanonico = buffer.toString("base64").replace(/=+$/u, "");
+
+    if (entradaCanonica !== bufferCanonico) {
+        throw criarErroScreenshot(
+            "Uma captura visual possui conteúdo Base64 inválido.",
+        );
+    }
+
+    if (buffer.length > MAX_BYTES_POR_SCREENSHOT) {
+        throw criarErroScreenshot(
+            "Cada captura visual deve possuir no máximo 2 MB.",
+        );
+    }
+
+    const iniciaComoJpeg =
+        buffer.length >= 5 &&
+        buffer[0] === 0xff &&
+        buffer[1] === 0xd8 &&
+        buffer[2] === 0xff;
+    const terminaComoJpeg =
+        buffer.length >= 2 &&
+        buffer[buffer.length - 2] === 0xff &&
+        buffer[buffer.length - 1] === 0xd9;
+
+    if (!iniciaComoJpeg || !terminaComoJpeg) {
+        throw criarErroScreenshot(
+            "A captura visual não possui uma assinatura JPEG reconhecida.",
+        );
+    }
+
+    return buffer;
+};
+
+const validarScreenshotsRecebidos = (dados) => {
+    const screenshots = dados.screenshots || [];
+
+    if (!Array.isArray(screenshots)) {
+        throw criarErroScreenshot("screenshots deve ser uma lista.");
+    }
+
+    if (screenshots.length > MAX_SCREENSHOTS_POR_SESSAO) {
+        throw criarErroScreenshot(
+            `Uma sessão pode conter no máximo ${MAX_SCREENSHOTS_POR_SESSAO} capturas visuais.`,
+        );
+    }
+
+    let totalBytes = 0;
+    const sessionIdSeguro = normalizarSessionIdParaArquivo(dados.sessionId);
+
+    for (const screenshot of screenshots) {
+        if (!screenshot || typeof screenshot !== "object") {
+            throw criarErroScreenshot("Uma captura visual é inválida.");
+        }
+
+        if (
+            !Number.isInteger(screenshot.timestamp) ||
+            screenshot.timestamp < 0 ||
+            (Number.isInteger(dados.durationMs) &&
+                screenshot.timestamp > dados.durationMs)
+        ) {
+            throw criarErroScreenshot(
+                "Uma captura visual possui timestamp inválido.",
+            );
+        }
+
+        if (
+            screenshot.faseIndex !== undefined &&
+            (!Number.isInteger(screenshot.faseIndex) ||
+                screenshot.faseIndex < 0)
+        ) {
+            throw criarErroScreenshot(
+                "Uma captura visual possui índice de fase inválido.",
+            );
+        }
+
+        if (
+            screenshot.mimeType !== undefined &&
+            screenshot.mimeType !== "image/jpeg"
+        ) {
+            throw criarErroScreenshot(
+                "A primeira versão de capturas visuais aceita somente JPEG.",
+            );
+        }
+
+        if (screenshot.screenshotBase64) {
+            totalBytes += decodificarJpegBase64(
+                screenshot.screenshotBase64,
+            ).length;
+            continue;
+        }
+
+        if (
+            typeof screenshot.caminho !== "string" ||
+            !PADRAO_CAMINHO_SCREENSHOT.test(screenshot.caminho) ||
+            !path
+                .basename(screenshot.caminho)
+                .startsWith(`${sessionIdSeguro}_`)
+        ) {
+            throw criarErroScreenshot(
+                "A referência de uma captura visual não pertence a esta sessão.",
+            );
+        }
+    }
+
+    if (totalBytes > MAX_BYTES_SCREENSHOTS_POR_SESSAO) {
+        throw criarErroScreenshot(
+            "As capturas visuais da sessão ultrapassam o limite total de 8 MB.",
+        );
+    }
+};
 
 // -------------------------------------------------------------------------
 // processarScreenshots
@@ -45,51 +197,76 @@ const PASTA_SCREENSHOTS = path.join(__dirname, "../../uploads/screenshots");
 // -------------------------------------------------------------------------
 
 const processarScreenshots = (screenshots, sessionId) => {
-    // Garante que a pasta de destino existe antes de tentar salvar
-    if (!fs.existsSync(PASTA_SCREENSHOTS)) {
-        fs.mkdirSync(PASTA_SCREENSHOTS, { recursive: true });
-    }
+    const sessionIdSeguro = normalizarSessionIdParaArquivo(sessionId);
+    const arquivosCriados = [];
+    const capturasProcessadas = [];
 
-    const sessionIdSeguro = String(sessionId).replace(/[^A-Za-z0-9._-]/g, "_");
-
-    return screenshots.map((screenshot) => {
-        // Referências já existentes são preservadas. O Unity legado envia
-        // screenshotBase64, que é convertido para um caminho local abaixo.
-        if (!screenshot.screenshotBase64) {
-            return {
+    try {
+        for (const [indice, screenshot] of screenshots.entries()) {
+            const capturaPersistida = {
                 faseIndex: screenshot.faseIndex,
                 phaseId: screenshot.phaseId,
+                contextInstanceId: screenshot.contextInstanceId,
                 timestamp: screenshot.timestamp,
+                mimeType: screenshot.mimeType || "image/jpeg",
+                widthPx: screenshot.widthPx,
+                heightPx: screenshot.heightPx,
                 caminho: screenshot.caminho || null,
             };
+
+            // Referências locais já existentes são preservadas. O Unity envia
+            // screenshotBase64, convertido abaixo para um arquivo persistente.
+            if (!screenshot.screenshotBase64) {
+                if (
+                    !path
+                        .basename(screenshot.caminho)
+                        .startsWith(`${sessionIdSeguro}_`)
+                ) {
+                    throw criarErroScreenshot(
+                        "A referência de uma captura visual não pertence à sessão persistida.",
+                    );
+                }
+                capturasProcessadas.push(capturaPersistida);
+                continue;
+            }
+
+            if (!fs.existsSync(PASTA_SCREENSHOTS)) {
+                fs.mkdirSync(PASTA_SCREENSHOTS, { recursive: true });
+            }
+
+            const buffer = decodificarJpegBase64(
+                screenshot.screenshotBase64,
+            );
+            const sufixo = crypto.randomBytes(6).toString("hex");
+            const nomeArquivo =
+                `${sessionIdSeguro}_captura${indice}_${screenshot.timestamp}_${sufixo}.jpg`;
+            const caminhoCompleto = path.join(PASTA_SCREENSHOTS, nomeArquivo);
+
+            fs.writeFileSync(caminhoCompleto, buffer, { flag: "wx" });
+            arquivosCriados.push(caminhoCompleto);
+            capturaPersistida.caminho =
+                `/uploads/screenshots/${nomeArquivo}`;
+            capturasProcessadas.push(capturaPersistida);
+
+            console.log(`[LUDUS] Screenshot salvo: ${nomeArquivo}`);
         }
 
-        // Nome do arquivo: sessionId_faseN.jpg — garante unicidade
-        const nomeArquivo = `${sessionIdSeguro}_fase${screenshot.faseIndex}.jpg`;
-        const caminhoCompleto = path.join(PASTA_SCREENSHOTS, nomeArquivo);
-
-        // Decodifica o base64 e salva como arquivo binário
-        const buffer = Buffer.from(screenshot.screenshotBase64, "base64");
-        fs.writeFileSync(caminhoCompleto, buffer);
-
-        console.log(`[LUDUS] Screenshot salvo: ${nomeArquivo}`);
-
-        // Retorna o objeto sem o base64 — só com o caminho público
-        return {
-            faseIndex: screenshot.faseIndex,
-            phaseId: screenshot.phaseId,
-            timestamp: screenshot.timestamp,
-            caminho: `/uploads/screenshots/${nomeArquivo}`,
-        };
-    });
+        return { capturasProcessadas, arquivosCriados };
+    } catch (erro) {
+        removerArquivosCriados(arquivosCriados);
+        throw erro;
+    }
 };
 
 const validarENormalizarSessao = (dadosBrutos) => {
     const resultadoValidacao = validarSessaoTelemetria(dadosBrutos);
-    return normalizarSessaoTelemetria(
+    const dadosNormalizados = normalizarSessaoTelemetria(
         resultadoValidacao.dados,
         resultadoValidacao.tipo,
     );
+
+    validarScreenshotsRecebidos(dadosNormalizados);
+    return dadosNormalizados;
 };
 
 const salvarSessaoNormalizada = async (
@@ -110,15 +287,26 @@ const salvarSessaoNormalizada = async (
         (screenshot) => Boolean(screenshot.screenshotBase64),
     );
 
+    let arquivosCriados = [];
+
     if (temScreenshots) {
-        dados.screenshots = processarScreenshots(
+        const resultadoScreenshots = processarScreenshots(
             dados.screenshots,
             dados.sessionId,
         );
+        dados.screenshots = resultadoScreenshots.capturasProcessadas;
+        arquivosCriados = resultadoScreenshots.arquivosCriados;
     }
 
-    const sessao = new Session(dados);
-    await sessao.save();
+    let sessao;
+
+    try {
+        sessao = new Session(dados);
+        await sessao.save();
+    } catch (erro) {
+        removerArquivosCriados(arquivosCriados);
+        throw erro;
+    }
 
     if (resetarCapturaSolicitada && temCapturasBase64) {
         try {
@@ -432,10 +620,11 @@ const criarSessao = async (req, res) => {
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao salvar sessão:", erro.message);
-        if (erro.status) {
-            return res.status(erro.status).json({
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
                 sucesso: false,
                 mensagem: erro.message,
+                detalhes: erro.detalhes || [],
             });
         }
         return res.status(500).json({

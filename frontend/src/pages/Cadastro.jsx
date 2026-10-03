@@ -29,7 +29,7 @@ export default function Cadastro() {
     };
 
     return <div className="login-fundo"><div className="login-card">
-        <h1 className="login-titulo">Criar conta de professora</h1>
+        <h1 className="login-titulo">Criar conta de professor(a)</h1>
         <p className="login-subtitulo texto-leve">Após confirmar seu e-mail, uma pessoa administradora poderá vincular sua conta à instituição.</p>
         {resultado ? <div className="auth-acoes">
             <div className="auth-sucesso">{resultado.mensagem}</div>

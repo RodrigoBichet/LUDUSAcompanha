@@ -155,6 +155,19 @@ const validarCoerenciaCanonica = (dados) => {
         );
     }
 
+    for (const screenshot of dados.screenshots || []) {
+        adicionarErro(
+            erros,
+            screenshot.timestamp > durationMs,
+            "screenshots possui timestamp fora da duração da sessão.",
+        );
+        adicionarErro(
+            erros,
+            !screenshot.caminho && !screenshot.screenshotBase64,
+            "screenshots possui item sem imagem ou referência.",
+        );
+    }
+
     if (erros.length > 0) {
         throw new ErroValidacaoTelemetria(
             "Sessão canônica possui incoerências de telemetria.",

@@ -303,6 +303,20 @@ export default function PerfilAluno() {
                 })),
         [sessoes],
     );
+    const resumoCapturasVisuais = useMemo(() => {
+        const sessoesComCaptura = sessoes.filter(
+            (sessao) => (sessao.screenshots?.length || 0) > 0,
+        );
+
+        return {
+            totalSessoes: sessoesComCaptura.length,
+            totalImagens: sessoesComCaptura.reduce(
+                (total, sessao) =>
+                    total + (sessao.screenshots?.length || 0),
+                0,
+            ),
+        };
+    }, [sessoes]);
     const turmasDaInstituicao = useMemo(
         () =>
             turmas.filter((turma) => {
@@ -1330,28 +1344,34 @@ export default function PerfilAluno() {
                                 )}
 
                                 {!editando && (
-                                    <div className="captura-card recurso-futuro">
+                                    <div
+                                        className={`captura-card${
+                                            resumoCapturasVisuais.totalImagens > 0
+                                                ? " captura-card-ativo"
+                                                : ""
+                                        }`}
+                                    >
                                         <div className="captura-card-icone">
                                             <Icone nome="imagem" />
                                         </div>
 
                                         <div className="captura-card-texto">
                                             <strong>
-                                                Captura visual do jogo
+                                                Capturas visuais das atividades
                                             </strong>
                                             <p className="texto-leve">
-                                                Recurso planejado para uma versão
-                                                futura e ainda indisponível.
+                                                {resumoCapturasVisuais.totalImagens > 0
+                                                    ? `${resumoCapturasVisuais.totalSessoes} ${resumoCapturasVisuais.totalSessoes === 1 ? "atividade possui" : "atividades possuem"} ${resumoCapturasVisuais.totalImagens} ${resumoCapturasVisuais.totalImagens === 1 ? "imagem de referência" : "imagens de referência"}. Abra uma atividade para analisá-las com o mapa de interações.`
+                                                    : "Nenhuma atividade possui imagem de referência. As capturas são opcionais e dependem da configuração do jogo."}
                                             </p>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            className="btn-captura"
-                                            disabled
+                                        <span
+                                            className="captura-card-contagem"
+                                            aria-label={`${resumoCapturasVisuais.totalImagens} capturas visuais disponíveis`}
                                         >
-                                            Disponível futuramente
-                                        </button>
+                                            {resumoCapturasVisuais.totalImagens}
+                                        </span>
                                     </div>
                                 )}
 

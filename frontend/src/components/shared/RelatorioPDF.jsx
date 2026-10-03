@@ -148,7 +148,7 @@ export default function RelatorioPDF({
             return "Mapa sem imagem de fundo";
         }
 
-        return `${quantidade} ${quantidade > 1 ? "imagens" : "imagem"} por fase`;
+        return `${quantidade} ${quantidade > 1 ? "capturas visuais" : "captura visual"}`;
     };
 
     return (
@@ -440,10 +440,11 @@ export default function RelatorioPDF({
 
                         <p className="pdf-texto-intro">
                             O LUDUS Acompanha registra os movimentos e cliques
-                            realizados durante o jogo. Quando há imagem da fase,
-                            o mapa pode ser analisado sobre a própria tela
-                            jogada. Quando não há imagem disponível, o sistema
-                            apresenta um mapa geral das interações da sessão.
+                            realizados durante o jogo. Quando há captura visual,
+                            o mapa pode ser analisado sobre a tela registrada
+                            naquele momento. Quando não há imagem disponível, o
+                            sistema apresenta um mapa geral das interações da
+                            sessão.
                         </p>
 
                         <div className="pdf-mapas-resumo">
@@ -452,7 +453,7 @@ export default function RelatorioPDF({
                                     {totalSessoesComImagem}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Sessões com imagens da fase
+                                    Sessões com captura visual
                                 </span>
                             </div>
 
@@ -461,7 +462,7 @@ export default function RelatorioPDF({
                                     {totalSessoesSemImagem}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Sessões sem imagem de fundo
+                                    Sessões sem captura visual
                                 </span>
                             </div>
 
@@ -470,7 +471,7 @@ export default function RelatorioPDF({
                                     {totalImagensCapturadas}
                                 </span>
                                 <span className="pdf-mapa-resumo-label">
-                                    Imagens das fases{" "}
+                                    Capturas visuais{" "}
                                 </span>
                             </div>
                         </div>

@@ -92,14 +92,21 @@ const GameEventSchema = new mongoose.Schema(
     { _id: false },
 );
 
-// Sub-schema do screenshot de uma fase
+// Sub-schema de uma captura visual da sessão.
 // O campo screenshotBase64 existe apenas no JSON do Unity — o backend
 // extrai, salva como arquivo e armazena somente o caminho público aqui.
 const FaseScreenshotSchema = new mongoose.Schema(
     {
-        faseIndex: { type: Number }, // Índice da fase (0, 1, 2, 3)
+        // Campos de fase são preservados para sessões históricas.
+        faseIndex: { type: Number },
         phaseId: { type: String },
+        // Contextos permitem associar a imagem a uma atividade genérica,
+        // mesmo quando o jogo não trabalha com fases.
+        contextInstanceId: { type: String },
         timestamp: { type: Number }, // Ms desde o início da sessão
+        mimeType: { type: String, default: "image/jpeg" },
+        widthPx: { type: Number },
+        heightPx: { type: Number },
         caminho: { type: String, default: null }, // Ex: /uploads/screenshots/abc_fase0.jpg
     },
     { _id: false },
@@ -151,8 +158,8 @@ const SessionSchema = new mongoose.Schema(
         dragPath: { type: [DragPathPointSchema], default: [] },
         gameEvents: { type: [GameEventSchema], default: [] },
 
-        // Screenshots capturados pelo SDK Unity a cada início de fase.
-        // Vazios (array vazio) quando a captura não estava ativa na sessão.
+        // Capturas visuais opcionais do SDK. Sessões antigas podem associá-las
+        // a fases; integrações genéricas podem associá-las a contextos.
         screenshots: { type: [FaseScreenshotSchema], default: [] },
     },
     {

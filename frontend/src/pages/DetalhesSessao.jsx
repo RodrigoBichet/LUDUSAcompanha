@@ -122,6 +122,42 @@ const formatarDistancia = (valor) => {
     return `${Math.round(valor).toLocaleString("pt-BR")} px`;
 };
 
+const agruparItensPorFase = (itens = []) => {
+    const grupos = [];
+    const gruposPorChave = new Map();
+
+    itens.forEach((item, indiceGlobal) => {
+        const chave = item.faseChave || item.faseId || "sem-fase";
+
+        if (!gruposPorChave.has(chave)) {
+            const grupo = {
+                chave,
+                faseId: item.faseId || "",
+                faseNome: item.faseNome || "Atividades acompanhadas",
+                categoria: item.categoria || "",
+                eventosFase: [],
+                itens: [],
+            };
+            gruposPorChave.set(chave, grupo);
+            grupos.push(grupo);
+        }
+
+        const grupo = gruposPorChave.get(chave);
+        grupo.itens.push({ ...item, indiceGlobal });
+
+        (item.eventosFase || []).forEach((evento) => {
+            const jaIncluido = grupo.eventosFase.some(
+                (existente) =>
+                    existente.eventType === evento.eventType &&
+                    existente.timestamp === evento.timestamp,
+            );
+            if (!jaIncluido) grupo.eventosFase.push(evento);
+        });
+    });
+
+    return grupos;
+};
+
 export default function DetalhesSessao() {
     const { sessionId } = useParams();
     const navegar = useNavigate();
@@ -246,9 +282,14 @@ export default function DetalhesSessao() {
                 setNomesJogos(
                     criarMapaNomesJogos(resJogos?.data?.jogos || []),
                 );
+                const possuiCapturaVisual =
+                    sessaoCarregada?.capabilities?.screenshots !== false &&
+                    (resHeatmap.data?.screenshots?.length || 0) > 0;
                 setFaseSelecionada(
                     sessaoCarregada?.capabilities?.phaseEvents === false
-                        ? -1
+                        ? possuiCapturaVisual
+                            ? 0
+                            : -1
                         : 0,
                 );
                 setFaseEventosSelecionada(0);
@@ -259,25 +300,6 @@ export default function DetalhesSessao() {
                 setCarregando(false);
             });
     }, [sessionId]);
-
-    const obterFasesHeatmap = useCallback(() => {
-        if (!heatmap || !temFasesConfiaveis) return [];
-
-        const fases = heatmap.fases || [];
-        const screenshots = heatmap.screenshots || [];
-        const minimoLegado = sessao?.capabilities ? 0 : 4;
-        const total = Math.max(fases.length, screenshots.length, minimoLegado);
-
-        return Array.from({ length: total }, (_, index) => ({
-            faseIndex: index,
-            timestamp:
-                fases[index]?.timestamp ?? screenshots[index]?.timestamp ?? 0,
-            screenshot:
-                screenshots.find((s) => s.faseIndex === index) ||
-                screenshots[index] ||
-            null,
-        }));
-    }, [heatmap, sessao?.capabilities, temFasesConfiaveis]);
 
     const obterContextosCaptura = useCallback(() => {
         const contextos = [];
@@ -318,6 +340,162 @@ export default function DetalhesSessao() {
         return contextos.sort((a, b) => a.timestamp - b.timestamp);
     }, [sessao]);
 
+    const obterFasesJogo = useCallback(() => {
+        const fases = [];
+        let categoriaAtual = "";
+
+        [...(sessao?.gameEvents || [])]
+            .sort(
+                (a, b) =>
+                    Number(a?.timestamp || 0) - Number(b?.timestamp || 0),
+            )
+            .forEach((evento) => {
+                const payload = obterPayloadEvento(evento);
+
+                if (evento.eventType === "CategorySelected") {
+                    categoriaAtual = payload.category || categoriaAtual;
+                    return;
+                }
+
+                if (evento.eventType !== "PhaseStarted") return;
+
+                const indice = fases.length;
+                const faseId =
+                    payload.phaseId || payload.phaseName || `fase-${indice + 1}`;
+
+                fases.push({
+                    faseIndex: indice,
+                    faseId,
+                    faseNome:
+                        payload.phaseName || payload.phaseId || `Fase ${indice + 1}`,
+                    categoria: payload.category || categoriaAtual,
+                    timestamp: Number(evento.timestamp || 0),
+                    endTimestamp: sessao?.durationMs ?? Infinity,
+                });
+            });
+
+        return fases.map((fase, index) => ({
+            ...fase,
+            endTimestamp:
+                fases[index + 1]?.timestamp ??
+                sessao?.durationMs ??
+                Infinity,
+        }));
+    }, [sessao]);
+
+    const obterRecortesHeatmap = useCallback(() => {
+        if (!heatmap) return [];
+
+        const contextos = obterContextosCaptura();
+        const fasesJogo = obterFasesJogo();
+        const screenshots = [...(heatmap.screenshots || [])].sort(
+            (a, b) => Number(a?.timestamp || 0) - Number(b?.timestamp || 0),
+        );
+
+        const recortesVisuais = screenshots.map((screenshot) => {
+            const timestamp = Number(screenshot?.timestamp || 0);
+            const contexto =
+                contextos.find(
+                    (item) =>
+                        screenshot?.contextInstanceId &&
+                        item.identificador === screenshot.contextInstanceId,
+                ) ||
+                contextos.find(
+                    (item) =>
+                        timestamp >= item.timestamp &&
+                        timestamp <= item.endTimestamp,
+                );
+
+            return {
+                identificador:
+                    contexto?.identificador ||
+                    screenshot?.contextInstanceId ||
+                    `captura-${timestamp}`,
+                contextName: contexto?.nome || "Recorte acompanhado",
+                timestamp: contexto?.timestamp ?? timestamp,
+                contextEndTimestamp: contexto?.endTimestamp,
+                screenshot,
+            };
+        });
+
+        const contextosRelevantes = contextos.some(
+            (contexto) => contexto.tipo !== "scene",
+        )
+            ? contextos.filter((contexto) => contexto.tipo !== "scene")
+            : contextos;
+
+        const recortesBase =
+            recortesVisuais.length > 0
+                ? recortesVisuais
+                : contextosRelevantes.length > 0
+                  ? contextosRelevantes.map((contexto) => ({
+                        identificador: contexto.identificador,
+                        contextName: contexto.nome,
+                        timestamp: contexto.timestamp,
+                        contextEndTimestamp: contexto.endTimestamp,
+                        screenshot: null,
+                    }))
+                  : fasesJogo.map((fase) => ({
+                        identificador: `fase-${fase.faseId}`,
+                        contextName: fase.faseNome,
+                        timestamp: fase.timestamp,
+                        contextEndTimestamp: fase.endTimestamp,
+                        screenshot: null,
+                    }));
+
+        const contadorAtividades = new Map();
+
+        return recortesBase.map((recorte, index) => {
+            const timestamp = Number(recorte.timestamp || 0);
+            const fase = fasesJogo.find(
+                (item) =>
+                    timestamp >= item.timestamp &&
+                    timestamp < item.endTimestamp,
+            );
+            const chaveFase = fase?.faseId || "sem-fase";
+            const atividadeIndex = contadorAtividades.get(chaveFase) || 0;
+            contadorAtividades.set(chaveFase, atividadeIndex + 1);
+
+            const proximoRecorteMesmaFase = recortesBase
+                .slice(index + 1)
+                .find((proximo) => {
+                    const proximoTimestamp = Number(proximo.timestamp || 0);
+                    if (!fase) return true;
+                    return (
+                        proximoTimestamp >= fase.timestamp &&
+                        proximoTimestamp < fase.endTimestamp
+                    );
+                });
+
+            return {
+                ...recorte,
+                faseIndex: fase?.faseIndex ?? 0,
+                faseId: fase?.faseId || "",
+                faseChave: fase
+                    ? `${fase.faseIndex}-${fase.faseId}`
+                    : "sem-fase",
+                faseNome: fase?.faseNome || "Atividades acompanhadas",
+                categoria: fase?.categoria || "",
+                faseTimestamp: fase?.timestamp ?? timestamp,
+                faseEndTimestamp:
+                    fase?.endTimestamp ?? sessao?.durationMs ?? Infinity,
+                atividadeIndex,
+                nome: `Atividade ${atividadeIndex + 1}`,
+                endTimestamp:
+                    recorte.contextEndTimestamp ??
+                    proximoRecorteMesmaFase?.timestamp ??
+                    fase?.endTimestamp ??
+                    sessao?.durationMs ??
+                    Infinity,
+            };
+        });
+    }, [
+        heatmap,
+        obterContextosCaptura,
+        obterFasesJogo,
+        sessao?.durationMs,
+    ]);
+
     const carregarImagem = (url) =>
         new Promise((resolve, reject) => {
             const img = new Image();
@@ -337,42 +515,36 @@ export default function DetalhesSessao() {
             const canvas = canvasRef.current;
             const ctx = canvas.getContext("2d");
 
-            const fases = obterFasesHeatmap();
+            const recortes = obterRecortesHeatmap();
             const contextosCaptura = obterContextosCaptura();
-            const visualizacaoGeral =
-                !temFasesConfiaveis || faseSelecionada === -1;
+            const visualizacaoGeral = faseSelecionada === -1;
 
-            const intervalosMapa = temFasesConfiaveis
-                ? fases.map((fase, index) => ({
-                      inicio: fase?.timestamp ?? 0,
-                      fim:
-                          fases[index + 1]?.timestamp ??
-                          sessao?.durationMs ??
-                          Infinity,
-                  }))
-                : contextosCaptura.map((contexto) => ({
-                      inicio: contexto.timestamp,
-                      fim: contexto.endTimestamp,
-                  }));
+            const intervalosMapa = recortes.map((recorte, index) => ({
+                inicio: recorte?.timestamp ?? 0,
+                fim:
+                    recorte?.endTimestamp ??
+                    recortes[index + 1]?.timestamp ??
+                    sessao?.durationMs ??
+                    Infinity,
+            }));
 
-            const faseAtual = visualizacaoGeral
+            const recorteAtual = visualizacaoGeral
                 ? null
-                : fases[faseSelecionada] || fases[0];
-            const proximaFase = visualizacaoGeral
-                ? null
-                : fases[faseSelecionada + 1];
+                : recortes[faseSelecionada] || recortes[0];
 
-            const inicioFase = visualizacaoGeral
+            const inicioRecorte = visualizacaoGeral
                 ? 0
-                : (faseAtual?.timestamp ?? 0);
-            const fimFase = visualizacaoGeral
+                : (recorteAtual?.timestamp ?? 0);
+            const fimRecorte = visualizacaoGeral
                 ? (sessao?.durationMs ?? Infinity)
-                : (proximaFase?.timestamp ?? sessao?.durationMs ?? Infinity);
+                : (recorteAtual?.endTimestamp ??
+                  sessao?.durationMs ??
+                  Infinity);
 
-            // A visão geral usa fundo neutro para mostrar todas as fases sem misturar prints
+            // A visão geral usa fundo neutro para não misturar capturas de momentos diferentes.
             const screenshotUrl = visualizacaoGeral
                 ? null
-                : montarUrlImagem(faseAtual?.screenshot?.caminho);
+                : montarUrlImagem(recorteAtual?.screenshot?.caminho);
 
             let imagemFundo = null;
             if (screenshotUrl) {
@@ -416,7 +588,7 @@ export default function DetalhesSessao() {
 
             const dentroDaFase = (item) => {
                 const tempo = item.t ?? item.timestamp ?? 0;
-                return tempo >= inicioFase && tempo < fimFase;
+                return tempo >= inicioRecorte && tempo < fimRecorte;
             };
 
             const pontos = pontosTodos.filter(dentroDaFase);
@@ -427,10 +599,10 @@ export default function DetalhesSessao() {
 
             let imagemReferencia = imagemFundo;
 
-            if (!imagemReferencia && fases[0]?.screenshot?.caminho) {
+            if (!imagemReferencia && recortes[0]?.screenshot?.caminho) {
                 try {
                     imagemReferencia = await carregarImagem(
-                        montarUrlImagem(fases[0].screenshot.caminho),
+                        montarUrlImagem(recortes[0].screenshot.caminho),
                     );
                 } catch {
                     imagemReferencia = null;
@@ -448,20 +620,16 @@ export default function DetalhesSessao() {
             if (imagemFundo) {
                 ctx.drawImage(imagemFundo, 0, 0, W, H);
 
-                // Escurece levemente o print para destacar cliques e trajetos
-                ctx.fillStyle = "rgba(28, 43, 58, 0.18)";
+                // A captura serve apenas como referência: a telemetria deve
+                // permanecer como a informação visual de maior destaque.
+                ctx.fillStyle = "rgba(6, 12, 20, 0.42)";
                 ctx.fillRect(0, 0, W, H);
             } else {
                 ctx.fillStyle = "#1C2B3A";
                 ctx.fillRect(0, 0, W, H);
             }
 
-            const coordenadaComImagem = (x, y) => ({
-                x: Math.max(0, Math.min(W, x)),
-                y: Math.max(0, Math.min(H, H - y)),
-            });
-
-            const coordenadaFallback = (x, y) => {
+            const mapearCoordenada = (x, y) => {
                 const larguraReferencia = Math.max(
                     1,
                     sessao?.viewport?.widthPx ||
@@ -483,11 +651,6 @@ export default function DetalhesSessao() {
                     ),
                 };
             };
-
-            const mapearCoordenada = (x, y) =>
-                imagemReferencia
-                    ? coordenadaComImagem(x, y)
-                    : coordenadaFallback(x, y);
 
             const obterFaseIndexPorTempo = (item) => {
                 const tempo = item.t ?? item.timestamp ?? 0;
@@ -564,10 +727,7 @@ export default function DetalhesSessao() {
                 ctx.save();
 
                 ctx.beginPath();
-                const corFase = obterCorFase(faseIndex ?? 0);
-                const corArraste = modoObservacional
-                    ? "rgba(167, 139, 250, 0.98)"
-                    : corFase.linha;
+                const corArraste = "rgba(167, 139, 250, 0.98)";
 
                 ctx.strokeStyle = corArraste;
                 ctx.lineWidth = Math.max(4, W * 0.0018);
@@ -616,9 +776,7 @@ export default function DetalhesSessao() {
                     const pos = mapearCoordenada(p.x, p.y);
                     const tamanho = Math.max(7, W * 0.005);
 
-                    const corMarcador = modoObservacional
-                        ? "rgba(167, 139, 250, 1)"
-                        : obterCorFase(faseIndex ?? 0).linha;
+                    const corMarcador = "rgba(196, 181, 253, 1)";
 
                     ctx.save();
                     ctx.strokeStyle = corMarcador;
@@ -710,6 +868,7 @@ export default function DetalhesSessao() {
 
                 ctx.save();
                 ctx.strokeStyle = corFase;
+                ctx.shadowColor = corFase;
                 ctx.lineWidth = Math.max(7, W * 0.003);
                 ctx.lineCap = "round";
                 ctx.lineJoin = "round";
@@ -728,8 +887,15 @@ export default function DetalhesSessao() {
                         return;
                     }
 
+                    const arrasteDestacado = s.tipo === "arraste";
+                    ctx.strokeStyle = arrasteDestacado
+                        ? "rgba(196, 181, 253, 1)"
+                        : corFase;
+                    ctx.shadowColor = arrasteDestacado
+                        ? "rgba(139, 92, 246, 0.95)"
+                        : corFase;
                     ctx.setLineDash(
-                        s.tipo === "arraste"
+                        arrasteDestacado
                             ? [
                                   faseSelecionada === -1
                                       ? Math.max(10, W * 0.008)
@@ -796,9 +962,9 @@ export default function DetalhesSessao() {
                     raioFinal,
                 );
 
-                grad.addColorStop(0, "rgba(255, 255, 255, 0.98)");
-                grad.addColorStop(0.18, "rgba(255, 255, 255, 0.9)");
-                grad.addColorStop(0.45, "rgba(244, 63, 94, 0.55)");
+                grad.addColorStop(0, "rgba(244, 63, 94, 0.98)");
+                grad.addColorStop(0.28, "rgba(244, 63, 94, 0.78)");
+                grad.addColorStop(0.58, "rgba(244, 63, 94, 0.38)");
                 grad.addColorStop(1, "rgba(244, 63, 94, 0)");
 
                 ctx.fillStyle = grad;
@@ -806,19 +972,14 @@ export default function DetalhesSessao() {
                 ctx.arc(pos.x, pos.y, raioFinal, 0, Math.PI * 2);
                 ctx.fill();
 
-                if (visualizacaoGeral) {
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-                    ctx.lineWidth = Math.max(1.5, W * 0.0012);
-                    ctx.beginPath();
-                    ctx.arc(
-                        pos.x,
-                        pos.y,
-                        Math.max(5, W * 0.004),
-                        0,
-                        Math.PI * 2,
-                    );
-                    ctx.stroke();
-                }
+                const raioCentro = Math.max(5, W * 0.0045);
+                ctx.fillStyle = "rgba(244, 63, 94, 1)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
+                ctx.lineWidth = Math.max(1.8, W * 0.0014);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, raioCentro, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
             });
 
             // Destaca elementos que o desenvolvedor marcou semanticamente.
@@ -1048,7 +1209,7 @@ export default function DetalhesSessao() {
                 ctx.fillText(
                     visualizacaoGeral
                         ? "Nenhuma interação registrada nesta sessão"
-                        : "Nenhuma interação registrada nesta fase",
+                        : "Nenhuma interação registrada neste recorte",
                     W / 2,
                     H / 2,
                 );
@@ -1065,7 +1226,7 @@ export default function DetalhesSessao() {
         sessao,
         faseSelecionada,
         itemHover,
-        obterFasesHeatmap,
+        obterRecortesHeatmap,
         obterContextosCaptura,
         possuiCapacidade,
         temFasesConfiaveis,
@@ -1312,6 +1473,10 @@ export default function DetalhesSessao() {
     };
 
     const nomeValorCampo = (chave, valor) => {
+        if (Array.isArray(valor)) {
+            return valor.join(", ");
+        }
+
         if (chave === "contextKind") {
             const tiposDeRecorte = {
                 scene: "Cena",
@@ -1372,19 +1537,124 @@ export default function DetalhesSessao() {
         "contextInstanceId",
     ]);
 
-    // Agrupa eventos em fases
-    const agruparEventosPorFase = (eventos) => {
+    // Agrupa a sequência nos mesmos recortes usados pelo mapa. Eventos
+    // técnicos de abertura e fechamento continuam no JSON, mas não precisam
+    // ocupar espaço na leitura pedagógica da sessão.
+    const agruparEventosPorFase = (eventos, recortes = []) => {
+        const eventosOrdenados = [...eventos]
+            .filter(
+                (evento) =>
+                    evento.eventType !== "CaptureContextStarted" &&
+                    evento.eventType !== "CaptureContextEnded",
+            )
+            .sort(
+                (a, b) =>
+                    Number(a?.timestamp || 0) - Number(b?.timestamp || 0),
+            );
+
+        if (recortes.length > 1) {
+            const recortesOrdenados = [...recortes].sort(
+                (a, b) =>
+                    Number(a?.timestamp || 0) - Number(b?.timestamp || 0),
+            );
+            const primeiroTimestamp = Number(
+                recortesOrdenados[0]?.faseTimestamp ??
+                    recortesOrdenados[0]?.timestamp ??
+                    0,
+            );
+            const preJogo = eventosOrdenados.filter(
+                (evento) => Number(evento?.timestamp || 0) < primeiroTimestamp,
+            );
+            const grupos = recortesOrdenados.map((recorte, index) => {
+                const inicio = Number(
+                    recorte.atividadeIndex === 0
+                        ? (recorte.faseTimestamp ?? recorte.timestamp ?? 0)
+                        : (recorte.timestamp ?? 0),
+                );
+                const proximoRecorteMesmaFase = recortesOrdenados
+                    .slice(index + 1)
+                    .find(
+                        (proximo) =>
+                            proximo.faseChave === recorte.faseChave,
+                    );
+                const fim = Number(
+                    proximoRecorteMesmaFase?.timestamp ??
+                        recorte.faseEndTimestamp ??
+                        recorte.endTimestamp ??
+                        sessao?.durationMs ??
+                        Infinity,
+                );
+                const eventosDoIntervalo = eventosOrdenados.filter((evento) => {
+                    const timestamp = Number(evento?.timestamp || 0);
+                    const eventoDeEncerramento =
+                        evento.eventType === "PhaseCompleted" ||
+                        evento.eventType === "SessionEnded";
+                    return (
+                        timestamp >= inicio &&
+                        (timestamp < fim ||
+                            (timestamp === fim && eventoDeEncerramento))
+                    );
+                });
+                const eventosFase = eventosDoIntervalo.filter((evento) =>
+                    [
+                        "PhaseStarted",
+                        "PhaseCompleted",
+                        "SessionEnded",
+                    ].includes(evento.eventType),
+                );
+                const eventosDoRecorte = eventosDoIntervalo.filter(
+                    (evento) =>
+                        ![
+                            "PhaseStarted",
+                            "PhaseCompleted",
+                            "SessionEnded",
+                        ].includes(evento.eventType),
+                );
+                const tentativa = eventosDoRecorte.find(
+                    (evento) => evento.eventType === "DragAttempt",
+                );
+                const payloadTentativa = tentativa
+                    ? obterPayloadEvento(tentativa)
+                    : {};
+
+                return {
+                    nome: recorte.nome || `Fase ${index + 1}`,
+                    faseId: recorte.faseId || "",
+                    faseChave: recorte.faseChave || "sem-fase",
+                    faseNome: recorte.faseNome || "Atividades acompanhadas",
+                    categoria: recorte.categoria || "",
+                    atividadeIndex: recorte.atividadeIndex ?? index,
+                    contextName: recorte.contextName || "",
+                    targetItem:
+                        payloadTentativa.expectedItem ||
+                        recorte.contextName ||
+                        "Atividade acompanhada",
+                    targetLabel: payloadTentativa.expectedItem
+                        ? "Resposta esperada"
+                        : "Recorte",
+                    options: Array.isArray(payloadTentativa.options)
+                        ? payloadTentativa.options
+                        : [],
+                    timestamp: inicio,
+                    eventosFase,
+                    eventos: eventosDoRecorte,
+                };
+            });
+
+            return [
+                ...(preJogo.length > 0
+                    ? [{ preJogo: true, eventos: preJogo }]
+                    : []),
+                ...grupos,
+            ];
+        }
+
         const fases = [];
         let faseAtual = null;
         let categoriaAtual = "";
 
-        eventos.forEach((evento) => {
-            let payload = {};
-            try {
-                payload = JSON.parse(evento.payload);
-            } catch {
-                // Mantém a leitura da sessão mesmo com payload legado inválido.
-            }
+        eventosOrdenados.forEach((evento) => {
+            const payload = obterPayloadEvento(evento);
 
             if (evento.eventType === "CategorySelected") {
                 categoriaAtual = payload.category || "";
@@ -1395,6 +1665,8 @@ export default function DetalhesSessao() {
                 faseAtual = {
                     categoria: categoriaAtual,
                     targetItem: payload.targetItem || payload.target || "",
+                    targetLabel: "Item alvo",
+                    nome: `Fase ${fases.filter((fase) => !fase.preJogo).length + 1}`,
                     options: payload.options || [],
                     timestamp: evento.timestamp,
                     eventos: [],
@@ -1604,46 +1876,38 @@ export default function DetalhesSessao() {
                                     <div>
                                         <h3>Mapa da atividade</h3>
                                         <div className="heatmap-legenda">
-                                            {temFasesConfiaveis &&
-                                                CORES_FASES.map((fase) => (
+                                            {obterRecortesHeatmap().map(
+                                                (recorte, index, recortes) => (
                                                     <span
-                                                        key={fase.nome}
+                                                        key={
+                                                            recorte.identificador ||
+                                                            recorte.nome
+                                                        }
                                                         className="heatmap-legenda-item"
                                                     >
                                                         <span
                                                             className="heatmap-legenda-cor"
                                                             style={{
                                                                 background:
-                                                                    fase.linha,
+                                                                    obterCorFase(
+                                                                        index,
+                                                                    ).linha,
                                                             }}
                                                         />
-                                                        {fase.nome}
+                                                        {new Set(
+                                                            recortes.map(
+                                                                (item) =>
+                                                                    item.faseChave,
+                                                            ),
+                                                        ).size > 1
+                                                            ? `${recorte.faseNome} · ${recorte.nome}`
+                                                            : recorte.nome}
                                                     </span>
-                                                ))}
-                                            {!temFasesConfiaveis &&
-                                                obterContextosCaptura().map(
-                                                    (contexto, index) => (
-                                                        <span
-                                                            key={
-                                                                contexto.identificador
-                                                            }
-                                                            className="heatmap-legenda-item"
-                                                        >
-                                                            <span
-                                                                className="heatmap-legenda-cor"
-                                                                style={{
-                                                                    background:
-                                                                        obterCorFase(
-                                                                            index,
-                                                                        ).linha,
-                                                                }}
-                                                            />
-                                                            {contexto.nome}
-                                                        </span>
-                                                    ),
-                                                )}
+                                                ),
+                                            )}
                                             {possuiCapacidade("mousePath") && (
                                                 <span className="heatmap-legenda-item">
+                                                    <span className="heatmap-legenda-movimento" />
                                                     Linha contínua: movimento
                                                 </span>
                                             )}
@@ -1655,7 +1919,8 @@ export default function DetalhesSessao() {
                                             )}
                                             {possuiCapacidade("clicks") && (
                                                 <span className="heatmap-legenda-item">
-                                                    Branco/vermelho: cliques
+                                                    <span className="heatmap-legenda-clique" />
+                                                    Ponto vermelho: clique
                                                 </span>
                                             )}
                                             {temInteracoesSemanticasPosicionadas &&
@@ -1708,55 +1973,94 @@ export default function DetalhesSessao() {
                                 </div>
 
                                 {heatmap &&
-                                    temFasesConfiaveis &&
-                                    obterFasesHeatmap().length > 1 && (
-                                    <div className="heatmap-tabs">
-                                        <button
-                                            type="button"
-                                            className={
-                                                faseSelecionada === -1
-                                                    ? "heatmap-tab ativo"
-                                                    : "heatmap-tab"
-                                            }
-                                            onClick={() =>
-                                                setFaseSelecionada(-1)
-                                            }
-                                        >
-                                            Geral
-                                        </button>
+                                    obterRecortesHeatmap().length > 0 &&
+                                    (() => {
+                                        const grupos = agruparItensPorFase(
+                                            obterRecortesHeatmap(),
+                                        );
 
-                                        {obterFasesHeatmap().map(
-                                            (fase, index) => (
+                                        return (
+                                            <div className="recortes-navegacao">
                                                 <button
-                                                    key={fase.faseIndex}
                                                     type="button"
                                                     className={
-                                                        faseSelecionada ===
-                                                        index
-                                                            ? "heatmap-tab ativo"
-                                                            : "heatmap-tab"
+                                                        faseSelecionada === -1
+                                                            ? "heatmap-tab heatmap-tab-geral ativo"
+                                                            : "heatmap-tab heatmap-tab-geral"
                                                     }
                                                     onClick={() =>
-                                                        setFaseSelecionada(
-                                                            index,
-                                                        )
+                                                        setFaseSelecionada(-1)
                                                     }
                                                 >
-                                                    <span
-                                                        className="heatmap-tab-cor"
-                                                        style={{
-                                                            background:
-                                                                obterCorFase(
-                                                                    index,
-                                                                ).linha,
-                                                        }}
-                                                    />
-                                                    Fase {fase.faseIndex + 1}
+                                                    Geral
                                                 </button>
-                                            ),
-                                        )}
-                                    </div>
-                                )}
+
+                                                {grupos.map((grupo) => (
+                                                    <div
+                                                        className="recortes-grupo"
+                                                        key={grupo.chave}
+                                                    >
+                                                        <div className="recortes-grupo-cabecalho">
+                                                            <strong>
+                                                                {grupo.faseNome}
+                                                            </strong>
+                                                            {grupo.categoria && (
+                                                                <span>
+                                                                    Categoria: {grupo.categoria}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="heatmap-tabs">
+                                                            {grupo.itens.map(
+                                                                (recorte) => (
+                                                                    <button
+                                                                        key={
+                                                                            recorte.identificador ||
+                                                                            recorte.indiceGlobal
+                                                                        }
+                                                                        type="button"
+                                                                        className={
+                                                                            faseSelecionada ===
+                                                                            recorte.indiceGlobal
+                                                                                ? "heatmap-tab ativo"
+                                                                                : "heatmap-tab"
+                                                                        }
+                                                                        title={
+                                                                            recorte.contextName
+                                                                                ? `${recorte.nome}: ${recorte.contextName}`
+                                                                                : recorte.nome
+                                                                        }
+                                                                        onClick={() => {
+                                                                            setFaseSelecionada(
+                                                                                recorte.indiceGlobal,
+                                                                            );
+                                                                            setFaseEventosSelecionada(
+                                                                                recorte.indiceGlobal,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <span
+                                                                            className="heatmap-tab-cor"
+                                                                            style={{
+                                                                                background:
+                                                                                    obterCorFase(
+                                                                                        recorte.indiceGlobal,
+                                                                                    )
+                                                                                        .linha,
+                                                                            }}
+                                                                        />
+                                                                        {
+                                                                            recorte.nome
+                                                                        }
+                                                                    </button>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
 
                                 <div className="heatmap-canvas-wrap">
                                     <canvas
@@ -1834,16 +2138,13 @@ export default function DetalhesSessao() {
                                     </div>
                                 )}
 
-                                {(!temFasesConfiaveis ||
-                                    faseSelecionada === -1) && (
-                                    <p className="texto-leve heatmap-ajuda">
-                                        {heatmap?.screenshots?.length > 0
-                                            ? temFasesConfiaveis
-                                                ? "Use Geral para ver toda a sessão ou escolha uma fase para ver as interações sobre a captura visual correspondente."
-                                                : "Esta sessão possui capturas visuais associadas aos momentos registrados. O mapa continua exibindo as interações em uma área neutra."
-                                            : "Esta sessão não possui captura visual. O mapa mostra as interações em uma área neutra."}
-                                    </p>
-                                )}
+                                <p className="texto-leve heatmap-ajuda">
+                                    {heatmap?.screenshots?.length > 0
+                                        ? faseSelecionada === -1
+                                            ? "Use Geral para ver toda a sessão em uma área neutra ou escolha um recorte para ver as interações sobre a captura visual correspondente."
+                                            : "As interações deste recorte estão sobrepostas à captura visual registrada pelo jogo."
+                                        : "Esta sessão não possui captura visual. O mapa mostra as interações em uma área neutra."}
+                                </p>
                             </div>
                         </div>
 
@@ -1889,9 +2190,12 @@ export default function DetalhesSessao() {
                                         )}
                                     </div>
                                 ) : (() => {
+                                    const recortesDaSessao =
+                                        obterRecortesHeatmap();
                                     const fasesAgrupadas =
                                         agruparEventosPorFase(
                                             sessao.gameEvents || [],
+                                            recortesDaSessao,
                                         );
 
                                     const preJogo = fasesAgrupadas.find(
@@ -1900,6 +2204,8 @@ export default function DetalhesSessao() {
                                     const fasesJogadas = fasesAgrupadas.filter(
                                         (fase) => !fase.preJogo,
                                     );
+                                    const gruposFasesJogadas =
+                                        agruparItensPorFase(fasesJogadas);
                                     const faseAtual =
                                         fasesJogadas[faseEventosSelecionada] ||
                                         fasesJogadas[0];
@@ -1970,14 +2276,30 @@ export default function DetalhesSessao() {
                                                                             k,
                                                                         )
                                                                     ) &&
-                                                                    k !==
-                                                                        "options" &&
+                                                                    !(
+                                                                        k ===
+                                                                            "options" &&
+                                                                        evento.eventType ===
+                                                                            "PhaseStarted"
+                                                                    ) &&
                                                                     payload[k] !==
                                                                         "" &&
                                                                     payload[k] !==
                                                                         null &&
                                                                     payload[k] !==
-                                                                        undefined,
+                                                                        undefined &&
+                                                                    !(
+                                                                        Array.isArray(
+                                                                            payload[
+                                                                                k
+                                                                            ],
+                                                                        ) &&
+                                                                        payload[
+                                                                            k
+                                                                        ]
+                                                                            .length ===
+                                                                            0
+                                                                    ),
                                                             )
                                                             .map(([k, v]) => (
                                                                 <span
@@ -2002,8 +2324,9 @@ export default function DetalhesSessao() {
                                         );
                                     };
 
-                                    if (!temFasesConfiaveis) {
-                                        const eventos = sessao.gameEvents || [];
+                                    if (fasesJogadas.length === 0) {
+                                        const eventos =
+                                            preJogo?.eventos || [];
 
                                         return eventos.length > 0 ? (
                                             <div className="timeline">
@@ -2027,52 +2350,89 @@ export default function DetalhesSessao() {
                                                 </div>
                                             )}
 
-                                            {fasesJogadas.length > 0 && (
-                                                <div className="eventos-fase-tabs">
-                                                    {fasesJogadas.map(
-                                                        (fase, index) => (
-                                                            <button
-                                                                key={`${fase.targetItem}-${fase.timestamp}-${index}`}
-                                                                type="button"
-                                                                className={
-                                                                    faseEventosSelecionada ===
-                                                                    index
-                                                                        ? "eventos-fase-tab ativo"
-                                                                        : "eventos-fase-tab"
-                                                                }
-                                                                onClick={() =>
-                                                                    setFaseEventosSelecionada(
-                                                                        index,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <span
-                                                                    className="eventos-fase-cor"
-                                                                    style={{
-                                                                        background:
-                                                                            obterCorFase(
-                                                                                index,
-                                                                            )
-                                                                                .linha,
-                                                                    }}
-                                                                />
-                                                                Fase {index + 1}
-                                                            </button>
-                                                        ),
+                                            {gruposFasesJogadas.map((grupo) => (
+                                                <div
+                                                    className="recortes-grupo sequencia-recortes-grupo"
+                                                    key={grupo.chave}
+                                                >
+                                                    <div className="recortes-grupo-cabecalho">
+                                                        <strong>
+                                                            {grupo.faseNome}
+                                                        </strong>
+                                                        {grupo.categoria && (
+                                                            <span>
+                                                                Categoria: {grupo.categoria}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {grupo.eventosFase.length >
+                                                        0 && (
+                                                        <div className="eventos-da-fase">
+                                                            {grupo.eventosFase.map(
+                                                                renderizarEvento,
+                                                            )}
+                                                        </div>
                                                     )}
+                                                    <div className="eventos-fase-tabs">
+                                                        {grupo.itens.map(
+                                                            (fase) => (
+                                                                <button
+                                                                    key={`${fase.targetItem}-${fase.timestamp}-${fase.indiceGlobal}`}
+                                                                    type="button"
+                                                                    className={
+                                                                        faseEventosSelecionada ===
+                                                                        fase.indiceGlobal
+                                                                            ? "eventos-fase-tab ativo"
+                                                                            : "eventos-fase-tab"
+                                                                    }
+                                                                    title={
+                                                                        fase.contextName
+                                                                            ? `${fase.nome}: ${fase.contextName}`
+                                                                            : fase.nome
+                                                                    }
+                                                                    onClick={() => {
+                                                                        setFaseEventosSelecionada(
+                                                                            fase.indiceGlobal,
+                                                                        );
+                                                                        setFaseSelecionada(
+                                                                            fase.indiceGlobal,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        className="eventos-fase-cor"
+                                                                        style={{
+                                                                            background:
+                                                                                obterCorFase(
+                                                                                    fase.indiceGlobal,
+                                                                                )
+                                                                                    .linha,
+                                                                        }}
+                                                                    />
+                                                                    {fase.nome}
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
+                                            ))}
 
                                             {faseAtual && (
                                                 <div className="fase-bloco">
                                                     <div className="fase-cabecalho">
                                                         <span className="fase-numero">
-                                                            Fase{" "}
-                                                            {faseEventosSelecionada +
-                                                                1}
+                                                            {faseAtual.nome ||
+                                                                `Fase ${faseEventosSelecionada + 1}`}
                                                         </span>
+                                                        {faseAtual.contextName && (
+                                                            <span className="atividade-contexto">
+                                                                {faseAtual.contextName}
+                                                            </span>
+                                                        )}
                                                         <span className="fase-alvo">
-                                                            Item alvo:{" "}
+                                                            {faseAtual.targetLabel ||
+                                                                "Item alvo"}
+                                                            :{" "}
                                                             <strong>
                                                                 {
                                                                     faseAtual.targetItem
@@ -2121,6 +2481,15 @@ export default function DetalhesSessao() {
 
                                                     {faseAtual.eventos.map(
                                                         renderizarEvento,
+                                                    )}
+                                                    {faseAtual.eventos.length ===
+                                                        0 && (
+                                                        <p className="texto-leve fase-sem-eventos">
+                                                            Nenhum evento
+                                                            semântico foi
+                                                            registrado neste
+                                                            recorte.
+                                                        </p>
                                                     )}
                                                 </div>
                                             )}

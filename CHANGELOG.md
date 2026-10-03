@@ -54,6 +54,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   jogo, compara até oito atividades recentes por duração e cliques;
 - detalhes observacionais apresentam métricas descritivas de trajetória,
   gestos de arraste, linha do tempo e mapa com arrastes roxos tracejados;
+- tentativas semânticas de arraste exibem listas de alternativas e a resposta
+  esperada quando esses dados visuais forem enviados pelo SDK, preservando a
+  leitura de sessões antigas;
+- capturas visuais são ordenadas cronologicamente e vinculadas ao recorte pelo
+  identificador de contexto, evitando fases sem trajetórias por causa da ordem
+  de retenção das imagens no JSON;
+- a sequência da sessão reutiliza as abas do mapa, separa os eventos por fase e
+  omite da leitura principal a abertura e o fechamento técnico dos recortes;
+- mapas e sequências passam a preservar a hierarquia entre categoria, fase
+  real do jogo e atividades internas, sem apresentar cada Canvas capturado
+  como se fosse uma nova fase; os marcos de início e conclusão permanecem no
+  nível da fase, enquanto tentativas, acertos e erros ficam nas atividades;
 - edição do aluno permite escolher instituição e turma acessíveis, mantendo os
   vínculos sincronizados e preservando o acesso ao remover o vínculo escolar;
 - recurso ainda não implementado de captura visual é apresentado como

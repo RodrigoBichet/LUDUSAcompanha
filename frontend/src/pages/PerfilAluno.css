@@ -221,11 +221,6 @@
     line-height: 1.45;
 }
 
-.captura-card.recurso-futuro {
-    border-color: var(--cor-borda);
-    background: var(--cor-fundo);
-}
-
 .vinculo-escolar-campos {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -681,6 +676,19 @@
 .captura-card p {
     font-size: 0.85rem;
     margin: 0;
+}
+
+.captura-card-contagem {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.6rem;
+    border-radius: 999px;
+    background: var(--cor-card);
+    color: var(--cor-primaria-escura);
+    display: inline-grid;
+    place-items: center;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(28, 43, 58, 0.08);
 }
 
 .btn-captura {
