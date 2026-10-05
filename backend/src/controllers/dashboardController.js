@@ -12,7 +12,10 @@ const Session = require("../models/Session");
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 
 const montarFiltroSessao = (studentId, gameId) => {
-    const filtro = { studentId };
+    const filtro = {
+        studentId,
+        status: { $nin: ["in_progress", "interrupted"] },
+    };
 
     if (gameId && gameId !== "todos") {
         filtro.gameId = gameId;

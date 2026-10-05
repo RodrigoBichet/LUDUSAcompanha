@@ -154,7 +154,10 @@ Acesse em `http://localhost:5173` — sera redirecionado para a tela de login.
 Para validar manualmente a importação de lote sem ler o `.env` e sem acessar o
 Atlas, use `npm run dev:lote:temp` dentro de `backend` e siga o
 [Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md). O banco
-fica somente em memória e é apagado ao encerrar o processo.
+fica somente em memória e é apagado ao encerrar o processo. Esse ambiente
+também imprime o `studentId` fictício e os parâmetros que devem ser anexados à
+URL de um WebGL local para testar o envio automático do SDK. Portas locais
+aleatórias são aceitas somente fora de produção.
 
 ## Ambiente publicado
 
@@ -368,6 +371,18 @@ gravar, o Dashboard mostra o participante informado, os jogos encontrados, o
 número de sessões e possíveis duplicidades. Na confirmação, cada sessão é
 persistida separadamente no jogo indicado pelo próprio arquivo. Sessões de
 jogos distintos nunca são fundidas.
+
+O pacote `ludus-session-bundle` do SDK Unity também pode ser selecionado no
+mesmo importador. O Dashboard separa as sessões do pacote para que cada
+categoria ou repetição passe pela prévia e confirmação existentes. Em sessões
+enviadas automaticamente, o botão de download na lista de atividades exporta
+toda a execução identificada pelo mesmo `runId`; registros históricos sem
+`runId` continuam sendo exportados individualmente.
+
+Sessões `in_progress` representam checkpoints de recuperação. Elas aparecem
+como **Progresso parcial — não concluído**, mas não entram nos totais, taxas de
+acerto nem alertas pedagógicos. Quando o jogo conclui a categoria, o registro
+final substitui o checkpoint com o mesmo `sessionId`.
 
 Nesta etapa, o lote é importado no perfil que a professora abriu
 conscientemente. Se o nome informado na extensão for diferente do nome desse

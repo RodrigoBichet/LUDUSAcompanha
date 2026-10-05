@@ -7,6 +7,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Execuções, checkpoints e exportação
+
+- contrato de sessão passa a aceitar `schemaVersion: 1.1.0` com `runId`,
+  `attemptNumber` e `status`, mantendo compatibilidade com `1.0.0` e legados;
+- endpoint idempotente recebe checkpoints de sessões em andamento e exige uma
+  chave efêmera cujo hash é o único valor persistido;
+- a sessão concluída substitui seu checkpoint sem criar duplicidade;
+- checkpoints parciais ficam fora de totais, taxas e alertas pedagógicos e são
+  identificados como não concluídos na lista do aluno;
+- o importador reconhece `ludus-session-bundle` e apresenta suas sessões no
+  fluxo existente de prévia e confirmação;
+- professores podem baixar uma sessão histórica ou toda a execução pelo
+  Dashboard, com verificação de acesso ao aluno.
+
 ### Preparação de produção
 
 - inicialização do backend valida MongoDB, JWT e porta antes de abrir o servidor;
@@ -24,6 +38,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
   o desenvolvimento preserva os links locais de teste;
 - CORS deixa de aceitar qualquer site e passa a usar frontend, origens WebGL e
   extensões explicitamente configurados;
+- em desenvolvimento, o CORS aceita WebGL em portas locais aleatórias e o
+  cabeçalho efêmero de checkpoint; a produção continua restrita às origens
+  declaradas;
+- ambiente temporário em memória informa o aluno fictício e os parâmetros de
+  URL necessários para validar o envio automático sem acessar o Atlas;
 - respostas removem a identificação do Express e recebem cabeçalhos básicos de
   proteção, preservando o carregamento externo das imagens dos mapas.
 - a primeira versão Web fica fechada sem captura visual pela extensão;

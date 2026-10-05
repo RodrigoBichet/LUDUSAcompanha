@@ -1,6 +1,6 @@
 // =============================================================================
 // telemetryValidator.js
-// Valida sessões LUDUS canônicas (schema 1.0.0) e identifica payloads legados.
+// Valida sessões LUDUS canônicas e identifica payloads legados.
 // =============================================================================
 
 const Ajv2020 = require("ajv/dist/2020");
@@ -19,6 +19,8 @@ const CAPACIDADES = [
     "categoryEvents",
     "customEvents",
 ];
+
+const VERSOES_SUPORTADAS = ["1.0.0", "1.1.0"];
 
 class ErroValidacaoTelemetria extends Error {
     constructor(mensagem, detalhes = []) {
@@ -187,7 +189,7 @@ const validarSessaoTelemetria = (dados) => {
         return validarSessaoLegada(dados);
     }
 
-    if (dados.schemaVersion !== "1.0.0") {
+    if (!VERSOES_SUPORTADAS.includes(dados.schemaVersion)) {
         throw new ErroValidacaoTelemetria(
             `Versão de schema não suportada: ${dados.schemaVersion}.`,
         );
@@ -200,7 +202,7 @@ const validarSessaoTelemetria = (dados) => {
         });
 
         throw new ErroValidacaoTelemetria(
-            "Sessão canônica não atende ao schema LUDUS 1.0.0.",
+            `Sessão canônica não atende ao schema LUDUS ${dados.schemaVersion}.`,
             detalhes,
         );
     }

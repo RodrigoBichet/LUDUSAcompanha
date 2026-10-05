@@ -41,6 +41,14 @@ export const heatmapSessao = (sessionId) =>
 // Sessions
 // -------------------------------------------------------------------------
 export const buscarSessao = (sessionId) => api.get(`/sessions/${sessionId}`);
+export const baixarJsonSessao = (sessionId) =>
+    api.get(`/sessions/export/${encodeURIComponent(sessionId)}`, {
+        responseType: "blob",
+    });
+export const baixarJsonExecucao = (runId) =>
+    api.get(`/sessions/export-run/${encodeURIComponent(runId)}`, {
+        responseType: "blob",
+    });
 export const previsualizarImportacaoSessao = (studentId, sessao, gameId) =>
     api.post(`/sessions/import/${encodeURIComponent(studentId)}/preview`, {
         sessao,

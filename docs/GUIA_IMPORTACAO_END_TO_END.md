@@ -60,7 +60,9 @@ sem duplicar a identidade do participante.
 
 1. No cartão **Importar telemetria**, clique em **Importar JSON**.
 2. Selecione ou arraste um ou mais arquivos `.json`.
-3. Clique em **Validar arquivo** ou **Validar N arquivos**.
+3. Clique em **Validar arquivo** ou **Validar N arquivos**. Um pacote
+   `ludus-session-bundle` será aberto em suas sessões individuais antes da
+   prévia; isso é esperado e não duplica a execução.
 4. Leia a prévia:
    - em uma sessão, confira jogo, modalidade, fonte, duração, capacidades e
      contagens;
@@ -109,6 +111,12 @@ catálogo da professora quando a importação é confirmada.
    do jogo correspondente.
 4. Use os filtros individuais para conferir as sessões de cada jogo.
 5. Verifique o marcador **JSON importado**.
+
+Se a atividade foi enviada automaticamente pelo jogo, use o botão de download
+ao lado dela para obter uma cópia. Quando existe `runId`, o arquivo reúne todas
+as categorias e tentativas daquela execução. Uma atividade com o marcador
+**Progresso parcial — não concluído** é apenas um checkpoint de recuperação e
+não entra nos indicadores pedagógicos até ser concluída.
 
 Em um lote, confira também se o resumo final informa quantas sessões foram
 importadas, quantas já existiam e se ocorreu alguma falha individual. Repetir o

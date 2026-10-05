@@ -25,11 +25,12 @@ test("CORS de produção limita sites e aceita frontend, API direta e extensões
     assert.equal(await consultarOrigem(politica, undefined), true);
 });
 
-test("desenvolvimento aceita apenas frontends locais conhecidos", async () => {
+test("desenvolvimento aceita loopback em portas variadas e recusa sites externos", async () => {
     const politica = criarPoliticaCors({ NODE_ENV: "development" });
     assert.equal(await consultarOrigem(politica, "http://localhost:5173"), true);
     assert.equal(await consultarOrigem(politica, "http://127.0.0.1:5173"), true);
-    assert.equal(await consultarOrigem(politica, "http://localhost:4000"), false);
+    assert.equal(await consultarOrigem(politica, "http://localhost:4000"), true);
+    assert.equal(await consultarOrigem(politica, "https://site-externo.example"), false);
 });
 
 test("API remove identificação do Express e envia cabeçalhos defensivos", async () => {

@@ -9,6 +9,16 @@ const obterOrigemHttp = (valor) => {
     }
 };
 
+const origemEhLoopback = (valor) => {
+    try {
+        const url = new URL(String(valor || "").trim());
+        return ["http:", "https:"].includes(url.protocol) &&
+            ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    } catch {
+        return false;
+    }
+};
+
 const criarPoliticaCors = (ambiente = process.env) => {
     const origens = new Set();
     const frontend = obterOrigemHttp(ambiente.FRONTEND_URL);
@@ -24,11 +34,13 @@ const criarPoliticaCors = (ambiente = process.env) => {
         origens.add("http://127.0.0.1:5173");
     }
 
+    const emDesenvolvimento = ambiente.NODE_ENV !== "production";
     const aceitarExtensoes = ambiente.CORS_ALLOW_BROWSER_EXTENSIONS === "true" ||
-        ambiente.NODE_ENV !== "production";
+        emDesenvolvimento;
     const origemPermitida = (origem) =>
         !origem ||
         origens.has(origem) ||
+        (emDesenvolvimento && origemEhLoopback(origem)) ||
         (aceitarExtensoes && ORIGENS_EXTENSAO.some((prefixo) => origem.startsWith(prefixo)));
 
     return Object.freeze({
@@ -37,7 +49,11 @@ const criarPoliticaCors = (ambiente = process.env) => {
         opcoes: {
             origin: (origem, callback) => callback(null, origemPermitida(origem)),
             methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            allowedHeaders: ["Authorization", "Content-Type"],
+            allowedHeaders: [
+                "Authorization",
+                "Content-Type",
+                "X-LUDUS-Checkpoint-Key",
+            ],
             maxAge: 600,
         },
     });

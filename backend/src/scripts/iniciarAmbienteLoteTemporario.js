@@ -6,6 +6,7 @@
 
 process.env.JWT_SECRET = "segredo-local-exclusivo-do-teste-manual-de-lote";
 process.env.AUTH_EXPOSE_DEV_LINKS = "true";
+process.env.NODE_ENV = "development";
 
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
@@ -66,7 +67,7 @@ const prepararDadosFicticios = async () => {
         institutionId: instituicao._id,
         professorId: professora._id,
     });
-    await Student.create({
+    const aluno = await Student.create({
         name: NOME_ALUNO,
         groupId: turma._id,
         institutionId: instituicao._id,
@@ -74,6 +75,8 @@ const prepararDadosFicticios = async () => {
         enrollmentMode: "school",
         deletionProtected: false,
     });
+
+    return aluno;
 };
 
 const iniciar = async () => {
@@ -81,7 +84,7 @@ const iniciar = async () => {
         instance: { dbName: "ludus_lote_manual_temporario" },
     });
     await mongoose.connect(mongoTemporario.getUri());
-    await prepararDadosFicticios();
+    const aluno = await prepararDadosFicticios();
 
     servidorHttp = app.listen(PORTA, () => {
         console.log("");
@@ -94,6 +97,12 @@ const iniciar = async () => {
         console.log(` Login admin: ${EMAIL_ADMIN}`);
         console.log(` Senha admin: ${SENHA_ADMIN}`);
         console.log(` Aluno fictício: ${NOME_ALUNO}`);
+        console.log(` studentId fictício: ${aluno._id}`);
+        console.log(
+            " Parâmetros do WebGL: " +
+            `?ludusStudentId=${aluno._id}` +
+            `&ludusPlayerId=${encodeURIComponent(NOME_ALUNO)}`,
+        );
         console.log(" Ao fechar este CMD, todos os dados serão apagados.");
         console.log("============================================================");
         console.log("");

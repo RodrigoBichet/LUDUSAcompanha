@@ -491,6 +491,11 @@ O arquivo `frontend/public/_redirects` contem `/* /index.html 200`, necessario p
 - o CORS aceita o domínio em `FRONTEND_URL`, a lista explícita de
   `CORS_ORIGINS`, chamadas sem origem feitas diretamente à API e extensões de
   navegador quando `CORS_ALLOW_BROWSER_EXTENSIONS=true`;
+- em desenvolvimento, origens de loopback (`localhost`, `127.0.0.1` e `::1`)
+  são aceitas em qualquer porta para permitir o **Build and Run** do WebGL;
+  essa exceção não existe quando `NODE_ENV=production`;
+- o cabeçalho `X-LUDUS-Checkpoint-Key` é aceito pelo CORS para que o SDK possa
+  atualizar e concluir com segurança o mesmo progresso parcial;
 - valores de `MONGODB_URI`, `JWT_SECRET`, senhas e tokens devem existir apenas nos provedores e nos arquivos `.env` locais ignorados pelo Git;
 - como o plano Free do Render pode hibernar, o primeiro acesso apos inatividade pode demorar;
 - o filesystem do Render e efemero. Portanto, screenshots em `backend/uploads/screenshots/` podem desaparecer depois de reinicios ou redeploys. Antes de uso continuado com dados reais, migrar imagens para storage persistente, como Cloudinary, S3 ou R2;

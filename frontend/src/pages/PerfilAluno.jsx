@@ -36,6 +36,8 @@ import {
     previsualizarImportacaoLote,
     confirmarImportacaoLote,
     removerSessaoImportada,
+    baixarJsonSessao,
+    baixarJsonExecucao,
     criarJogoDetectado,
     listarJogos,
     listarInstituicoes,
@@ -123,6 +125,8 @@ export default function PerfilAluno() {
     const [sessaoParaExcluir, setSessaoParaExcluir] = useState(null);
     const [excluindoSessao, setExcluindoSessao] = useState(false);
     const [erroExclusaoSessao, setErroExclusaoSessao] = useState("");
+    const [baixandoSessaoId, setBaixandoSessaoId] = useState("");
+    const [erroDownloadJson, setErroDownloadJson] = useState("");
 
     //Alertas
     const [alertas, setAlertas] = useState([]);
@@ -273,6 +277,46 @@ export default function PerfilAluno() {
         return new Date(
             new Date(sessao.startedAt).getTime() + (sessao.durationMs || 0),
         ).toISOString();
+    };
+
+    const baixarRespostaComoArquivo = (resposta, nomeArquivo) => {
+        const url = URL.createObjectURL(resposta.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = nomeArquivo;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleBaixarJson = async (sessao) => {
+        if (!sessao?.sessionId || baixandoSessaoId) return;
+
+        try {
+            setBaixandoSessaoId(sessao.sessionId);
+            setErroDownloadJson("");
+
+            if (sessao.runId) {
+                const resposta = await baixarJsonExecucao(sessao.runId);
+                baixarRespostaComoArquivo(
+                    resposta,
+                    `ludus-execucao-${sessao.runId}.json`,
+                );
+            } else {
+                const resposta = await baixarJsonSessao(sessao.sessionId);
+                baixarRespostaComoArquivo(
+                    resposta,
+                    `ludus-sessao-${sessao.sessionId}.json`,
+                );
+            }
+        } catch {
+            setErroDownloadJson(
+                "Não foi possível baixar o JSON. Tente novamente.",
+            );
+        } finally {
+            setBaixandoSessaoId("");
+        }
     };
 
     const horariosRecentesPorJogo = useMemo(() => {
@@ -459,7 +503,7 @@ export default function PerfilAluno() {
         const arquivos = Array.from(listaArquivos || []);
         if (arquivos.length === 0) return;
 
-        const processados = await Promise.all(
+        const processadosPorArquivo = await Promise.all(
             arquivos.map(async (arquivo, indice) => {
                 const itemBase = {
                     id: `${arquivo.name}-${arquivo.size}-${arquivo.lastModified}-${Date.now()}-${indice}`,
@@ -473,10 +517,10 @@ export default function PerfilAluno() {
                 };
 
                 if (!arquivo.name.toLowerCase().endsWith(".json")) {
-                    return {
+                    return [{
                         ...itemBase,
                         mensagem: "O arquivo precisa ter extensão .json.",
-                    };
+                    }];
                 }
 
                 try {
@@ -496,24 +540,58 @@ export default function PerfilAluno() {
                     const ehLote =
                         Object.hasOwn(dados, "batchSchemaVersion") ||
                         Object.hasOwn(dados, "batchType");
+                    const ehPacoteExecucao =
+                        dados.type === "ludus-session-bundle" ||
+                        Object.hasOwn(dados, "bundleVersion");
 
-                    return {
+                    if (ehPacoteExecucao) {
+                        if (
+                            dados.type !== "ludus-session-bundle" ||
+                            typeof dados.runId !== "string" ||
+                            dados.runId.trim() === "" ||
+                            !Array.isArray(dados.sessions) ||
+                            dados.sessions.length === 0 ||
+                            dados.sessions.some(
+                                (sessao) =>
+                                    !sessao ||
+                                    Array.isArray(sessao) ||
+                                    typeof sessao !== "object" ||
+                                    sessao.runId !== dados.runId,
+                            )
+                        ) {
+                            throw new Error(
+                                "O pacote de execução LUDUS está incompleto.",
+                            );
+                        }
+
+                        return dados.sessions.map((sessao, sessaoIndice) => ({
+                            ...itemBase,
+                            id: `${itemBase.id}-sessao-${sessaoIndice}`,
+                            nome: `${arquivo.name} — sessão ${sessaoIndice + 1}/${dados.sessions.length}`,
+                            sessao,
+                            tipo: "sessao-pacote",
+                            status: "anexado",
+                        }));
+                    }
+
+                    return [{
                         ...itemBase,
                         sessao: ehLote ? null : dados,
                         lote: ehLote ? dados : null,
                         tipo: ehLote ? "lote" : "sessao",
                         status: "anexado",
-                    };
+                    }];
                 } catch (erro) {
-                    return {
+                    return [{
                         ...itemBase,
                         mensagem:
                             erro.message ||
                             "Não foi possível ler o arquivo JSON.",
-                    };
+                    }];
                 }
             }),
         );
+        const processados = processadosPorArquivo.flat();
 
         setArquivosImportacao((atuais) => {
             const idsSessao = new Set(
@@ -1987,6 +2065,11 @@ export default function PerfilAluno() {
                                         Importações por JSON podem ser removidas
                                         em caso de engano.
                                     </p>
+                                    {erroDownloadJson && (
+                                        <p className="mensagem-erro">
+                                            {erroDownloadJson}
+                                        </p>
+                                    )}
                                     <div className="lista-sessoes">
                                         {sessoes.map((sessao) => {
                                             const contextoSessao =
@@ -2037,6 +2120,12 @@ export default function PerfilAluno() {
                                                                     ? "Importada por arquivo"
                                                                     : "Enviada pelo jogo"}
                                                             </span>
+                                                            {sessao.status ===
+                                                                "in_progress" && (
+                                                                <span className="status-sessao-parcial">
+                                                                    Progresso parcial — não concluído
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="sessao-metricas">
                                                             <span className="chip-cliques">
@@ -2079,8 +2168,33 @@ export default function PerfilAluno() {
                                                             →
                                                         </span>
                                                     </button>
-                                                    {importadaPorArquivo &&
-                                                        !aluno?.deletionProtected && (
+                                                    <div className="acoes-sessao">
+                                                        <button
+                                                            type="button"
+                                                            className="btn-baixar-sessao"
+                                                            onClick={() =>
+                                                                handleBaixarJson(
+                                                                    sessao,
+                                                                )
+                                                            }
+                                                            disabled={Boolean(
+                                                                baixandoSessaoId,
+                                                            )}
+                                                            aria-label={
+                                                                sessao.runId
+                                                                    ? "Baixar JSON da execução"
+                                                                    : "Baixar JSON da sessão"
+                                                            }
+                                                            title={
+                                                                sessao.runId
+                                                                    ? "Baixar esta execução completa"
+                                                                    : "Baixar esta sessão"
+                                                            }
+                                                        >
+                                                            <Icone nome="importar" />
+                                                        </button>
+                                                        {importadaPorArquivo &&
+                                                            !aluno?.deletionProtected && (
                                                             <button
                                                                 type="button"
                                                                 className="btn-excluir-sessao"
@@ -2095,6 +2209,7 @@ export default function PerfilAluno() {
                                                                 <Icone nome="excluir" />
                                                             </button>
                                                         )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}

@@ -515,6 +515,17 @@
     color: #1f6b53;
 }
 
+.status-sessao-parcial {
+    width: fit-content;
+    margin-top: 0.15rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(238, 171, 44, 0.14);
+    color: #8a5a00;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
 .chip-cliques {
     color: #3269ad;
     font-size: 0.78rem;
@@ -537,6 +548,40 @@
         border-color 0.15s,
         background 0.15s,
         transform 0.15s;
+}
+
+.acoes-sessao {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.btn-baixar-sessao {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #3269ad;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s,
+        transform 0.15s;
+}
+
+.btn-baixar-sessao:hover:not(:disabled) {
+    border-color: rgba(50, 105, 173, 0.35);
+    background: rgba(77, 151, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+.btn-baixar-sessao:disabled {
+    cursor: wait;
+    opacity: 0.55;
 }
 
 .btn-excluir-sessao:hover {

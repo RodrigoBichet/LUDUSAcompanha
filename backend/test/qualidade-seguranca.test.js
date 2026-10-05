@@ -1983,6 +1983,96 @@ test("recebe sessao WebGL do SDK e disponibiliza dados para heatmap", async () =
     assert.equal(heatmap.body.mousePath.length, 3);
 });
 
+test("atualiza checkpoint autenticado e o substitui pela sessão concluída", async () => {
+    const { professoraA, alunoA } = await criarCenarioEscolar();
+    const chave = "a".repeat(64);
+    const chaveIncorreta = "b".repeat(64);
+    const checkpoint = {
+        ...sessaoSdkWebglDeTeste(alunoA),
+        schemaVersion: "1.1.0",
+        sourceVersion: "0.2.0",
+        sessionId: "sdk-checkpoint-ficticio",
+        runId: "execucao-checkpoint-ficticia",
+        attemptNumber: 1,
+        status: "in_progress",
+        durationMs: 1100,
+    };
+    delete checkpoint.endedAt;
+
+    await request(app)
+        .put("/api/sessions/checkpoint")
+        .set("X-LUDUS-Checkpoint-Key", chave)
+        .send(checkpoint)
+        .expect(200);
+
+    checkpoint.durationMs = 1500;
+    await request(app)
+        .put("/api/sessions/checkpoint")
+        .set("X-LUDUS-Checkpoint-Key", chaveIncorreta)
+        .send(checkpoint)
+        .expect(403);
+    await request(app)
+        .put("/api/sessions/checkpoint")
+        .set("X-LUDUS-Checkpoint-Key", chave)
+        .send(checkpoint)
+        .expect(200);
+
+    const parcial = await Session.findOne({
+        sessionId: checkpoint.sessionId,
+    });
+    assert.equal(parcial.status, "in_progress");
+    assert.equal(parcial.durationMs, 1500);
+
+    const authorization = `Bearer ${tokenDe(professoraA)}`;
+    const resumoParcial = await request(app)
+        .get(`/api/dashboard/summary/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .expect(200);
+    assert.equal(resumoParcial.body.totalSessoes, 0);
+
+    const historicoParcial = await request(app)
+        .get(`/api/sessions/student/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .expect(200);
+    assert.equal(historicoParcial.body.sessoes.length, 1);
+    assert.equal(historicoParcial.body.sessoes[0].status, "in_progress");
+
+    const concluida = {
+        ...checkpoint,
+        status: "completed",
+        endedAt: "2026-07-27T20:50:19.625Z",
+        durationMs: 2000,
+    };
+    await request(app)
+        .post("/api/sessions")
+        .set("X-LUDUS-Checkpoint-Key", chave)
+        .send(concluida)
+        .expect(201);
+
+    const salva = await Session.findOne({
+        sessionId: checkpoint.sessionId,
+    }).select("+checkpointKeyHash");
+    assert.equal(salva.status, "completed");
+    assert.equal(salva.durationMs, 2000);
+    assert.equal(salva.checkpointKeyHash, undefined);
+    assert.equal(
+        await Session.countDocuments({ sessionId: checkpoint.sessionId }),
+        1,
+    );
+
+    const exportacao = await request(app)
+        .get(`/api/sessions/export-run/${concluida.runId}`)
+        .set("Authorization", authorization)
+        .expect(200);
+    assert.match(
+        exportacao.headers["content-disposition"],
+        /^attachment; filename=/u,
+    );
+    assert.equal(exportacao.body.type, "ludus-session-bundle");
+    assert.equal(exportacao.body.sessions.length, 1);
+    assert.equal(exportacao.body.sessions[0].status, "completed");
+});
+
 test("recebe JPEG do SDK, persiste apenas a referencia e preserva o contexto", async () => {
     const { professoraA, alunoA } = await criarCenarioEscolar();
     const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);

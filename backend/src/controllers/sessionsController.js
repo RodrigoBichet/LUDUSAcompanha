@@ -31,6 +31,10 @@ const {
 } = require("../services/legacyMonitorAdapter");
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 const { removerSessoesPorFiltro } = require("../utils/removerSessoes");
+const {
+    prepararSessaoParaExportacao,
+    prepararPacoteDeExecucao,
+} = require("../services/sessionExporter");
 
 // Pasta onde as capturas visuais das sessões serão salvas.
 // Fica em backend/uploads/screenshots/ — servida como static pelo Express
@@ -42,6 +46,7 @@ const MAX_CARACTERES_BASE64 = 2800000;
 const PADRAO_BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 const PADRAO_CAMINHO_SCREENSHOT =
     /^\/uploads\/screenshots\/[A-Za-z0-9._-]+$/;
+const PADRAO_CHAVE_CHECKPOINT = /^[a-f0-9]{64}$/u;
 
 const criarErroScreenshot = (mensagem) =>
     new ErroValidacaoTelemetria(mensagem, ["screenshots"]);
@@ -357,6 +362,113 @@ const buscarSessaoDuplicadaImportada = (dados) => {
     return Session.findOne({ $or: filtros });
 };
 
+const obterChaveCheckpoint = (req) =>
+    String(req.get("X-LUDUS-Checkpoint-Key") || "").trim().toLowerCase();
+
+const criarHashCheckpoint = (chave) =>
+    crypto.createHash("sha256").update(chave).digest("hex");
+
+const chaveCheckpointConfere = (chave, hashArmazenado) => {
+    if (
+        !PADRAO_CHAVE_CHECKPOINT.test(chave) ||
+        typeof hashArmazenado !== "string" ||
+        hashArmazenado.length !== 64
+    ) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(
+        Buffer.from(criarHashCheckpoint(chave), "hex"),
+        Buffer.from(hashArmazenado, "hex"),
+    );
+};
+
+const criarErroHttp = (mensagem, status) => {
+    const erro = new Error(mensagem);
+    erro.status = status;
+    return erro;
+};
+
+const validarIdentidadeCheckpoint = (existente, dados) => {
+    const mesmaIdentidade =
+        String(existente.studentId) === String(dados.studentId) &&
+        existente.gameId === dados.gameId &&
+        existente.runId === dados.runId;
+
+    if (!mesmaIdentidade) {
+        throw criarErroHttp(
+            "O checkpoint não corresponde à sessão registrada.",
+            409,
+        );
+    }
+};
+
+const salvarOuAtualizarCheckpoint = async (dados, chave) => {
+    if (!PADRAO_CHAVE_CHECKPOINT.test(chave)) {
+        throw criarErroHttp("Chave de checkpoint inválida.", 403);
+    }
+    if (dados.status !== "in_progress") {
+        throw criarErroHttp(
+            "Somente sessões em andamento podem ser salvas como checkpoint.",
+            400,
+        );
+    }
+    if (dados.screenshots?.length > 0) {
+        throw criarErroHttp(
+            "Checkpoints não devem transportar capturas visuais.",
+            400,
+        );
+    }
+
+    const existente = await Session.findOne({
+        sessionId: dados.sessionId,
+    }).select("+checkpointKeyHash");
+
+    if (!existente) {
+        const checkpoint = new Session({
+            ...dados,
+            checkpointKeyHash: criarHashCheckpoint(chave),
+        });
+        await checkpoint.save();
+        return checkpoint;
+    }
+
+    if (existente.status === "completed") {
+        throw criarErroHttp("A sessão já foi concluída.", 409);
+    }
+    if (!chaveCheckpointConfere(chave, existente.checkpointKeyHash)) {
+        throw criarErroHttp("Checkpoint não autorizado.", 403);
+    }
+
+    validarIdentidadeCheckpoint(existente, dados);
+    existente.set(dados);
+    await existente.save();
+    return existente;
+};
+
+const concluirCheckpoint = async (existente, dados, chave) => {
+    if (!chaveCheckpointConfere(chave, existente.checkpointKeyHash)) {
+        throw criarErroHttp("Conclusão de checkpoint não autorizada.", 403);
+    }
+
+    validarIdentidadeCheckpoint(existente, dados);
+    const resultadoScreenshots = processarScreenshots(
+        dados.screenshots || [],
+        dados.sessionId,
+    );
+    dados.screenshots = resultadoScreenshots.capturasProcessadas;
+
+    try {
+        existente.set(dados);
+        existente.checkpointKeyHash = undefined;
+        await existente.save();
+        return existente;
+    } catch (erro) {
+        removerArquivosCriados(resultadoScreenshots.arquivosCriados);
+        throw erro;
+    }
+};
+
 // A importação é uma evidência de que este aluno participou do jogo indicado
 // pelo próprio JSON. O vínculo é feito sem criar outro perfil, inclusive para
 // alunos que já pertencem a uma turma.
@@ -605,9 +717,40 @@ const criarSessao = async (req, res) => {
 
         dados.playerId = aluno.name;
 
-        const sessao = await salvarSessaoNormalizada(dados, {
-            resetarCapturaSolicitada: true,
-        });
+        const checkpointExistente = await Session.findOne({
+            sessionId: dados.sessionId,
+            status: "in_progress",
+        }).select("+checkpointKeyHash");
+        const checkpointTemCapturasBase64 = Boolean(
+            checkpointExistente &&
+                dados.screenshots?.some((captura) => captura.screenshotBase64),
+        );
+        const sessao = checkpointExistente
+            ? await concluirCheckpoint(
+                  checkpointExistente,
+                  dados,
+                  obterChaveCheckpoint(req),
+              )
+            : await salvarSessaoNormalizada(dados, {
+                  resetarCapturaSolicitada: true,
+              });
+
+        if (checkpointTemCapturasBase64) {
+            try {
+                await Student.findOneAndUpdate(
+                    { _id: dados.studentId, capturaSolicitada: true },
+                    {
+                        capturaSolicitada: false,
+                        capturaSolicitadaOrigem: null,
+                    },
+                );
+            } catch (erroReset) {
+                console.warn(
+                    "[LUDUS] Não foi possível resetar capturaSolicitada:",
+                    erroReset.message,
+                );
+            }
+        }
 
         console.log(
             `[LUDUS] Sessão recebida: ${sessao.sessionId} | Player: ${sessao.playerId}`,
@@ -630,6 +773,50 @@ const criarSessao = async (req, res) => {
         return res.status(500).json({
             sucesso: false,
             mensagem: "Erro interno ao salvar sessão",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// salvarCheckpoint — PUT /api/sessions/checkpoint
+// Mantém uma fotografia parcial idempotente da sessão em andamento.
+// -------------------------------------------------------------------------
+const salvarCheckpoint = async (req, res) => {
+    try {
+        const dados = validarENormalizarSessao(req.body);
+        const aluno = await Student.findById(dados.studentId);
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Aluno não encontrado para esta sessão",
+            });
+        }
+
+        dados.playerId = aluno.name;
+        const checkpoint = await salvarOuAtualizarCheckpoint(
+            dados,
+            obterChaveCheckpoint(req),
+        );
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: "Progresso parcial salvo.",
+            sessionId: checkpoint.sessionId,
+            status: checkpoint.status,
+        });
+    } catch (erro) {
+        if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+            return res.status(erro.status || 400).json({
+                sucesso: false,
+                mensagem: erro.message,
+                detalhes: erro.detalhes || [],
+            });
+        }
+
+        console.error("[LUDUS] Erro ao salvar checkpoint:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao salvar progresso parcial",
         });
     }
 };
@@ -924,6 +1111,119 @@ const buscarSessao = async (req, res) => {
     }
 };
 
+const criarNomeArquivoSeguro = (valor, fallback) => {
+    const nome = String(valor || "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/gu, "")
+        .replace(/[^A-Za-z0-9._-]+/gu, "-")
+        .replace(/^-+|-+$/gu, "")
+        .slice(0, 100);
+    return nome || fallback;
+};
+
+const responderComoDownloadJson = (res, nomeArquivo, dados) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${nomeArquivo}.json"`,
+    );
+    return res.send(JSON.stringify(dados, null, 2));
+};
+
+// -------------------------------------------------------------------------
+// exportarSessao — GET /api/sessions/export/:sessionId
+// Gera uma cópia JSON autenticada sem modificar a sessão persistida.
+// -------------------------------------------------------------------------
+const exportarSessao = async (req, res) => {
+    try {
+        const sessao = await Session.findOne({
+            sessionId: req.params.sessionId,
+        });
+
+        if (!sessao) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada",
+            });
+        }
+
+        const aluno = await buscarAlunoComAcesso(
+            req.usuarioId,
+            sessao.studentId,
+        );
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Sessão não encontrada",
+            });
+        }
+
+        return responderComoDownloadJson(
+            res,
+            criarNomeArquivoSeguro(sessao.sessionId, "sessao-ludus"),
+            prepararSessaoParaExportacao(sessao),
+        );
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao exportar sessão:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao exportar sessão",
+        });
+    }
+};
+
+// -------------------------------------------------------------------------
+// exportarExecucao — GET /api/sessions/export-run/:runId
+// Reúne as categorias e tentativas acessíveis de uma mesma execução.
+// -------------------------------------------------------------------------
+const exportarExecucao = async (req, res) => {
+    try {
+        const runId = String(req.params.runId || "").trim();
+        if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(runId)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "runId inválido",
+            });
+        }
+
+        const sessoes = await Session.find({ runId }).sort({
+            attemptNumber: 1,
+            startedAt: 1,
+        });
+        if (sessoes.length === 0) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Execução não encontrada",
+            });
+        }
+
+        for (const sessao of sessoes) {
+            const aluno = await buscarAlunoComAcesso(
+                req.usuarioId,
+                sessao.studentId,
+            );
+            if (!aluno) {
+                return res.status(404).json({
+                    sucesso: false,
+                    mensagem: "Execução não encontrada",
+                });
+            }
+        }
+
+        return responderComoDownloadJson(
+            res,
+            criarNomeArquivoSeguro(runId, "execucao-ludus"),
+            prepararPacoteDeExecucao(runId, sessoes),
+        );
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao exportar execução:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao exportar execução",
+        });
+    }
+};
+
 // -------------------------------------------------------------------------
 // removerSessaoImportada — DELETE /api/sessions/:sessionId
 // Remove somente sessões criadas pelo fluxo autenticado de importação JSON.
@@ -1022,7 +1322,7 @@ const sessoesPorAluno = async (req, res) => {
 
         const sessoes = await Session.find(filtro)
             .select(
-                "sessionId gameId platform startedAt endedAt durationMs metrics gameEvents screenshots schemaVersion captureMode source sourceVersion ingestionMethod capabilities viewport",
+                "sessionId runId attemptNumber status gameId platform startedAt endedAt durationMs metrics gameEvents screenshots schemaVersion captureMode source sourceVersion ingestionMethod capabilities viewport",
             )
 
             .sort({ startedAt: -1 });
@@ -1051,12 +1351,15 @@ module.exports = {
     registrarJogoEAssociarAluno,
     salvarSessaoNormalizada,
     criarSessao,
+    salvarCheckpoint,
     previewImportacao,
     confirmarImportacao,
     previewImportacaoLote,
     confirmarImportacaoLote,
     listarSessoes,
     buscarSessao,
+    exportarSessao,
+    exportarExecucao,
     removerSessaoImportada,
     sessoesPorAluno,
 };

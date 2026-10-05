@@ -1,19 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ludus-acompanha.ufpel.br/schema/ludus-session-1.0.0.schema.json",
+  "$id": "https://ludus-acompanha.ufpel.br/schema/ludus-session.schema.json",
   "title": "Sessão canônica LUDUS",
   "description": "Contrato interno versionado para telemetria de jogos educacionais no LUDUS Acompanha.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "captureMode", "source", "ingestionMethod", "capabilities", "sessionId", "studentId", "gameId", "startedAt", "durationMs", "viewport"],
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "enum": ["1.0.0", "1.1.0"] },
     "captureMode": { "enum": ["observational", "sdk"] },
     "source": { "type": "string", "minLength": 1, "maxLength": 100 },
     "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 50 },
     "ingestionMethod": { "enum": ["direct-api", "file-import"] },
     "capabilities": { "$ref": "#/$defs/capabilities" },
     "sessionId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "runId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "attemptNumber": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["in_progress", "completed", "interrupted"] },
     "studentId": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
     "playerId": { "type": "string", "minLength": 1, "maxLength": 200 },
     "gameId": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[a-z0-9][a-z0-9-]*$" },
@@ -30,6 +33,32 @@
     "gameEvents": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/gameEvent" } },
     "screenshots": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/screenshot" } }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "1.1.0" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "properties": {
+          "runId": {},
+          "attemptNumber": {},
+          "status": {}
+        },
+        "required": ["runId", "attemptNumber", "status"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "completed" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "endedAt": {} },
+        "required": ["endedAt"]
+      }
+    }
+  ],
   "$defs": {
     "capabilities": {
       "type": "object",

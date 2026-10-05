@@ -13,6 +13,7 @@ const { autenticar, apenasAdmin } = require("../middleware/auth");
 
 // POST /api/sessions       — recebe sessão do Unity
 router.post("/", controller.criarSessao);
+router.put("/checkpoint", controller.salvarCheckpoint);
 
 // Importação autenticada pelo dashboard: valida antes de persistir.
 router.post(
@@ -40,6 +41,17 @@ router.post(
 router.get("/", autenticar, apenasAdmin, controller.listarSessoes);
 
 router.get("/student/:studentId", autenticar, controller.sessoesPorAluno);
+
+router.get(
+    "/export-run/:runId",
+    autenticar,
+    controller.exportarExecucao,
+);
+router.get(
+    "/export/:sessionId",
+    autenticar,
+    controller.exportarSessao,
+);
 
 // GET  /api/sessions/:id   — busca sessão completa
 router.get("/:sessionId", autenticar, controller.buscarSessao);

@@ -140,6 +140,17 @@ const SessionSchema = new mongoose.Schema(
         // Metadados da telemetria multi-jogo. Sessões históricas podem não
         // possuir esses campos e continuam legíveis pelo dashboard atual.
         schemaVersion: { type: String },
+        // Uma execução pode reunir várias categorias e repetições. Os campos
+        // são opcionais para preservar as sessões históricas do schema 1.0.0.
+        runId: { type: String, index: true },
+        attemptNumber: { type: Number, min: 1 },
+        status: {
+            type: String,
+            enum: ["in_progress", "completed", "interrupted"],
+        },
+        // Segredo efêmero armazenado somente como hash para autorizar a
+        // atualização e a conclusão de um checkpoint com o mesmo sessionId.
+        checkpointKeyHash: { type: String, select: false },
         captureMode: { type: String, enum: ["observational", "sdk"] },
         source: { type: String },
         sourceVersion: { type: String },

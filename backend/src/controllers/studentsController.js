@@ -123,7 +123,14 @@ const listarVisaoGeralAlunos = async (req, res) => {
 
         const sessoesPorJogo = idsAlunos.length
             ? await Session.aggregate([
-                  { $match: { studentId: { $in: idsAlunos } } },
+                  {
+                      $match: {
+                          studentId: { $in: idsAlunos },
+                          status: {
+                              $nin: ["in_progress", "interrupted"],
+                          },
+                      },
+                  },
                   {
                       $group: {
                           _id: {
@@ -437,7 +444,10 @@ const buscarAluno = async (req, res) => {
         await aluno.populate("groupId", "name institutionId");
 
         // Busca sessões vinculadas ao ID do aluno
-        const sessoes = await Session.find({ studentId: aluno._id })
+        const sessoes = await Session.find({
+            studentId: aluno._id,
+            status: { $nin: ["in_progress", "interrupted"] },
+        })
             .select("sessionId gameId startedAt durationMs metrics")
             .sort({ startedAt: -1 });
 
