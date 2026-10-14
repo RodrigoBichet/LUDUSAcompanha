@@ -481,6 +481,19 @@
     background: #ffffff;
 }
 
+#tutorial-preparacao,
+#configuracao-sdk-detalhada,
+#tutorial-conectar,
+#integrar-jogo-real {
+    scroll-margin-top: 8.5rem;
+}
+
+.documentacao-tutorial-fase:target,
+.documentacao-transicao-jogo-real:target {
+    border-color: #27896b;
+    box-shadow: 0 0 0 4px rgba(39, 137, 107, 0.12);
+}
+
 .documentacao-tutorial-fase > span {
     display: grid;
     place-items: center;
@@ -592,6 +605,442 @@
 .documentacao-midia-preparada figcaption strong { color: var(--cor-texto); }
 .documentacao-midia-preparada figcaption span { color: var(--cor-texto-leve); line-height: 1.45; overflow-wrap: anywhere; }
 .documentacao-midia-preparada figcaption small { color: #27896b; font-weight: 750; }
+
+.documentacao-midia-preparada figcaption .documentacao-midia-etiqueta {
+    width: fit-content;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    color: #176148;
+    background: #dff4eb;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+}
+
+.documentacao-video-tutorial {
+    display: grid;
+    gap: 0.85rem;
+    margin: 1.1rem 0 1.35rem;
+    padding: clamp(0.75rem, 1.5vw, 1rem);
+    border: 1px solid #cfe8de;
+    border-radius: 14px;
+    background: #f8fcfa;
+}
+
+.documentacao-videos-tutoriais {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.documentacao-videos-tutoriais > * {
+    height: calc(100% - 2.45rem);
+}
+
+.documentacao-exemplo-real {
+    margin-top: 1rem;
+    border: 1px solid #a8ddcb;
+    border-radius: 12px;
+    background: #f8fcfa;
+}
+
+.documentacao-exemplo-real > summary {
+    padding: 1rem;
+    color: #176148;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.documentacao-exemplo-real > div {
+    padding: 0 1rem 1rem;
+}
+
+.documentacao-exemplo-real ol {
+    display: grid;
+    gap: 0.75rem;
+    padding-left: 1.4rem;
+}
+
+.documentacao-exemplo-real li,
+.documentacao-exemplo-real p {
+    line-height: 1.55;
+}
+
+.documentacao-exemplo-real-nota {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-left: 3px solid #27896b;
+    background: #edf8f4;
+}
+
+.documentacao-alerta-sessao {
+    margin-top: 0.85rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #f2bd72;
+    border-left: 4px solid #d97706;
+    border-radius: 9px;
+    background: #fff8eb;
+    color: #713f12;
+}
+
+.documentacao-alerta-sessao > strong {
+    color: #9a4f08;
+}
+
+.documentacao-alerta-sessao p {
+    margin: 0.45rem 0 0;
+    color: #713f12 !important;
+}
+
+.documentacao-video-tutorial > header {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.documentacao-video-tutorial > header small {
+    width: fit-content;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    color: #176148;
+    background: #dff4eb;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.documentacao-video-tutorial h4,
+.documentacao-video-tutorial p {
+    margin: 0;
+}
+
+.documentacao-video-tutorial h4 {
+    color: var(--cor-texto);
+    font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+}
+
+.documentacao-video-tutorial p,
+.documentacao-video-opcoes {
+    color: var(--cor-texto-leve);
+}
+
+.documentacao-video-player {
+    overflow: hidden;
+    border-radius: 10px;
+    background: #07131e;
+    box-shadow: 0 8px 24px rgba(10, 36, 29, 0.14);
+}
+
+.documentacao-video-player video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #07131e;
+}
+
+.documentacao-video-opcoes {
+    display: flex;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+}
+
+.documentacao-video-opcoes label {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    color: #203446;
+    font-weight: 750;
+}
+
+.documentacao-video-opcoes select {
+    min-height: 36px;
+    padding: 0.35rem 2rem 0.35rem 0.65rem;
+    border: 1px solid #8dbdaf;
+    border-radius: 8px;
+    color: #203446;
+    background: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.documentacao-video-opcoes select:focus-visible {
+    outline: 3px solid rgba(39, 137, 107, 0.22);
+    outline-offset: 2px;
+}
+
+@media (max-width: 620px) {
+    .documentacao-video-opcoes {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+.documentacao-sequencia-imagens {
+    display: grid;
+    gap: 0.85rem;
+    margin: 1rem 0;
+    padding: 0.9rem;
+    border: 1px solid #cfe8de;
+    border-radius: 12px;
+    background: #f8fcfa;
+}
+
+.documentacao-sequencia-imagens > header {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.documentacao-sequencia-imagens > header > strong {
+    color: var(--cor-texto);
+    font-size: 1rem;
+}
+
+.documentacao-sequencia-imagens > header > span {
+    color: var(--cor-texto-leve);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.documentacao-sequencia-imagens > div {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 0.8rem;
+}
+
+.documentacao-sequencia-imagens figure {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #d7e5df;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.documentacao-sequencia-imagens figure.destaque {
+    grid-column: 1 / -1;
+}
+
+.documentacao-sequencia-imagens > div.quatro-passos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.documentacao-sequencia-imagens > div.quatro-passos figure.destaque {
+    grid-column: auto;
+}
+
+.documentacao-sequencia-imagens figure:only-child {
+    width: 100%;
+    max-width: 520px;
+    justify-self: center;
+}
+
+.documentacao-sequencia-imagens figure > .documentacao-imagem-ampliavel {
+    position: relative;
+    display: grid;
+    width: 100%;
+    min-height: 150px;
+    place-items: center;
+    padding: 0.65rem;
+    border: 0;
+    background: #242424;
+    cursor: zoom-in;
+}
+
+.documentacao-sequencia-imagens figure.destaque > .documentacao-imagem-ampliavel {
+    min-height: 0;
+}
+
+.documentacao-imagem-ampliavel > span {
+    position: absolute;
+    right: 0.65rem;
+    bottom: 0.65rem;
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(13, 30, 43, 0.88);
+    font-size: 0.72rem;
+    font-weight: 750;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.documentacao-imagem-ampliavel:hover > span,
+.documentacao-imagem-ampliavel:focus-visible > span {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.documentacao-imagem-ampliavel:focus-visible {
+    outline: 3px solid #41c29d;
+    outline-offset: -3px;
+}
+
+.documentacao-sequencia-imagens img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 430px;
+}
+
+.documentacao-sequencia-imagens figcaption {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 0.6rem;
+    align-items: start;
+    padding: 0.7rem;
+}
+
+.documentacao-sequencia-imagens figcaption > span {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #fff;
+    background: #27896b;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.documentacao-sequencia-imagens figcaption div {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.documentacao-sequencia-imagens figcaption strong {
+    color: var(--cor-texto);
+    font-size: 0.88rem;
+}
+
+.documentacao-sequencia-imagens figcaption small {
+    color: var(--cor-texto-leve);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.documentacao-imagem-modal-fundo {
+    position: fixed;
+    z-index: 1300;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+    background: rgba(8, 20, 31, 0.82);
+    backdrop-filter: blur(4px);
+}
+
+.documentacao-imagem-modal {
+    display: grid;
+    grid-template-rows: auto auto;
+    width: min(900px, 78vw);
+    max-height: 94vh;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 18px;
+    background: #0d1e2b;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.documentacao-imagem-modal > header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 0.9rem 0.8rem 1.1rem;
+    color: #203446;
+    background: #fff;
+}
+
+.documentacao-imagem-modal > header > div {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.documentacao-imagem-modal > header strong {
+    font-size: 1rem;
+}
+
+.documentacao-imagem-modal > header span {
+    color: #526579;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.documentacao-imagem-modal > header button {
+    display: grid;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid #d7e5df;
+    border-radius: 10px;
+    color: #203446;
+    background: #fff;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.documentacao-imagem-modal > header button:hover,
+.documentacao-imagem-modal > header button:focus-visible {
+    border-color: #27896b;
+    color: #087153;
+    background: #effbf7;
+    outline: none;
+}
+
+.documentacao-imagem-modal-conteudo {
+    display: grid;
+    place-items: center;
+    padding: clamp(0.45rem, 1vw, 0.85rem);
+}
+
+.documentacao-imagem-modal-conteudo img {
+    display: block;
+    width: 100%;
+    max-width: min(100%, 850px);
+    height: auto;
+    max-height: calc(94vh - 92px);
+    object-fit: contain;
+}
+
+@media (max-width: 700px) {
+    .documentacao-imagem-modal-fundo {
+        padding: 0.55rem;
+    }
+
+    .documentacao-imagem-modal {
+        width: 96vw;
+        max-height: 96vh;
+        border-radius: 12px;
+    }
+
+    .documentacao-imagem-modal > header {
+        padding-left: 0.8rem;
+    }
+
+    .documentacao-imagem-modal > header span {
+        display: none;
+    }
+
+    .documentacao-imagem-modal-conteudo img {
+        max-height: calc(96vh - 72px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .documentacao-imagem-ampliavel > span {
+        transition: none;
+    }
+}
 
 .documentacao-ponte-explicacao {
     margin-top: 0.8rem;
@@ -1038,6 +1487,15 @@
     .documentacao-transicao-jogo-real > span { justify-self: start; }
 }
 
+@media (max-width: 900px) {
+    #tutorial-preparacao,
+    #configuracao-sdk-detalhada,
+    #tutorial-conectar,
+    #integrar-jogo-real {
+        scroll-margin-top: 9.5rem;
+    }
+}
+
 .documentacao-passos {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1243,7 +1701,11 @@
 
 @media (max-width: 820px) {
     .documentacao-atalhos-guia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .documentacao-videos-tutoriais { grid-template-columns: 1fr; }
+    .documentacao-videos-tutoriais > * { height: auto; }
     .documentacao-midia-preparada { grid-template-columns: 1fr; }
+    .documentacao-sequencia-imagens > div { grid-template-columns: 1fr; }
+    .documentacao-sequencia-imagens figure.destaque { grid-column: auto; }
     .documentacao-subsecoes {
         grid-template-columns: 1fr;
     }

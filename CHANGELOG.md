@@ -9,6 +9,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Documentação, privacidade e qualidade
 
+- os atalhos do tutorial passam a usar uma transição curta e previsível até o
+  início exato de cada grupo, compensando o cabeçalho fixo; a instalação pelo
+  Package Manager recebe uma sequência visual de três passos com imagens reais,
+  e a etapa de interações passa a mostrar os objetos expandidos na Hierarchy;
+  os fluxos de conexão por nome e código e de revisão do recebimento ganham
+  sequências visuais completas, e a integração no jogo real recebe um espaço
+  próprio para um segundo vídeo demonstrativo, agora identificado separadamente
+  do laboratório guiado; todos os prints dessas sequências
+  podem ser ampliados em uma visualização acessível por mouse ou teclado;
+- o laboratório guiado passa a incluir o primeiro tutorial completo em vídeo,
+  otimizado para a web, com controles nativos e velocidades entre 0,5× e 2×;
+- a documentação passa a incluir também o vídeo prático do jogo Para Que
+  Serve?, otimizado para a web, demonstrando o recorte de uma única cena, o
+  ciclo da sessão e uma atividade de arraste por tag;
 - a documentação passa a priorizar o roteiro essencial, recolhendo privacidade,
   opções WebGL, campos avançados, cenários semânticos e checklists técnicos;
   também recebe atalhos por etapa, valores copiáveis, download alternativo do

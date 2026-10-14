@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Icone from "../components/shared/Icone";
@@ -51,7 +52,7 @@ function TextoCopiavel({ texto, rotulo = "Copiar" }) {
     );
 }
 
-function MidiaPreparada({ tipo = "imagem", titulo, descricao }) {
+function MidiaPreparada({ tipo = "imagem", titulo, descricao, etiqueta }) {
     return (
         <figure className={`documentacao-midia-preparada documentacao-midia-preparada--${tipo}`}>
             <div role="img" aria-label={`${titulo}. Conteúdo será adicionado posteriormente.`}>
@@ -59,11 +60,168 @@ function MidiaPreparada({ tipo = "imagem", titulo, descricao }) {
                 {tipo === "video" && <span aria-hidden="true">▶</span>}
             </div>
             <figcaption>
+                {etiqueta && <small className="documentacao-midia-etiqueta">{etiqueta}</small>}
                 <strong>{titulo}</strong>
                 <span>{descricao}</span>
                 <small>{tipo === "video" ? "Espaço preparado para o vídeo do OBS" : "Envie o print para substituir esta marcação"}</small>
             </figcaption>
         </figure>
+    );
+}
+
+function VideoTutorial({ titulo, descricao, src, poster, etiqueta = "VÍDEO" }) {
+    const videoRef = useRef(null);
+    const tituloId = useId();
+    const [velocidade, setVelocidade] = useState(1);
+
+    const alterarVelocidade = (evento) => {
+        const novaVelocidade = Number(evento.target.value);
+        setVelocidade(novaVelocidade);
+        if (videoRef.current) videoRef.current.playbackRate = novaVelocidade;
+    };
+
+    return (
+        <section className="documentacao-video-tutorial" aria-labelledby={tituloId}>
+            <header>
+                <small>{etiqueta}</small>
+                <h4 id={tituloId}>{titulo}</h4>
+                <p>{descricao}</p>
+            </header>
+            <div className="documentacao-video-player">
+                <video
+                    ref={videoRef}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    poster={poster}
+                    onLoadedMetadata={(evento) => {
+                        evento.currentTarget.playbackRate = velocidade;
+                    }}
+                >
+                    <source src={src} type="video/mp4" />
+                    Seu navegador não consegue reproduzir este vídeo.
+                </video>
+            </div>
+            <div className="documentacao-video-opcoes">
+                <span>Vídeo demonstrativo sem áudio.</span>
+                <label>
+                    Velocidade
+                    <select value={velocidade} onChange={alterarVelocidade}>
+                        <option value="0.5">0,5×</option>
+                        <option value="0.75">0,75×</option>
+                        <option value="1">1×</option>
+                        <option value="1.25">1,25×</option>
+                        <option value="1.5">1,5×</option>
+                        <option value="1.75">1,75×</option>
+                        <option value="2">2×</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+    );
+}
+
+function SequenciaImagens({ titulo, descricao, imagens }) {
+    const [imagemAmpliada, setImagemAmpliada] = useState(null);
+    const botaoFecharRef = useRef(null);
+    const botaoOrigemRef = useRef(null);
+
+    useEffect(() => {
+        if (!imagemAmpliada) return undefined;
+
+        const overflowAnterior = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        botaoFecharRef.current?.focus();
+
+        const fecharComEsc = (evento) => {
+            if (evento.key === "Escape") setImagemAmpliada(null);
+        };
+
+        window.addEventListener("keydown", fecharComEsc);
+
+        return () => {
+            document.body.style.overflow = overflowAnterior;
+            window.removeEventListener("keydown", fecharComEsc);
+            botaoOrigemRef.current?.focus();
+        };
+    }, [imagemAmpliada]);
+
+    const ampliarImagem = (imagem, botaoOrigem) => {
+        botaoOrigemRef.current = botaoOrigem;
+        setImagemAmpliada(imagem);
+    };
+
+    return (
+        <section className="documentacao-sequencia-imagens" aria-label={titulo}>
+            <header>
+                <strong>{titulo}</strong>
+                <span>{descricao}</span>
+            </header>
+            <div className={imagens.length === 4 ? "quatro-passos" : undefined}>
+                {imagens.map((imagem, indice) => (
+                    <figure
+                        key={imagem.src}
+                        className={indice === imagens.length - 1 ? "destaque" : ""}
+                    >
+                        <button
+                            type="button"
+                            className="documentacao-imagem-ampliavel"
+                            onClick={(evento) => ampliarImagem(imagem, evento.currentTarget)}
+                            aria-label={`Ampliar imagem: ${imagem.titulo}`}
+                        >
+                            <img src={imagem.src} alt={imagem.alt} loading="lazy" />
+                            <span aria-hidden="true">
+                                ⛶
+                                Clique para ampliar
+                            </span>
+                        </button>
+                        <figcaption>
+                            <span aria-hidden="true">{indice + 1}</span>
+                            <div>
+                                <strong>{imagem.titulo}</strong>
+                                <small>{imagem.descricao}</small>
+                            </div>
+                        </figcaption>
+                    </figure>
+                ))}
+            </div>
+
+            {imagemAmpliada && createPortal(
+                <div
+                    className="documentacao-imagem-modal-fundo"
+                    role="presentation"
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget) setImagemAmpliada(null);
+                    }}
+                >
+                    <div
+                        className="documentacao-imagem-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="titulo-imagem-ampliada"
+                    >
+                        <header>
+                            <div>
+                                <strong id="titulo-imagem-ampliada">{imagemAmpliada.titulo}</strong>
+                                <span>{imagemAmpliada.descricao}</span>
+                            </div>
+                            <button
+                                ref={botaoFecharRef}
+                                type="button"
+                                onClick={() => setImagemAmpliada(null)}
+                                aria-label="Fechar imagem ampliada"
+                            >
+                                ×
+                            </button>
+                        </header>
+                        <div className="documentacao-imagem-modal-conteudo">
+                            <img src={imagemAmpliada.src} alt={imagemAmpliada.alt} />
+                        </div>
+                    </div>
+                </div>,
+                document.body,
+            )}
+        </section>
     );
 }
 
@@ -81,6 +239,7 @@ const trilhas = [
 export default function Documentacao({ publica = false }) {
     const { usuario } = useAuth();
     const [guiaAtivo, setGuiaAtivo] = useState(null);
+    const animacaoRolagem = useRef(null);
     const trilhaPreferida = usuario
         ? usuario.role === "developer"
             ? "desenvolvedor"
@@ -90,6 +249,61 @@ export default function Documentacao({ publica = false }) {
     const trilhasOrdenadas = [...trilhas].sort((a) =>
         a.id === trilhaPreferida ? -1 : 1,
     );
+
+    const navegarParaSecao = (evento, id) => {
+        evento.preventDefault();
+        const destino = document.getElementById(id);
+
+        if (!destino) return;
+
+        window.history.pushState(null, "", `#${id}`);
+        const margem = Number.parseFloat(
+            window.getComputedStyle(destino).scrollMarginTop,
+        ) || 0;
+        const inicio = window.scrollY;
+        const fim = destino.getBoundingClientRect().top + inicio - margem;
+        const reduzirMovimento = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        ).matches;
+
+        const raiz = document.documentElement;
+
+        if (animacaoRolagem.current) {
+            window.cancelAnimationFrame(animacaoRolagem.current.quadro);
+            raiz.style.scrollBehavior =
+                animacaoRolagem.current.comportamentoAnterior;
+        }
+
+        const comportamentoAnterior = raiz.style.scrollBehavior;
+        raiz.style.scrollBehavior = "auto";
+
+        if (reduzirMovimento) {
+            window.scrollTo(0, fim);
+            raiz.style.scrollBehavior = comportamentoAnterior;
+            return;
+        }
+
+        const duracao = 420;
+        const comeco = performance.now();
+        const animar = (agora) => {
+            const progresso = Math.min((agora - comeco) / duracao, 1);
+            const suavizado = 1 - ((1 - progresso) ** 3);
+            window.scrollTo(0, inicio + ((fim - inicio) * suavizado));
+
+            if (progresso < 1) {
+                animacaoRolagem.current.quadro =
+                    window.requestAnimationFrame(animar);
+            } else {
+                raiz.style.scrollBehavior = comportamentoAnterior;
+                animacaoRolagem.current = null;
+            }
+        };
+
+        animacaoRolagem.current = {
+            quadro: window.requestAnimationFrame(animar),
+            comportamentoAnterior,
+        };
+    };
 
     const seletorPerfil = (
         <nav
@@ -423,10 +637,10 @@ export default function Documentacao({ publica = false }) {
                     </div>
 
                     <nav className="documentacao-atalhos-guia" aria-label="Atalhos do tutorial">
-                        <a href="#tutorial-preparacao"><span>1–3</span>Preparar</a>
-                        <a href="#configuracao-sdk-detalhada"><span>4–7</span>Configurar</a>
-                        <a href="#tutorial-conectar"><span>8–10</span>Testar e conferir</a>
-                        <a href="#integrar-jogo-real"><span>Depois</span>Jogo real</a>
+                        <a href="#tutorial-preparacao" onClick={(evento) => navegarParaSecao(evento, "tutorial-preparacao")}><span>1–3</span>Preparar</a>
+                        <a href="#configuracao-sdk-detalhada" onClick={(evento) => navegarParaSecao(evento, "configuracao-sdk-detalhada")}><span>4–7</span>Configurar</a>
+                        <a href="#tutorial-conectar" onClick={(evento) => navegarParaSecao(evento, "tutorial-conectar")}><span>8–10</span>Testar e conferir</a>
+                        <a href="#integrar-jogo-real" onClick={(evento) => navegarParaSecao(evento, "integrar-jogo-real")}><span>Depois</span>Jogo real</a>
                     </nav>
 
                     <article className="documentacao-tutorial-destaque">
@@ -442,11 +656,22 @@ export default function Documentacao({ publica = false }) {
                             </p>
                         </header>
 
-                        <MidiaPreparada
-                            tipo="video"
-                            titulo="Tutorial completo em vídeo"
-                            descricao="Instalação, configuração, teste no Play e conferência da sessão no dashboard."
-                        />
+                        <div className="documentacao-videos-tutoriais">
+                            <VideoTutorial
+                                etiqueta="VÍDEO 1 DE 2"
+                                titulo="Laboratório guiado: do SDK ao dashboard"
+                                descricao="Acompanhe a instalação, a configuração, o teste no Play e a conferência da sessão no dashboard."
+                                src="/documentacao/videos/tutorial-sdk-dashboard.mp4"
+                                poster="/documentacao/videos/tutorial-sdk-dashboard-capa.jpg"
+                            />
+                            <VideoTutorial
+                                etiqueta="VÍDEO 2 DE 2"
+                                titulo="Aplicação no Para Que Serve?"
+                                descricao="Aplicação do tutorial na prática em um projeto que acompanha somente uma cena, controla o ciclo da sessão e registra uma atividade de arraste por tag."
+                                src="/documentacao/videos/tutorial-sdk-para-que-serve.mp4"
+                                poster="/documentacao/videos/tutorial-sdk-para-que-serve-capa.jpg"
+                            />
+                        </div>
 
                         <div className="documentacao-tutorial-etapas">
                             <section className="documentacao-tutorial-fase" id="tutorial-preparacao">
@@ -460,7 +685,7 @@ export default function Documentacao({ publica = false }) {
                                         LUDUS</strong>, <strong>Turma — Turma de teste</strong> e
                                         <strong> Alunos fictícios — 3</strong>.
                                     </p>
-                                    <details className="documentacao-configuracao">
+                                    <details className="documentacao-configuracao" open>
                                         <summary>Se o laboratório fictício ainda não existir</summary>
                                         <p>
                                         Caso esses dados ainda não existam, a própria Visão geral
@@ -471,26 +696,6 @@ export default function Documentacao({ publica = false }) {
                                         instituição simulada e permanece separado das escolas reais.
                                         </p>
                                     </details>
-                                    <p>
-                                        Depois, volte à barra lateral e clique em
-                                        <strong> Coletas de teste</strong>. Primeiro informe o
-                                        <strong> título da sua coleta</strong> (por exemplo,
-                                        <strong> Turma X — atividade das 10h</strong>); em seguida, escolha a
-                                        <strong> Turma de teste</strong>, defina a validade, selecione
-                                        <strong> Reconhecer jogos durante a atividade</strong> e gere
-                                        o código temporário.
-                                    </p>
-                                    <div className="documentacao-dados-teste">
-                                        <strong>Lembre-se destas duas informações:</strong>
-                                        <ul>
-                                            <li><strong>Nome do aluno:</strong> use <TextoCopiavel texto="Aluno teste 01" />, caso não tenha criado outro aluno fictício manualmente.</li>
-                                            <li><strong>Código da coleta:</strong> use o código temporário gerado pelo sistema.</li>
-                                        </ul>
-                                        <p>
-                                            É com esse nome e esse código que o jogo será conectado
-                                            à coleta e enviará a sessão para o aluno correto no dashboard.
-                                        </p>
-                                    </div>
                                     <Link
                                         className="documentacao-link-acao"
                                         to={usuario ? "/laboratorio" : "/cadastro?perfil=developer"}
@@ -518,9 +723,29 @@ export default function Documentacao({ publica = false }) {
                                             Baixar ZIP do SDK
                                         </a>
                                     </div>
-                                    <MidiaPreparada
-                                        titulo="Print 1 — instalação pelo Package Manager"
-                                        descricao="Enquadre o menu +, a opção Install package from git URL e o campo com o endereço colado."
+                                    <SequenciaImagens
+                                        titulo="Instalação pelo Package Manager"
+                                        descricao="Siga a sequência abaixo e confira se o pacote foi reconhecido pela Unity."
+                                        imagens={[
+                                            {
+                                                src: "/documentacao/package-manager/01-instalar-url-git.png",
+                                                alt: "Menu do Package Manager com a opção Install package from git URL selecionada.",
+                                                titulo: "Abra o menu de instalação",
+                                                descricao: "Clique em + e escolha Install package from git URL…",
+                                            },
+                                            {
+                                                src: "/documentacao/package-manager/02-colar-url-sdk.png",
+                                                alt: "Campo do Package Manager preenchido com o endereço Git do LUDUS Unity SDK.",
+                                                titulo: "Cole o endereço do pacote",
+                                                descricao: "Confira a URL e clique em Install.",
+                                            },
+                                            {
+                                                src: "/documentacao/package-manager/03-sdk-instalado.png",
+                                                alt: "Package Manager mostrando o LUDUS Unity SDK versão 0.2.0 instalado no projeto.",
+                                                titulo: "Confirme a instalação",
+                                                descricao: "O LUDUS Unity SDK deve aparecer na lista In Project.",
+                                            },
+                                        ]}
                                     />
                                 </div>
                             </section>
@@ -693,7 +918,7 @@ export default function Documentacao({ publica = false }) {
                                         tela final de orientação:
                                         interações automáticas, alternativas por botão, arraste
                                         com destino, contato por física, meta por valor e ciclo de
-                                        categoria/fase. Ele também cria o <code>EventSystem</code>
+                                        categoria/fase. Ele também cria o <code>EventSystem</code>{" "}
                                         quando necessário, sem alterar suas cenas originais. Se a
                                         versão antiga do exercício já existir, a Unity pedirá sua
                                         confirmação antes de recriar somente esse objeto tutorial.
@@ -723,9 +948,17 @@ export default function Documentacao({ publica = false }) {
                                         imagens, peças arrastáveis e objetos clicáveis das cenas do
                                         seu projeto.
                                     </p>
-                                    <MidiaPreparada
-                                        titulo="Print 2 — janela Interações LUDUS"
-                                        descricao="Mostre a Hierarchy e os três itens já separados em botão, campo e objeto arrastável."
+                                    <SequenciaImagens
+                                        titulo="Localize os objetos na Hierarchy"
+                                        descricao="Expanda a área de interações automáticas até visualizar o botão, o campo de texto e a peça que realmente se move."
+                                        imagens={[
+                                            {
+                                                src: "/documentacao/interacoes/01-objetos-hierarchy.png",
+                                                alt: "Hierarchy da Unity expandida até os objetos BotaoTutorial, CampoTextoTutorial e PecaArrastavelTutorial.",
+                                                titulo: "Use os três objetos destacados pelo caminho",
+                                                descricao: "BotaoTutorial, CampoTextoTutorial e Área de arraste livre > PecaArrastavelTutorial.",
+                                            },
+                                        ]}
                                     />
                                     <div className="documentacao-dialogos-unity">
                                         <details>
@@ -748,7 +981,7 @@ export default function Documentacao({ publica = false }) {
                                                 <code> Área de arraste</code> em vez da peça. Use
                                                 <strong> Usar o filho</strong> para acompanhar
                                                 <code> PecaArrastavelTutorial</code>, que realmente
-                                                se move. Use <strong>Usar o contêiner mesmo</strong>
+                                                se move. Use <strong>Usar o contêiner mesmo</strong>{" "}
                                                 apenas quando o próprio contêiner recebe o gesto no
                                                 seu jogo; ou cancele para revisar a Hierarchy.
                                             </p>
@@ -790,8 +1023,8 @@ export default function Documentacao({ publica = false }) {
                                     <p>
                                         Selecione novamente o objeto
                                         <code> LUDUS — Exercício de interações</code> na Hierarchy e aplique
-                                        <strong> GameObject &gt; LUDUS &gt; Marcar como área de
-                                        observação</strong>. Esse comando diz ao SDK que aquele
+                                        <strong> GameObject &gt; LUDUS &gt; Avançado (casos específicos) &gt;
+                                        Marcar como área de observação</strong>. Esse comando diz ao SDK que aquele
                                         objeto-raiz (<code>LUDUS — Exercício de interações</code>)
                                         representa uma tela ou atividade específica
                                         dentro da cena, agrupando sob o mesmo nome as interações
@@ -931,8 +1164,8 @@ export default function Documentacao({ publica = false }) {
                                             <p>
                                                 Em seguida, no mesmo caminho da Hierarchy, selecione
                                                 <code> ImagemDuasFormasTutorial</code>. Adicione o mesmo
-                                                adaptador, escolha <strong>Correto</strong> e use
-                                                <strong> Duas formas</strong> como resposta exibida e esperada.
+                                                adaptador, escolha <strong>Correto</strong> e use{" "}
+                                                <TextoCopiavel texto="Duas formas" /> como resposta exibida e esperada.
                                                 As duas imagens do tutorial possuem <code>Button</code>, por
                                                 isso podem usar esse adaptador sem perder as ações existentes.
                                                 Em um jogo real, uma imagem sem <code>Button</code> pode ter o
@@ -1214,8 +1447,8 @@ export default function Documentacao({ publica = false }) {
                                         <details>
                                             <summary>Opcional — configurar em lote cenas reais com arraste por tag</summary>
                                             <p>
-                                                <strong>LUDUS &gt; Configurar resultados da cena</strong>
-                                                procura, na cena aberta, destinos que recebem <code>OnDrop</code>
+                                                <strong>LUDUS &gt; Configurar resultados da cena</strong>{" "}
+                                                procura, na cena aberta, destinos que recebem <code>OnDrop</code>{" "}
                                                 e usam uma tag explícita. Depois da sua confirmação, pode criar
                                                 ou reutilizar o escopo da atividade, a Ponte semântica e os
                                                 adaptadores de arraste selecionados. Também permite salvar e
@@ -1252,24 +1485,50 @@ export default function Documentacao({ publica = false }) {
                                 <div>
                                     <h4>Conecte o tutorial a uma coleta</h4>
                                     <p>
-                                        Execute <strong>GameObject &gt; LUDUS &gt; Adicionar acesso por nome e
-                                        código</strong>. Na <strong>Hierarchy</strong>, mantenha o objeto inteiro
-                                        <code> LUDUS — Acesso à coleta</code> na cena inicial, de menu ou primeira
-                                        cena do jogo. Neste tutorial, coloque-o dentro de
-                                        <code> LUDUS — Exercício de interações</code>. O botão <strong>L</strong>
-                                        é adicionado no canto superior direito, mas pode ser reposicionado
-                                        livremente na cena.
-                                    </p>
-                                    <p>
                                         No <strong>site LUDUS Acompanha</strong>, abra
                                         <strong> Laboratório &gt; Coletas de teste</strong>. Informe um título,
                                         escolha a turma, defina a validade, mantenha
                                         <strong> Reconhecer jogos durante a atividade</strong> e gere a coleta.
-                                        Copie o código temporário exibido.
+                                        Copie o código temporário exibido antes de voltar à Unity.
                                     </p>
-                                    <MidiaPreparada
-                                        titulo="Print 3 — acesso por nome e código"
-                                        descricao="Mostre o botão L no canto superior direito e o modal de conexão aberto."
+                                    <p>
+                                        Execute <strong>GameObject &gt; LUDUS &gt; Adicionar acesso por nome e
+                                        código</strong>. Na <strong>Hierarchy</strong>, mantenha o objeto inteiro
+                                        <code> LUDUS — Acesso à coleta</code> na cena inicial, de menu ou primeira
+                                        cena do jogo. Neste tutorial, coloque-o dentro de
+                                        <code> LUDUS — Exercício de interações</code>. O botão <strong>L</strong>{" "}
+                                        é adicionado no canto superior direito, mas pode ser reposicionado
+                                        livremente na cena.
+                                    </p>
+                                    <SequenciaImagens
+                                        titulo="Conecte o participante pelo botão L"
+                                        descricao="Abra o acesso, informe nome e código da coleta e confirme a conexão."
+                                        imagens={[
+                                            {
+                                                src: "/documentacao/acesso-coleta/01-botao-l.png",
+                                                alt: "Tela do laboratório guiado com o botão L no canto superior direito.",
+                                                titulo: "Localize o botão L",
+                                                descricao: "O acesso é adicionado no canto superior direito e pode ser reposicionado.",
+                                            },
+                                            {
+                                                src: "/documentacao/acesso-coleta/02-modal-aberto.png",
+                                                alt: "Modal LUDUS Acompanha aberto com os campos Nome e Código.",
+                                                titulo: "Abra o acesso",
+                                                descricao: "Clique no botão L para exibir os campos de identificação.",
+                                            },
+                                            {
+                                                src: "/documentacao/acesso-coleta/03-dados-preenchidos.png",
+                                                alt: "Modal preenchido com nome fictício e código da coleta.",
+                                                titulo: "Informe nome e código",
+                                                descricao: "Use o nome do participante e o código temporário gerado no dashboard.",
+                                            },
+                                            {
+                                                src: "/documentacao/acesso-coleta/04-conexao-confirmada.png",
+                                                alt: "Modal confirmando a conexão do participante à coleta.",
+                                                titulo: "Confirme a conexão",
+                                                descricao: "A mensagem identifica a coleta e o participante conectados.",
+                                            },
+                                        ]}
                                     />
                                 </div>
                             </section>
@@ -1308,17 +1567,6 @@ export default function Documentacao({ publica = false }) {
                                             o caminho da cópia salva; no WebGL, o navegador realiza o download.
                                         </p>
                                     </details>
-                                    <div className="documentacao-atividades-tutorial">
-                                        <details>
-                                            <summary>Ver o roteiro resumido das seis atividades</summary>
-                                            <p>
-                                                Teste as interações automáticas; resolva as alternativas e a
-                                                imagem; faça o arraste e o contato com uma tentativa incorreta e
-                                                outra correta; atinja a meta por valor; e finalize o ciclo de
-                                                categoria e fase na ordem liberada.
-                                            </p>
-                                        </details>
-                                    </div>
                                 </div>
                             </section>
 
@@ -1337,9 +1585,35 @@ export default function Documentacao({ publica = false }) {
                                         poderá conferir duração, cliques, trajetórias, resultados, sequência e
                                         captura visual, caso ela tenha sido habilitada.
                                     </p>
-                                    <MidiaPreparada
-                                        titulo="Print 4 — recebimento no dashboard"
-                                        descricao="Enquadre Ver recebimentos, Revisar aluno e Adicionar sessões ao histórico."
+                                    <SequenciaImagens
+                                        titulo="Revise o recebimento e adicione a sessão ao histórico"
+                                        descricao="O participante chega como pendente quando ainda não possui cadastro confirmado."
+                                        imagens={[
+                                            {
+                                                src: "/documentacao/recebimentos/01-recebimento-pendente.png",
+                                                alt: "Cartão da coleta mostrando um participante pendente e o botão Revisar aluno.",
+                                                titulo: "Abra os recebimentos da coleta",
+                                                descricao: "Localize o participante pendente e clique em Revisar aluno.",
+                                            },
+                                            {
+                                                src: "/documentacao/recebimentos/02-revisar-aluno.png",
+                                                alt: "Área de revisão para associar o recebimento ou criar o aluno na turma.",
+                                                titulo: "Confirme ou crie o aluno",
+                                                descricao: "Associe a um aluno existente ou crie o nome informado nesta turma.",
+                                            },
+                                            {
+                                                src: "/documentacao/recebimentos/03-sessao-no-historico.png",
+                                                alt: "Confirmação de que a sessão foi adicionada ao histórico do aluno.",
+                                                titulo: "Adicione a sessão ao histórico",
+                                                descricao: "A confirmação informa que a sessão já pode ser consultada em Meus alunos.",
+                                            },
+                                            {
+                                                src: "/documentacao/recebimentos/04-atividade-em-alunos.png",
+                                                alt: "Página Alunos de teste mostrando a atividade Tutorial Ludus registrada.",
+                                                titulo: "Confira a atividade registrada",
+                                                descricao: "Abra Alunos de teste e selecione o participante para consultar a sessão.",
+                                            },
+                                        ]}
                                     />
                                     <details className="documentacao-configuracao">
                                         <summary>Opcional — testar por arquivo JSON</summary>
@@ -1505,7 +1779,7 @@ export default function Documentacao({ publica = false }) {
                                     <summary>Resultados informados pelo jogo</summary>
                                     <p>
                                         <strong>Categorias</strong>, <strong>Eventos de fase</strong>,
-                                        <strong> Acertos e erros</strong> e <strong>Eventos personalizados</strong>
+                                        <strong> Acertos e erros</strong> e <strong>Eventos personalizados</strong>{" "}
                                         só devem ser habilitados depois de conectados pela
                                         Ponte semântica, pelos adaptadores ou pela API C#.
                                         Em termos práticos, o jogo precisa avisar ao SDK quando
@@ -1533,7 +1807,7 @@ export default function Documentacao({ publica = false }) {
                                         uma mesma cena realmente tiver vários painéis ou atividades.
                                     </p>
                                     <p>
-                                        Mantenha <strong>Exibir mensagens detalhadas no Console</strong>
+                                        Mantenha <strong>Exibir mensagens detalhadas no Console</strong>{" "}
                                         habilitado durante a integração. Depois da validação,
                                         ele pode ser desligado para reduzir ruído nos computadores da turma.
                                     </p>
@@ -1546,8 +1820,10 @@ export default function Documentacao({ publica = false }) {
                             <div>
                                 <h3>Defina onde a sessão começa e termina</h3>
                                 <p>
-                                    Selecione um GameObject que permaneça ativo durante
-                                    toda a atividade. No Inspector, clique em
+                                    Abra a cena cuja atividade você realmente quer
+                                    acompanhar. Nessa cena, selecione um GameObject que
+                                    permaneça ativo durante todo o trecho capturado. No
+                                    Inspector, clique em
                                     <strong> Add Component &gt; LUDUS &gt; Fluxo &gt; Sessão acompanhada</strong>.
                                     Por padrão, a sessão começa quando esse objeto é
                                     habilitado e termina quando ele é desabilitado ou a
@@ -1555,11 +1831,36 @@ export default function Documentacao({ publica = false }) {
                                     contém esse item.
                                 </p>
                                 <p>
+                                    No <strong>Para Que Serve?</strong>, por exemplo, o menu
+                                    ficou fora do recorte. A cena <code>Fase00</code> foi
+                                    aberta e o componente foi colocado em um objeto ativo
+                                    dessa própria cena. Assim, a sessão cobre a atividade
+                                    desejada, sem transformar a navegação anterior em dados
+                                    da tarefa.
+                                </p>
+                                <aside className="documentacao-alerta-sessao" role="note">
+                                    <strong>Atenção ao estado inicial do objeto.</strong>
+                                    <p>
+                                        Se o GameObject com <strong>Sessão acompanhada</strong>{" "}
+                                        estiver ativo ao iniciar o Play e outro script desativá-lo
+                                        no <code>Start()</code>, o <code>OnDisable()</code> encerrará
+                                        imediatamente uma sessão vazia. Isso pode gerar no dashboard
+                                        um registro duplicado com 0 segundos e nenhuma interação.
+                                    </p>
+                                    <p>
+                                        Quando a atividade só aparece depois, salve a cena com esse
+                                        objeto ou Canvas <strong>desativado</strong> e deixe o fluxo do
+                                        jogo ativá-lo apenas no momento real de entrada na atividade.
+                                        Antes do teste final, saia do Play, confira a caixa de ativação
+                                        na Hierarchy e salve a cena.
+                                    </p>
+                                </aside>
+                                <p>
                                     Se você usar <strong>LUDUS &gt; Configurar resultados
                                     da cena</strong>, o assistente pode criar esse objeto
                                     automaticamente. Em atividades que começam ou terminam
                                     sem desativar o objeto, conecte os métodos
-                                    <code> IniciarSessao</code> e <code> EncerrarSessao</code>
+                                    <code> IniciarSessao</code> e <code> EncerrarSessao</code>{" "}
                                     aos eventos reais do jogo.
                                 </p>
                             </div>
@@ -1570,9 +1871,9 @@ export default function Documentacao({ publica = false }) {
                             <div>
                                 <h3>Marque interações e resultados que importam</h3>
                                 <p>
-                                    Use <strong>LUDUS &gt; Configurar interações desta cena</strong>
-                                    para nomear botões, campos e objetos relevantes. Use
-                                    <strong> LUDUS &gt; Configurar resultados da cena</strong>
+                                    Use <strong>LUDUS &gt; Configurar interações desta cena</strong>{" "}
+                                    para nomear botões, campos e objetos relevantes. Use{" "}
+                                    <strong>LUDUS &gt; Configurar resultados da cena</strong>{" "}
                                     somente quando o jogo realmente conhece a categoria,
                                     fase, resposta correta, acerto ou erro. Finalize com
                                     <strong> LUDUS &gt; Validar integração semântica</strong>.
@@ -1619,6 +1920,79 @@ export default function Documentacao({ publica = false }) {
                             </div>
                         </article>
                     </div>
+
+                    <details className="documentacao-exemplo-real">
+                        <summary>
+                            Exemplo opcional — como a Fase00 do Para Que Serve? foi integrada
+                        </summary>
+                        <div>
+                            <p>
+                                Este exemplo parte de um jogo com uma cena de menu e várias
+                                fases, mas acompanha somente a <code>Fase00</code>. Nessa cena,
+                                o jogador arrasta uma imagem até o destino e a regra do jogo
+                                reconhece o resultado por tag.
+                            </p>
+                            <ol>
+                                <li>
+                                    <strong>Crie a base uma única vez.</strong> Na cena inicial
+                                    do jogo, use <strong>GameObject &gt; LUDUS &gt; Adicionar coleta
+                                    ao meu jogo</strong>. Mantenha <code>LUDUS SDK</code> persistente
+                                    entre as trocas de cena.
+                                </li>
+                                <li>
+                                    <strong>Limite o recorte à atividade.</strong> No asset
+                                    <code> ConfiguracaoLudus</code>, escolha
+                                    <strong> Somente cenas selecionadas</strong> e arraste
+                                    <code> Fase00</code> para a lista. O menu e as demais fases
+                                    continuam funcionando, mas não entram neste recorte.
+                                </li>
+                                <li>
+                                    <strong>Inicie a sessão dentro da Fase00.</strong> Abra essa
+                                    cena, selecione um objeto que permaneça ativo durante toda a
+                                    atividade — por exemplo <code>SceneControl</code> ou o Canvas
+                                    principal — e adicione
+                                    <strong> Add Component &gt; LUDUS &gt; Fluxo &gt; Sessão acompanhada</strong>.
+                                    Use somente um responsável pela sessão.
+                                </li>
+                                <li>
+                                    <strong>Confira o estado inicial antes do Play.</strong> Se
+                                    <code> Canvas01</code> é ativado apenas quando a atividade
+                                    começa, salve-o desativado na Hierarchy. Se ele iniciar ativo e
+                                    <code> SceneControl.Start()</code> desativá-lo, o escopo encerrará
+                                    uma sessão vazia antes da sessão real.
+                                </li>
+                                <li>
+                                    <strong>Nomeie as interações observáveis.</strong> Abra
+                                    <strong> LUDUS &gt; Configurar interações desta cena</strong>{" "}
+                                    e adicione os objetos que realmente recebem o gesto de arraste,
+                                    não apenas seus elementos visuais ou o painel que os contém.
+                                </li>
+                                <li>
+                                    <strong>Conecte a regra de arraste por tag.</strong> Selecione
+                                    <code> DestinoArraste</code> e adicione
+                                    <strong> Add Component &gt; LUDUS &gt; Resultados &gt; Resultado
+                                    de arraste por tag</strong>. Escolha a mesma tag que o jogo já
+                                    considera correta, descreva a resposta esperada e mantenha o
+                                    registro da tentativa e do acerto ou erro. O adaptador observa
+                                    a regra existente; ele não deve mover a peça nem substituir
+                                    a validação do jogo.
+                                </li>
+                                <li>
+                                    <strong>Valide antes de publicar.</strong> Execute
+                                    <strong> LUDUS &gt; Validar integração semântica</strong>,
+                                    teste na Unity uma tentativa correta e uma incorreta e encerre
+                                    a cena. Confirme no dashboard a duração, o arraste, o resultado
+                                    e a identificação da <code>Fase00</code>. Depois repita no WebGL.
+                                </li>
+                            </ol>
+                            <p className="documentacao-exemplo-real-nota">
+                                Os nomes dos objetos podem variar em outro projeto. Preserve o
+                                princípio: a cena define o recorte, o objeto persistente define o
+                                ciclo da sessão e a regra real do jogo informa o significado do
+                                resultado.
+                            </p>
+                        </div>
+                    </details>
 
                     <details className="documentacao-orientacoes-professor">
                         <summary>Checklist técnico — Editor, WebGL e desempenho</summary>

@@ -2203,26 +2203,33 @@ export default function DetalhesSessao() {
                                     />
                                 </div>
 
-                                {temInteracoesSemanticasPosicionadas && (
+                                {(temInteracoesSemanticasPosicionadas ||
+                                    possuiCapacidade("clicks") ||
+                                    possuiCapacidade("mousePath") ||
+                                    possuiCapacidade("dragPath")) && (
                                     <div
-                                        className={`heatmap-detalhe-semantico ${itemHover?.tipo === "interacao-semantica" ? (itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : itemHover.interactionKind === "clickable-object" ? "clicavel" : itemHover.interactionKind === "draggable-object" ? "arrastavel" : "outro") : "vazio"}`}
+                                        className={`heatmap-detalhe-semantico ${itemHover?.tipo === "interacao-semantica" ? (itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : itemHover.interactionKind === "clickable-object" ? "clicavel" : itemHover.interactionKind === "draggable-object" ? "arrastavel" : "outro") : itemHover?.tipo || "vazio"}`}
                                         role="status"
                                         aria-live="polite"
                                     >
-                                        {itemHover?.tipo ===
-                                        "interacao-semantica" ? (
+                                        {itemHover ? (
                                             <>
                                                 <div className="heatmap-detalhe-topo">
                                                     <strong>
-                                                        {itemHover.nome}
+                                                        {itemHover.nome ||
+                                                            (itemHover.tipo === "clique"
+                                                                ? "Clique registrado"
+                                                                : itemHover.tipo === "arraste"
+                                                                  ? "Trajeto de arraste"
+                                                                  : "Movimento registrado")}
                                                     </strong>
                                                     <span>
-                                                        {itemHover.contexto} •{" "}
-                                                        {(
-                                                            (itemHover.timestamp ||
-                                                                0) / 1000
-                                                        ).toFixed(1)}
-                                                        s
+                                                        {itemHover.contexto ||
+                                                            itemHover.faseNome ||
+                                                            "Interação registrada neste recorte"}
+                                                        {Number.isFinite(itemHover.timestamp)
+                                                            ? ` • ${(itemHover.timestamp / 1000).toFixed(1)}s`
+                                                            : ""}
                                                     </span>
                                                 </div>
                                                 <span>
@@ -2245,7 +2252,13 @@ export default function DetalhesSessao() {
                                                             : itemHover.interactionKind ===
                                                                 "draggable-object"
                                                               ? `Arraste de ${Number(itemHover.distancePx || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} px em ${(Number(itemHover.durationMs || 0) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} s`
-                                                              : "Interação registrada"}
+                                                              : itemHover.tipo === "clique"
+                                                                ? "Ponto de clique registrado"
+                                                                : itemHover.tipo === "arraste"
+                                                                  ? "Trecho do caminho de arraste"
+                                                                  : itemHover.tipo === "movimento"
+                                                                    ? "Trecho do movimento do ponteiro"
+                                                                    : "Interação registrada"}
                                                 </span>
                                             </>
                                         ) : (
@@ -2254,10 +2267,9 @@ export default function DetalhesSessao() {
                                                     Detalhes da interação
                                                 </strong>
                                                 <span>
-                                                    Passe o mouse sobre um
-                                                    marcador colorido para ver
-                                                    suas informações sem cobrir
-                                                    o mapa.
+                                                    Passe o mouse sobre uma linha
+                                                    ou marcador para ver suas
+                                                    informações sem cobrir o mapa.
                                                 </span>
                                             </>
                                         )}

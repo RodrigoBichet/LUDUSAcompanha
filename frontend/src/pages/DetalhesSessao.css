@@ -597,6 +597,33 @@
     background: rgba(139, 92, 246, 0.08);
 }
 
+.heatmap-detalhe-semantico.arraste {
+    border-color: rgba(139, 92, 246, 0.68);
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.heatmap-detalhe-semantico.arraste strong {
+    color: #6d28d9;
+}
+
+.heatmap-detalhe-semantico.movimento {
+    border-color: rgba(39, 137, 107, 0.62);
+    background: rgba(78, 203, 160, 0.08);
+}
+
+.heatmap-detalhe-semantico.movimento strong {
+    color: #176b50;
+}
+
+.heatmap-detalhe-semantico.clique {
+    border-color: rgba(244, 63, 94, 0.62);
+    background: rgba(244, 63, 94, 0.07);
+}
+
+.heatmap-detalhe-semantico.clique strong {
+    color: #be123c;
+}
+
 .heatmap-detalhe-semantico.arrastavel strong {
     color: #6d28d9;
 }
