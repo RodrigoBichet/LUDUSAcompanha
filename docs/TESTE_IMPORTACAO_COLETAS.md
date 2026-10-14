@@ -27,6 +27,23 @@ com `npm run dev`. A extensão não precisa ser reconstruída por esta etapa.
 10. Envie uma terceira sessão. Reabra os recebimentos: somente ela deve ficar
     pendente; adicione-a e confirme o total de três no histórico.
 
+### Fluxo equivalente pelo Unity SDK
+
+1. Na cena de menu do jogo, use o botão criado por **GameObject > LUDUS >
+   Adicionar acesso por nome e código**.
+2. Informe o nome exato de um aluno fictício já existente na turma e o código
+   temporário. Jogue e conclua uma atividade: ela deve aparecer diretamente no
+   perfil desse aluno, marcada como enviada pelo jogo.
+3. Repita com um nome fictício inexistente. Durante a atividade, o checkpoint
+   deve aparecer como sessão em andamento na caixa da coleta e não pode ser
+   importado como conclusão.
+4. Conclua a atividade. Em **Ver recebimentos**, revise o nome, vincule-o a um
+   aluno fictício e adicione a sessão ao histórico.
+5. Reenvie a mesma conclusão: não deve duplicar. Uma conclusão diferente com o
+   mesmo `sessionId` deve ser recusada como conflito.
+6. Revogue ou deixe a coleta expirar e confirme que novos envios são recusados,
+   enquanto os recebimentos anteriores permanecem disponíveis para revisão.
+
 ## Limites e recuperação
 
 - Aprova até 100 recibos por ação, somente para o aluno confirmado.

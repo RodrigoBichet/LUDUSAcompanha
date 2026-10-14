@@ -2,7 +2,7 @@
     height: var(--header-altura);
     background: var(--cor-card);
     border-bottom: 1px solid var(--cor-borda);
-    padding: 0 2rem;
+    padding: 0 clamp(1.25rem, 3vw, 2.5rem);
     display: flex;
     align-items: center;
     position: sticky;
@@ -12,13 +12,14 @@
 
 .header-titulo {
     font-family: var(--fonte-titulo);
-    font-size: 1.3rem;
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+    font-weight: 800;
     color: var(--cor-texto);
     line-height: 1;
 }
 
-.header-subtitulo {
-    font-size: 0.8rem;
-    color: var(--cor-texto-leve);
-    margin-top: 0.2rem;
+@media (max-width: 760px) {
+    .header {
+        padding-inline: 1rem;
+    }
 }

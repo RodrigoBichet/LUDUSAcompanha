@@ -7,8 +7,151 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Em desenvolvimento] — Plataforma multi-jogo e fluxo escolar
 
+### Documentação, privacidade e qualidade
+
+- a documentação passa a priorizar o roteiro essencial, recolhendo privacidade,
+  opções WebGL, campos avançados, cenários semânticos e checklists técnicos;
+  também recebe atalhos por etapa, valores copiáveis, download alternativo do
+  SDK e espaços responsivos preparados para o vídeo e os prints do tutorial;
+- o tutorial do desenvolvedor passa a adotar o envio automático e o teste no
+  Play como fluxo principal, deixando WebGL e JSON como validações opcionais;
+  a documentação do professor também explicita a revisão do participante e a
+  inclusão das sessões recebidas no histórico;
+- os cliques voltam a responder ao hover nos mapas filtrados por atividade ou
+  captura, e as ações de adicionar sessões ao histórico passam a seguir a
+  paleta verde e a orientar a consulta posterior em Meus alunos;
+- a revisão final de interface simplifica a hierarquia da homepage, remove
+  pré-títulos e divisórias decorativas, aproxima o aviso pedagógico da mensagem
+  principal, integra a apresentação do MaisLUDUS ao rodapé e alinha documentação,
+  autenticação e privacidade à paleta verde; no ambiente autenticado, os
+  cabeçalhos ficam mais diretos, a barra lateral pode ser recolhida sem perder
+  os atalhos por ícone e cards, formulários, botões, avatares e estados passam a
+  seguir a mesma paleta sóbria, tipografia e estrutura plana do site público;
+- a rota inicial passa a funcionar como site público para visitantes e mantém
+  a Home operacional para contas autenticadas; a apresentação explica o
+  projeto, as diferenças entre SDK Unity, LUDUS Observa e dashboard, o fluxo
+  entre jogo e acompanhamento, as jornadas de professor e desenvolvedor, a
+  equipe ligada ao MaisLUDUS e os limites de uso pedagógico sem inventar
+  resultados de pesquisa;
+- a homepage destaca a marca LUDUS Acompanha antes da apresentação, conduz o
+  visitante às ferramentas antes do cadastro e detalha a integração entre SDK,
+  extensão observacional, coleta e dashboard em um fluxo visual conectado;
+- a homepage pública permanece acessível após o login dentro da mesma barra
+  lateral do dashboard; âncoras usam rolagem suave e o botão Voltar do navegador
+  restaura a posição anterior, inclusive após visitar o cadastro;
+- o projeto ganha um aviso público geral em `/privacidade`, cobrindo cadastro,
+  SDK, LUDUS Observa e dashboard, com referências à LGPD e à Resolução CNS
+  nº 510/2016; novos cadastros exigem leitura e aceite explícito, cuja versão e
+  data são registradas sem alterar contas antigas;
+- a documentação do SDK Unity torna-se consultável sem login e passa a ser
+  identificada explicitamente como a fonte disponível nesta etapa; o LUDUS
+  Observa aparece como documentação futura e indisponível, sem sugerir um guia
+  que ainda não foi publicado;
+- Documentação e Privacidade recebem navegação pública com estado ativo e links
+  entre si; ao voltar do cadastro de professor ou desenvolvedor, o navegador
+  restaura a seção de perfis em vez de retornar ao início da homepage;
+- login, cadastro, confirmação de e-mail e recuperação de senha passam a usar a
+  mesma identidade visual e o mesmo acesso à homepage e à documentação; login
+  e cadastro recebem contato do projeto em modal com cópia do e-mail e layout
+  compacto em zoom normal; perfil e saída usam um cartão reduzido no rodapé da
+  lateral, desenvolvedores entram primeiro na documentação e o favicon adota
+  uma versão simples da identidade visual do LUDUS Acompanha;
+- a trilha do desenvolvedor passa a começar por um tutorial Unity isolado e
+  explica, em linguagem de primeiro contato, o fluxo do SDK, a localização do
+  asset `ConfiguracaoLudus`, seus campos e a diferença entre menus superiores e
+  componentes adicionados pelo Inspector; o roteiro visual percorre laboratório
+  fictício, Build Profile isolado, interações, resultado semântico, importação,
+  coleta automática e conferência final no Dashboard, incluindo a nova tela de
+  conclusão que orienta o encerramento da sessão e a geração do JSON;
+- a conferência do tutorial WebGL ganha uma etapa própria no dashboard e passa
+  a explicar a primeira compilação, a repetição completa no navegador e a URL
+  base da API; no perfil do aluno, atividades registradas recebem uma chamada
+  explícita para a análise, enquanto a tela da sessão oferece mapa ampliado,
+  pesquisa na sequência e carregamento progressivo de eventos;
+- o dashboard passa a oferecer uma área de documentação comum, com trilhas
+  específicas para professor e desenvolvedor; cartões estáticos apresentam o
+  conteúdo de cada perfil sem funcionar como seleção, enquanto um seletor
+  compacto compartilhado aparece antes do guia e exibe somente o percurso
+  escolhido sem deslocar a posição de leitura durante a troca; a explicação do
+  SDK permanece exclusiva do guia de desenvolvimento;
+- homepage e documentação recebem ícones vetoriais coerentes para distinguir
+  SDK Unity, extensão, API e dashboard sem depender de imagens externas; o
+  bloco final da homepage volta à paleta branca e verde usada no restante do
+  site;
+- o fluxograma público passa a explicar o percurso completo desde a criação da
+  conta até o acompanhamento da atividade, diferenciando as responsabilidades
+  de professor e desenvolvedor, o uso do laboratório fictício, a escolha entre
+  SDK e LUDUS Observa, a conexão por código e a validação do recebimento; etapas
+  mais densas oferecem detalhes expansíveis independentes sem sobrecarregar a
+  leitura inicial, e as oito etapas seguem da esquerda para a direita nas duas
+  linhas do fluxo;
+- a área de jogos passa a usar o rótulo **Meus jogos** para os dois perfis e
+  deixa de oferecer cadastro manual; o jogo é reconhecido quando a primeira
+  sessão chega por uma coleta, enquanto professores e desenvolvedores mantêm
+  as ações autorizadas para revisar ou corrigir jogos existentes;
+- o resumo dos perfis passa a aparecer antes do fluxograma em cartões compactos;
+  ele é integrado à mesma seção das ferramentas para reduzir a quebra visual;
+  a criação de conta fica concentrada no bloco posterior ao fluxo e às
+  orientações de uso responsável, que passam a encerrar o próprio bloco de
+  funcionamento em uma subseção compacta, sem repetir a hierarquia dos títulos
+  principais; junto do acesso à documentação, a comparação entre LUDUS Observa
+  e SDK explicita o equilíbrio entre simplicidade, detalhamento e personalização
+  da captura;
+- o tutorial do desenvolvedor passa a acompanhar a ordem real do Inspector e a
+  explicar as decisões dos assistentes de interação, incluindo objeto
+  clicável/arrastável, seleção de peça filha e nomes exibidos no Dashboard;
+- a barra lateral recebe uma marca textual mais compacta, scrollbar coerente
+  com a identidade visual e estados desabilitados para as áreas ainda vazias do
+  laboratório; após a criação dos dados fictícios, os atalhos são atualizados
+  imediatamente sem exigir outra navegação;
+- a largura e a tipografia da barra lateral são reduzidas para aproveitar melhor
+  a tela em zoom normal, sem diminuir formulários e textos do conteúdo principal;
+- o roteiro do tutorial detalha a preparação da coleta, as alternativas de
+  envio, cenas, resultados e capturas, além de orientar a troca para Web e a
+  restauração das cenas originais no Build Profile;
+- a documentação esclarece os caminhos de fallback em Windows, macOS e WebGL e
+  detalha todos os campos do componente Área de observação LUDUS;
+- o tutorial contextualiza a área de observação a partir do objeto-raiz da
+  atividade e oferece guias expansíveis para resultados de botão, arraste por
+  tag, contato físico, metas de progresso e regras personalizadas;
+- a configuração do resultado de botão ganha exemplos de resposta informada e
+  esperada, além do caminho completo até o asset do tutorial;
+- a documentação acompanha o novo laboratório paginado do SDK e ensina a
+  configurar alternativas correta/incorreta, arraste avaliado por tag, contato
+  físico 2D, meta por valor e eventos de categoria/fase; o exemplo usa uma tag
+  exclusiva do tutorial para não conflitar com `Player` do jogo consumidor;
+- o roteiro documenta a navegação guiada do laboratório, com avanço bloqueado
+  até a tarefa atual, revisão pelo botão Anterior e tentativas de arraste ou
+  contato devolvidas à origem para impedir peças sobrepostas;
+- o guia acompanha a experiência didática do miniquiz em duas etapas e do
+  ciclo semântico progressivo, relacionando os rótulos visuais aos GameObjects
+  que continuam sendo configurados no Inspector;
+- um guia de privacidade e governança orienta minimização, acesso, capturas,
+  retenção e uso acadêmico sem atribuir finalidade diagnóstica ao sistema;
+- um checklist de candidata a lançamento reúne os critérios de qualidade,
+  integração WebGL, ensaio com 30 computadores, deploy, rollback e evidências;
+- um plano de avaliação com desenvolvedores organiza perguntas de pesquisa,
+  tarefas, métricas, ética, anonimização e análise para discussão metodológica
+  antes da aplicação e da redação destinada à RENOTE;
+- exemplos administrativos deixam de conter credenciais pessoais ou senhas
+  fixas, e a coleção do Postman acompanha as rotas atuais da API;
+- capturas visuais deixam de ser arquivos públicos e passam a exigir sessão
+  autenticada com autorização sobre o aluno;
+- o frontend reduz a coleta ativa de dados sensíveis e carrega suas páginas
+  sob demanda, mantendo o gerador de PDF fora do pacote inicial.
+
 ### Execuções, checkpoints e exportação
 
+- coletas temporárias passam a receber sessões e checkpoints do Unity SDK com
+  a mesma credencial limitada de nome+código usada pelo LUDUS Observa;
+- participantes reconhecidos por nome único na turma têm a sessão do jogo
+  vinculada diretamente ao histórico, enquanto nomes pendentes permanecem em
+  uma caixa própria e revisável, sem alterar os recibos imutáveis da extensão;
+- a conclusão de uma sessão pareada do SDK também reconhece o jogo no catálogo
+  pessoal da conta responsável pela coleta e o associa ao aluno de forma
+  idempotente, sem exigir cadastro manual prévio;
+- checkpoints pendentes do SDK podem ser atualizados até a conclusão, mas uma
+  sessão concluída torna-se imutável e reenvios conflitantes são recusados;
 - contrato de sessão passa a aceitar `schemaVersion: 1.1.0` com `runId`,
   `attemptNumber` e `status`, mantendo compatibilidade com `1.0.0` e legados;
 - endpoint idempotente recebe checkpoints de sessões em andamento e exige uma

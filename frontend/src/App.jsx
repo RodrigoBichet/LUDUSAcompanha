@@ -1,26 +1,45 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthProvider";
+import { useAuth } from "./contexts/AuthContext";
 import RotaProtegida from "./components/shared/RotaProtegida";
+import RotaContextoAcompanhamento from "./components/shared/RotaContextoAcompanhamento";
 import Sidebar from "./components/layout/Sidebar";
-import Login from "./pages/Login";
-import Cadastro from "./pages/Cadastro";
-import EsqueciSenha from "./pages/EsqueciSenha";
-import RedefinirSenha from "./pages/RedefinirSenha";
-import ConfirmarEmail from "./pages/ConfirmarEmail";
-import Home from "./pages/Home";
-import DetalhesSessao from "./pages/DetalhesSessao";
-import Turmas from "./pages/Turmas";
-import Coletas from "./pages/Coletas";
-import DetalheTurma from "./pages/DetalheTurma";
-import PerfilAluno from "./pages/PerfilAluno";
-import AlunosJogo from "./pages/AlunosJogo";
-import Alunos from "./pages/Alunos";
+import LayoutPublico from "./components/layout/LayoutPublico";
 import RotaAdmin from "./components/shared/RotaAdmin";
-import GerenciarInstituicoes from "./pages/GerenciarInstituicoes";
-import GerenciarUsuarios from "./pages/GerenciarUsuarios";
-import Perfil from "./pages/Perfil";
-import PrivacidadeLudusObserva from "./pages/PrivacidadeLudusObserva";
+import RolagemAoNavegar from "./components/shared/RolagemAoNavegar";
 import "./index.css";
+
+const Login = lazy(() => import("./pages/Login"));
+const Cadastro = lazy(() => import("./pages/Cadastro"));
+const EsqueciSenha = lazy(() => import("./pages/EsqueciSenha"));
+const RedefinirSenha = lazy(() => import("./pages/RedefinirSenha"));
+const ConfirmarEmail = lazy(() => import("./pages/ConfirmarEmail"));
+const Home = lazy(() => import("./pages/Home"));
+const DetalhesSessao = lazy(() => import("./pages/DetalhesSessao"));
+const Turmas = lazy(() => import("./pages/Turmas"));
+const Coletas = lazy(() => import("./pages/Coletas"));
+const DetalheTurma = lazy(() => import("./pages/DetalheTurma"));
+const PerfilAluno = lazy(() => import("./pages/PerfilAluno"));
+const AlunosJogo = lazy(() => import("./pages/AlunosJogo"));
+const Alunos = lazy(() => import("./pages/Alunos"));
+const GerenciarInstituicoes = lazy(() => import("./pages/GerenciarInstituicoes"));
+const GerenciarUsuarios = lazy(() => import("./pages/GerenciarUsuarios"));
+const Perfil = lazy(() => import("./pages/Perfil"));
+const PrivacidadeLudusObserva = lazy(() => import("./pages/PrivacidadeLudusObserva"));
+const LaboratorioDesenvolvedor = lazy(() => import("./pages/LaboratorioDesenvolvedor"));
+const AcessosInstitucionais = lazy(() => import("./pages/AcessosInstitucionais"));
+const Documentacao = lazy(() => import("./pages/Documentacao"));
+const PaginaInicial = lazy(() => import("./pages/PaginaInicial"));
+const Privacidade = lazy(() => import("./pages/Privacidade"));
+
+function CarregandoPagina() {
+    return (
+        <div className="pagina-conteudo" role="status" aria-live="polite">
+            Carregando página…
+        </div>
+    );
+}
 
 function Layout({ children }) {
     return (
@@ -36,12 +55,61 @@ function Layout({ children }) {
     );
 }
 
+function Inicio() {
+    const { usuario, carregando } = useAuth();
+
+    if (carregando) return <CarregandoPagina />;
+    if (!usuario) return <PaginaInicial />;
+
+    return (
+        <Layout>
+            <Home />
+        </Layout>
+    );
+}
+
+function PaginaInicialComLayout() {
+    const { usuario, carregando } = useAuth();
+
+    if (carregando) return <CarregandoPagina />;
+    if (!usuario) return <PaginaInicial />;
+
+    return (
+        <Layout>
+            <PaginaInicial incorporada />
+        </Layout>
+    );
+}
+
+function DocumentacaoComLayout() {
+    const { usuario, carregando } = useAuth();
+
+    if (carregando) return <CarregandoPagina />;
+    if (!usuario) {
+        return (
+            <LayoutPublico>
+                <Documentacao publica />
+            </LayoutPublico>
+        );
+    }
+
+    return (
+        <Layout>
+            <Documentacao />
+        </Layout>
+    );
+}
+
 function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
-                <Routes>
-                    {/* Rota pública */}
+                <RolagemAoNavegar />
+                <Suspense fallback={<CarregandoPagina />}>
+                    <Routes>
+                    {/* Rotas públicas */}
+                    <Route path="/" element={<Inicio />} />
+                    <Route path="/inicio" element={<PaginaInicialComLayout />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/cadastro" element={<Cadastro />} />
                     <Route path="/esqueci-senha" element={<EsqueciSenha />} />
@@ -51,14 +119,25 @@ function App() {
                         path="/privacidade/ludus-observa"
                         element={<PrivacidadeLudusObserva />}
                     />
+                    <Route path="/privacidade" element={<Privacidade />} />
 
                     {/* Rotas protegidas */}
                     <Route
-                        path="/"
+                        path="/laboratorio"
                         element={
                             <RotaProtegida>
                                 <Layout>
-                                    <Home />
+                                    <LaboratorioDesenvolvedor />
+                                </Layout>
+                            </RotaProtegida>
+                        }
+                    />
+                    <Route
+                        path="/colaboradores"
+                        element={
+                            <RotaProtegida>
+                                <Layout>
+                                    <AcessosInstitucionais />
                                 </Layout>
                             </RotaProtegida>
                         }
@@ -66,71 +145,71 @@ function App() {
                     <Route
                         path="/sessao/:sessionId"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <DetalhesSessao />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/turmas"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <Turmas />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/coletas"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <Coletas />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/turmas/:id"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <DetalheTurma />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/alunos"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <Alunos />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/aluno/:id"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <PerfilAluno />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
                         path="/jogos/:gameId/alunos"
                         element={
-                            <RotaProtegida>
+                            <RotaContextoAcompanhamento>
                                 <Layout>
                                     <AlunosJogo />
                                 </Layout>
-                            </RotaProtegida>
+                            </RotaContextoAcompanhamento>
                         }
                     />
                     <Route
@@ -184,7 +263,12 @@ function App() {
                             </RotaProtegida>
                         }
                     />
-                </Routes>
+                    <Route
+                        path="/documentacao"
+                        element={<DocumentacaoComLayout />}
+                    />
+                    </Routes>
+                </Suspense>
             </BrowserRouter>
         </AuthProvider>
     );

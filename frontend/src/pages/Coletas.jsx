@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ConfirmacaoHistorico from "../components/ConfirmacaoHistorico";
 import Header from "../components/layout/Header";
 import Icone from "../components/shared/Icone";
+import { useAuth } from "../contexts/AuthContext";
 import {
     criarColeta,
     listarColetas,
@@ -57,13 +58,21 @@ const listarImportacoesConfirmadas = (caixa) =>
         .map((recebimento) => ({
             recebimento,
             pendentes: recebimento.sessoes
-                .filter((sessao) => sessao.status === "pending")
+                .filter(
+                    (sessao) =>
+                        sessao.status === "pending" &&
+                        sessao.submissionKind !== "checkpoint",
+                )
                 .slice(0, 100),
         }))
         .filter((item) => item.pendentes.length > 0);
 
 export default function Coletas() {
+    const { usuario } = useAuth();
+    const desenvolvedor = usuario?.role === "developer";
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+    const institutionIdSelecionada = searchParams.get("institutionId");
     const [coletas, setColetas] = useState([]);
     const [turmas, setTurmas] = useState([]);
     const [instituicoes, setInstituicoes] = useState([]);
@@ -103,6 +112,28 @@ export default function Coletas() {
     const turmasPorId = useMemo(
         () => new Map(turmas.map((turma) => [String(turma._id), turma])),
         [turmas],
+    );
+    const turmasDoContexto = useMemo(
+        () =>
+            institutionIdSelecionada
+                ? turmas.filter(
+                      (turma) =>
+                          String(obterId(turma.institutionId)) ===
+                          institutionIdSelecionada,
+                  )
+                : turmas,
+        [institutionIdSelecionada, turmas],
+    );
+    const coletasDoContexto = useMemo(
+        () =>
+            institutionIdSelecionada
+                ? coletas.filter(
+                      (coleta) =>
+                          String(obterId(coleta.institutionId)) ===
+                          institutionIdSelecionada,
+                  )
+                : coletas,
+        [coletas, institutionIdSelecionada],
     );
 
     const jogosPreparados = useMemo(
@@ -306,7 +337,13 @@ export default function Coletas() {
     };
 
     const adicionarAoHistorico = (coleta, recebimento) => {
-        const pendentes = recebimento.sessoes.filter((sessao) => sessao.status === "pending").slice(0, 100);
+        const pendentes = recebimento.sessoes
+            .filter(
+                (sessao) =>
+                    sessao.status === "pending" &&
+                    sessao.submissionKind !== "checkpoint",
+            )
+            .slice(0, 100);
         if (!pendentes.length || importacaoEmCurso.current) return;
         setErroConfirmacao("");
         setConfirmacaoHistorico({ coleta, recebimento, pendentes });
@@ -338,7 +375,9 @@ export default function Coletas() {
             setResultadoImportacao((atuais) => ({
                 ...atuais,
                 [recebimento.participantRef]: {
-                    mensagem: resposta.data.mensagem,
+                    mensagem: resposta.data.sucesso
+                        ? "Sessões adicionadas ao histórico do aluno. Confira em Meus alunos."
+                        : resposta.data.mensagem,
                     tipo: resposta.data.sucesso ? "sucesso" : "atencao",
                 },
                 ...Object.fromEntries(resposta.data.resultados.map((item) => [item.receiptId, item.mensagem || ""])),
@@ -500,8 +539,18 @@ export default function Coletas() {
     return (
         <div>
             <Header
-                titulo="Coletas escolares"
-                subtitulo="Prepare um código temporário para os computadores da turma"
+                titulo={
+                    desenvolvedor && institutionIdSelecionada
+                        ? "Coletas da escola compartilhada"
+                        : desenvolvedor
+                            ? "Coletas disponíveis"
+                            : "Coletas escolares"
+                }
+                subtitulo={
+                    desenvolvedor
+                        ? "Gere códigos somente nos ambientes autorizados pelo responsável"
+                        : "Prepare um código temporário para os computadores da turma"
+                }
             />
 
             <main className="pagina-conteudo pagina-coletas">
@@ -536,10 +585,10 @@ export default function Coletas() {
                             value={turmaId}
                             onChange={(evento) => setTurmaId(evento.target.value)}
                             required
-                            disabled={salvando || turmas.length === 0}
+                            disabled={salvando || turmasDoContexto.length === 0}
                         >
                             <option value="">Selecione uma turma</option>
-                            {turmas.map((turma) => (
+                            {turmasDoContexto.map((turma) => (
                                 <option key={turma._id} value={turma._id}>
                                     {turma.name} — {turma.institutionId?.name || "Instituição"}
                                 </option>
@@ -706,20 +755,20 @@ export default function Coletas() {
                     <div className="cabecalho-lista-coletas">
                         <div>
                             <h2 ref={focoListaColetas} tabIndex={-1}>Coletas preparadas</h2>
-                            <p>Somente as coletas criadas pela sua conta.</p>
+                            <p>Coletas disponíveis no ambiente selecionado.</p>
                         </div>
-                        <span className="badge">{coletas.length}</span>
+                        <span className="badge">{coletasDoContexto.length}</span>
                     </div>
 
                     {carregando ? (
                         <div className="card estado-vazio">Carregando coletas...</div>
-                    ) : coletas.length === 0 ? (
+                    ) : coletasDoContexto.length === 0 ? (
                         <div className="card estado-vazio">
                             Nenhuma coleta foi preparada ainda.
                         </div>
                     ) : (
                         <div className="lista-coletas">
-                            {coletas.map((coleta) => {
+                            {coletasDoContexto.map((coleta) => {
                                 const turma = turmasPorId.get(
                                     String(obterId(coleta.groupId)),
                                 );
@@ -854,7 +903,9 @@ export default function Coletas() {
                                                         </strong>
                                                         <div className="acoes-resumo-recebimentos">
                                                             <span>
-                                                                {caixa.totalPendentes} pendentes • {caixa.totalImportadas} no histórico
+                                                                {caixa.totalPendentes} pendentes
+                                                                {caixa.totalEmAndamento > 0 ? ` • ${caixa.totalEmAndamento} em andamento` : ""}
+                                                                {` • ${caixa.totalImportadas} no histórico`}
                                                             </span>
                                                             {totalSessoesConfirmadas > 0 && (
                                                                 <button
@@ -898,8 +949,8 @@ export default function Coletas() {
                                                                         </div>
                                                                         <div className="acoes-recebimento-aluno">
                                                                             <span>{recebimento.totalSessoes} sessões</span>
-                                                                            {recebimento.resolutionStatus === "resolved" && recebimento.sessoes.some((item) => item.status === "pending") && (
-                                                                                <button type="button" disabled={Boolean(importandoParticipante)} onClick={() => adicionarAoHistorico(coleta, recebimento)}>
+                                                                            {recebimento.resolutionStatus === "resolved" && recebimento.sessoes.some((item) => item.status === "pending" && item.submissionKind !== "checkpoint") && (
+                                                                                <button className="btn-adicionar-historico" type="button" disabled={Boolean(importandoParticipante)} onClick={() => adicionarAoHistorico(coleta, recebimento)}>
                                                                                     {importandoParticipante === recebimento.participantRef ? "Adicionando..." : "Adicionar sessões ao histórico"}
                                                                                 </button>
                                                                             )}
@@ -973,7 +1024,7 @@ export default function Coletas() {
                                                                                 <div>
                                                                                     <strong>{formatarNomeJogo(sessao.gameId)}</strong>
                                                                                     <small>{formatarData(sessao.receivedAt)}</small>
-                                                                                    <small>{sessao.status === "imported" ? "Adicionada ao histórico" : sessao.status === "rejected" ? "Recusada" : "Pendente"}</small>
+                                                                                    <small>{sessao.status === "imported" ? "Adicionada ao histórico" : sessao.status === "rejected" ? "Recusada" : sessao.submissionKind === "checkpoint" ? "Em andamento — progresso protegido" : "Pendente"}</small>
                                                                                     {resultadoImportacao[sessao.receiptId] && <small role="alert">{resultadoImportacao[sessao.receiptId]}</small>}
                                                                                 </div>
                                                                                 <span>{formatarDuracao(sessao.durationMs)}</span>

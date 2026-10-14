@@ -61,7 +61,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    background: var(--cor-primaria);
     color: white;
     font-size: 1.5rem;
     font-weight: 800;
@@ -475,9 +475,45 @@
     font-size: 0.82rem;
 }
 
+.btn-voltar-compacto {
+    width: fit-content;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.78rem;
+}
+
+.atividades-registradas-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.15rem;
+}
+
+.atividades-registradas-titulo h3 {
+    margin-bottom: 0.1rem;
+}
+
+.atividades-registradas-titulo span {
+    color: var(--cor-primaria);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.atividades-registradas-titulo > svg {
+    color: var(--cor-primaria);
+}
+
 .item-sessao {
     padding: 0.35rem 0.45rem 0.35rem 0.85rem;
     cursor: default;
+    border: 1px solid transparent;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.item-sessao:hover,
+.item-sessao:focus-within {
+    border-color: rgba(78, 203, 160, 0.5);
+    background: rgba(78, 203, 160, 0.06);
 }
 
 .btn-abrir-sessao {
@@ -494,6 +530,26 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
+}
+
+.sessao-abrir-analise {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.6rem;
+    border-radius: 7px;
+    background: rgba(78, 203, 160, 0.14);
+    color: #176b50;
+    font-size: 0.76rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.btn-abrir-sessao:hover .sessao-abrir-analise,
+.btn-abrir-sessao:focus-visible .sessao-abrir-analise {
+    background: var(--cor-primaria);
+    color: #ffffff;
 }
 
 .origem-sessao {
@@ -1097,6 +1153,29 @@
     .horario-atividade {
         grid-template-columns: 1fr;
         gap: 0.2rem;
+    }
+
+    .item-sessao,
+    .btn-abrir-sessao {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .btn-abrir-sessao {
+        width: 100%;
+        gap: 0.7rem;
+    }
+
+    .sessao-metricas {
+        flex-wrap: wrap;
+    }
+
+    .sessao-abrir-analise {
+        width: fit-content;
+    }
+
+    .acoes-sessao {
+        align-self: flex-end;
     }
 }
 

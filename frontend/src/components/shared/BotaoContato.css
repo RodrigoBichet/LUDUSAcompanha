@@ -1,0 +1,117 @@
+.contato-acionador {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.25rem;
+}
+
+.contato-acionador:hover,
+.contato-acionador:focus-visible {
+    text-decoration-color: currentColor;
+}
+
+.modal-fundo {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(9, 20, 32, 0.68);
+    backdrop-filter: blur(4px);
+}
+
+.contato-modal {
+    position: relative;
+    width: min(100%, 480px);
+    padding: 2rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 16px;
+    background: #ffffff;
+    color: var(--cor-texto);
+    box-shadow: 0 24px 80px rgba(9, 20, 32, 0.28);
+}
+
+.modal-fechar {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--cor-texto);
+    cursor: pointer;
+}
+
+.contato-modal-etiqueta {
+    color: #26775f;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.contato-modal h2 {
+    margin-top: 0.7rem;
+    font-size: 1.55rem;
+}
+
+.contato-modal p {
+    margin-top: 0.8rem;
+    color: var(--cor-texto-leve);
+    line-height: 1.65;
+}
+
+.contato-email {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.2rem;
+    padding: 0.65rem 0.65rem 0.65rem 0.9rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 9px;
+    background: #f8f7f4;
+}
+
+.contato-email span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--cor-texto);
+    font-weight: 800;
+}
+
+.contato-email button {
+    min-height: 38px;
+    padding: 0.55rem 0.8rem;
+    border: 0;
+    border-radius: 7px;
+    background: var(--cor-sidebar);
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.contato-copiado {
+    min-height: 1.2rem;
+    margin-top: 0.35rem !important;
+    color: #26775f !important;
+    font-size: 0.76rem;
+}
+
+@media (max-width: 460px) {
+    .contato-email {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}

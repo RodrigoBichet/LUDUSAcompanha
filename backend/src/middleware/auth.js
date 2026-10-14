@@ -112,4 +112,39 @@ const apenasAdmin = async (req, res, next) => {
     next();
 };
 
-module.exports = { autenticar, autenticarEnvioObservacional, apenasAdmin };
+// Perfis de desenvolvedor gerenciam apenas integrações e seus próprios jogos.
+// Este middleware mantém dados escolares e indicadores fora desse escopo.
+const apenasEquipeEscolar = (req, res, next) => {
+    if (!req.usuario || req.usuario.role === "developer") {
+        return res.status(403).json({
+            sucesso: false,
+            codigo: "ACESSO_RESTRITO_EQUIPE_ESCOLAR",
+            mensagem: "Esta área é restrita a professores e administradores.",
+        });
+    }
+
+    return next();
+};
+
+const autenticarEquipeEscolar = (req, res, next) =>
+    autenticar(req, res, () => apenasEquipeEscolar(req, res, next));
+
+const apenasDesenvolvedor = (req, res, next) => {
+    if (!req.usuario || req.usuario.role !== "developer") {
+        return res.status(403).json({
+            sucesso: false,
+            mensagem: "Acesso restrito a contas de desenvolvedor.",
+        });
+    }
+
+    return next();
+};
+
+module.exports = {
+    autenticar,
+    autenticarEquipeEscolar,
+    autenticarEnvioObservacional,
+    apenasAdmin,
+    apenasDesenvolvedor,
+    apenasEquipeEscolar,
+};

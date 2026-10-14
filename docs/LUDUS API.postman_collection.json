@@ -5,6 +5,24 @@
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "37980747"
 	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api"
+		},
+		{
+			"key": "adminEmail",
+			"value": ""
+		},
+		{
+			"key": "adminPassword",
+			"value": ""
+		},
+		{
+			"key": "token",
+			"value": ""
+		}
+	],
 	"item": [
 		{
 			"name": "Auth",
@@ -31,26 +49,14 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"rodrigobichet39@gmail.com\",\r\n    \"password\": \"admin123\"\r\n}",
+							"raw": "{\r\n    \"email\": \"{{adminEmail}}\",\r\n    \"password\": \"{{adminPassword}}\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"url": {
-							"raw": "http://localhost:3000/api/auth/login",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
-						}
+						"url": "{{baseUrl}}/auth/login"
 					},
 					"response": []
 				},
@@ -62,43 +68,31 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZTUzNWZhMTMxZjZkZTdlODcyZmRmYyIsImlhdCI6MTc3NjYyOTYyMCwiZXhwIjoxNzc3MjM0NDIwfQ.o7d2UKwsXjMU_wTCa-WiT6X_ZpZQPTeFsX33UXq3JHo",
+									"value": "{{token}}",
 									"type": "string"
 								}
 							]
 						},
 						"method": "GET",
 						"header": [],
-						"url": {
-							"raw": "http://localhost:3000/api/auth/me",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"auth",
-								"me"
-							]
-						}
+						"url": "{{baseUrl}}/auth/me"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Schools",
+			"name": "Institutions",
 			"item": [
 				{
-					"name": "Criar Escola",
+					"name": "Criar Instituição",
 					"request": {
 						"auth": {
 							"type": "bearer",
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{token\n}}",
+									"value": "{{token}}",
 									"type": "string"
 								}
 							]
@@ -114,18 +108,7 @@
 								}
 							}
 						},
-						"url": {
-							"raw": "http://localhost:3000/api/schools",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"schools"
-							]
-						}
+						"url": "{{baseUrl}}/institutions"
 					},
 					"response": []
 				}
@@ -142,7 +125,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{token\n}}",
+									"value": "{{token}}",
 									"type": "string"
 								}
 							]
@@ -151,25 +134,14 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"Turma A\",\r\n    \"schoolId\": \"69e539f2be859c932dd27607\"\r\n}",
+							"raw": "{\r\n    \"name\": \"Turma A\",\r\n    \"institutionId\": \"ID_DA_INSTITUICAO\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"url": {
-							"raw": "http://localhost:3000/api/groups",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"groups"
-							]
-						}
+						"url": "{{baseUrl}}/groups"
 					},
 					"response": []
 				}
@@ -186,7 +158,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{token\n}}",
+									"value": "{{token}}",
 									"type": "string"
 								}
 							]
@@ -195,25 +167,14 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"João Silva\",\r\n    \"birthDate\": \"2018-05-10\",\r\n    \"groupId\": \"69e53a33be859c932dd27608\",\r\n    \"notes\": \"Aluno com TEA nível 1\"\r\n}",
+							"raw": "{\r\n    \"name\": \"Aluno de demonstração\",\r\n    \"birthDate\": \"2018-05-10\",\r\n    \"groupId\": \"ID_DA_TURMA\",\r\n    \"notes\": \"Observação pedagógica de demonstração, sem informação clínica.\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"url": {
-							"raw": "http://localhost:3000/api/students",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "3000",
-							"path": [
-								"api",
-								"students"
-							]
-						}
+						"url": "{{baseUrl}}/students"
 					},
 					"response": []
 				}

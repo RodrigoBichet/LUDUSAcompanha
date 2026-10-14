@@ -1,0 +1,102 @@
+.privacidade-resumo-modal {
+    position: relative;
+    width: min(100%, 620px);
+    padding: 1.7rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 16px;
+    background: #ffffff;
+    color: var(--cor-texto);
+    box-shadow: 0 24px 80px rgba(9, 20, 32, 0.28);
+}
+
+.privacidade-resumo-etiqueta {
+    color: #26775f;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.privacidade-resumo-modal h2 {
+    margin-top: 0.55rem;
+    font-size: 1.5rem;
+}
+
+.privacidade-resumo-instrucao {
+    margin-top: 0.45rem;
+    color: var(--cor-texto-leve);
+    font-size: 0.86rem;
+}
+
+.privacidade-resumo-conteudo {
+    max-height: 290px;
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    overflow-y: auto;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    background: #f8f7f4;
+    scrollbar-color: rgba(39, 137, 107, 0.58) #e8e5df;
+}
+
+.privacidade-resumo-conteudo h3 {
+    margin-top: 1.1rem;
+    font-size: 0.98rem;
+}
+
+.privacidade-resumo-conteudo h3:first-child {
+    margin-top: 0;
+}
+
+.privacidade-resumo-conteudo p {
+    margin-top: 0.35rem;
+    color: var(--cor-texto-leve);
+    font-size: 0.86rem;
+    line-height: 1.6;
+}
+
+.privacidade-resumo-final {
+    padding-bottom: 0.7rem;
+    font-weight: 700;
+}
+
+.privacidade-resumo-acoes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.privacidade-resumo-acoes a {
+    color: var(--cor-primaria-esc);
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.privacidade-resumo-acoes button {
+    min-height: 42px;
+    padding: 0.65rem 1rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--cor-sidebar);
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.privacidade-resumo-acoes button:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+    .privacidade-resumo-modal {
+        padding: 1.25rem;
+    }
+
+    .privacidade-resumo-acoes {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}

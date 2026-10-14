@@ -13,6 +13,7 @@ process.env.AUTH_EXPOSE_DEV_LINKS = "true";
 const app = require("../src/app");
 const User = require("../src/models/User");
 const Institution = require("../src/models/Institution");
+const InstitutionAccess = require("../src/models/InstitutionAccess");
 const Group = require("../src/models/Group");
 const Student = require("../src/models/Student");
 const Session = require("../src/models/Session");
@@ -20,6 +21,7 @@ const Game = require("../src/models/Game");
 const CollectionParticipant = require("../src/models/CollectionParticipant");
 const ObservationCollection = require("../src/models/ObservationCollection");
 const ObservationSubmission = require("../src/models/ObservationSubmission");
+const SdkCollectionSubmission = require("../src/models/SdkCollectionSubmission");
 const {
     compararCodigoColeta,
 } = require("../src/services/collectionCode");
@@ -148,6 +150,7 @@ test("cadastro público nunca cria administrador nem aceita vínculo institucion
             institutionId: String(instituicao._id),
             institutionName: "Escola solicitada no cadastro",
             institutionCity: "Pelotas",
+            privacyAccepted: true,
         })
         .expect(201);
 
@@ -159,6 +162,646 @@ test("cadastro público nunca cria administrador nem aceita vínculo institucion
     assert.equal(usuario.institutionId, undefined);
     assert.equal(usuario.institutionRequest.name, "Escola solicitada no cadastro");
     assert.equal(usuario.institutionRequest.city, "Pelotas");
+});
+
+test("cadastro público cria desenvolvedor sem solicitar vínculo institucional", async () => {
+    const resposta = await request(app)
+        .post("/api/auth/register")
+        .send({
+            name: "Desenvolvedora de teste",
+            email: "desenvolvedora.teste@ludus.local",
+            password: "Senha@123",
+            role: "developer",
+            privacyAccepted: true,
+        })
+        .expect(201);
+
+    assert.equal(resposta.body.usuario.role, "developer");
+    assert.equal(resposta.body.usuario.institutionRequest, undefined);
+
+    const usuario = await User.findOne({
+        email: "desenvolvedora.teste@ludus.local",
+    });
+    assert.equal(usuario.role, "developer");
+    assert.equal(usuario.institutionId, undefined);
+    assert.equal(usuario.institutionRequest, undefined);
+    assert.equal(usuario.privacyAcceptance.noticeVersion, "2026-10-09");
+    assert.ok(usuario.privacyAcceptance.acceptedAt instanceof Date);
+});
+
+test("cadastro público exige aceite explícito do aviso de privacidade", async () => {
+    const resposta = await request(app)
+        .post("/api/auth/register")
+        .send({
+            name: "Cadastro sem aceite",
+            email: "sem.aceite@ludus.local",
+            password: "Senha@123",
+            role: "developer",
+        })
+        .expect(400);
+
+    assert.match(resposta.body.mensagem, /privacidade/i);
+    assert.equal(await User.exists({ email: "sem.aceite@ludus.local" }), null);
+});
+
+test("desenvolvedor usa laboratório isolado sem acessar dados escolares reais", async () => {
+    const { admin, professoraA, instituicaoA, alunoA } =
+        await criarCenarioEscolar();
+    const desenvolvedor = await User.create({
+        name: "Desenvolvedor isolado",
+        email: "dev.isolado@ludus.local",
+        password: "Senha@123",
+        role: "developer",
+        emailVerifiedAt: new Date(),
+    });
+    const autorizacao = `Bearer ${tokenDe(desenvolvedor)}`;
+
+    const jogo = await request(app)
+        .post("/api/games")
+        .set("Authorization", autorizacao)
+        .send({
+            name: "Jogo do desenvolvedor",
+            scopeType: "personal",
+            sourceType: "sdk-ludus",
+        })
+        .expect(201);
+
+    assert.equal(jogo.body.jogo.name, "Jogo do desenvolvedor");
+
+    const catalogo = await request(app)
+        .get("/api/games")
+        .set("Authorization", autorizacao)
+        .expect(200);
+    assert.equal(catalogo.body.total, 1);
+
+    await request(app)
+        .post("/api/games")
+        .set("Authorization", autorizacao)
+        .send({
+            name: "Jogo institucional indevido",
+            scopeType: "institutional",
+            institutionId: new mongoose.Types.ObjectId(),
+        })
+        .expect(403);
+
+    const antesDoLaboratorio = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", autorizacao)
+        .expect(200);
+    assert.equal(antesDoLaboratorio.body.total, 0);
+
+    const criado = await request(app)
+        .post("/api/developer/lab/setup")
+        .set("Authorization", autorizacao)
+        .expect(201);
+    assert.equal(criado.body.laboratorio.ativo, true);
+    assert.equal(
+        criado.body.laboratorio.instituicao.environmentType,
+        "sandbox",
+    );
+    assert.equal(criado.body.laboratorio.alunos.length, 3);
+
+    const repetido = await request(app)
+        .post("/api/developer/lab/setup")
+        .set("Authorization", autorizacao)
+        .expect(200);
+    assert.equal(
+        String(repetido.body.laboratorio.instituicao._id),
+        String(criado.body.laboratorio.instituicao._id),
+    );
+    assert.equal(repetido.body.laboratorio.alunos.length, 3);
+
+    const alunosLaboratorio = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", autorizacao)
+        .expect(200);
+    assert.equal(alunosLaboratorio.body.total, 3);
+    assert.equal(
+        alunosLaboratorio.body.alunos.some(
+            (aluno) => String(aluno._id) === String(alunoA._id),
+        ),
+        false,
+    );
+
+    const instituicoesLaboratorio = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", autorizacao)
+        .expect(200);
+    assert.equal(instituicoesLaboratorio.body.total, 1);
+    assert.equal(
+        instituicoesLaboratorio.body.instituicoes[0].environmentType,
+        "sandbox",
+    );
+
+    const instituicaoRealAntigaDoDev = await Institution.create({
+        name: "Instituição real histórica do desenvolvedor",
+        ownerUserId: desenvolvedor._id,
+        environmentType: "real",
+    });
+    await request(app)
+        .put(`/api/institutions/${instituicaoRealAntigaDoDev._id}`)
+        .set("Authorization", autorizacao)
+        .send({ name: "Alteração indevida" })
+        .expect(404);
+
+    await request(app)
+        .get(`/api/institutions/${instituicaoA._id}`)
+        .set("Authorization", autorizacao)
+        .expect(404);
+    await request(app)
+        .get(`/api/students/${alunoA._id}`)
+        .set("Authorization", autorizacao)
+        .expect(404);
+
+    const coleta = await request(app)
+        .post("/api/collections")
+        .set("Authorization", autorizacao)
+        .send({
+            title: "Coleta simulada do SDK",
+            groupId: criado.body.laboratorio.turma._id,
+            durationMinutes: 60,
+            discoveryMode: "assisted",
+        })
+        .expect(201);
+    assert.ok(coleta.body.codigoTemporario);
+
+    const instituicoesProfessora = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+        .expect(200);
+    assert.equal(instituicoesProfessora.body.total, 1);
+    assert.equal(
+        instituicoesProfessora.body.instituicoes.some(
+            (instituicao) => instituicao.environmentType === "sandbox",
+        ),
+        false,
+    );
+
+    const instituicoesAdmin = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", `Bearer ${tokenDe(admin)}`)
+        .expect(200);
+    assert.equal(
+        instituicoesAdmin.body.instituicoes.some(
+            (instituicao) => instituicao.environmentType === "sandbox",
+        ),
+        false,
+    );
+});
+
+test("professora compartilha ambiente real com desenvolvedor por convite revogável", async () => {
+    const {
+        professoraA,
+        professoraB,
+        instituicaoA,
+        instituicaoB,
+        turmaA,
+        alunoA,
+        alunoB,
+    } = await criarCenarioEscolar();
+    const desenvolvedor = await User.create({
+        name: "Desenvolvedor convidado",
+        email: "dev.convidado@ludus.local",
+        password: "Senha@123",
+        role: "developer",
+        emailVerifiedAt: new Date(),
+    });
+    const authProfessoraA = `Bearer ${tokenDe(professoraA)}`;
+    const authProfessoraB = `Bearer ${tokenDe(professoraB)}`;
+    const authDesenvolvedor = `Bearer ${tokenDe(desenvolvedor)}`;
+
+    const laboratorio = await request(app)
+        .post("/api/developer/lab/setup")
+        .set("Authorization", authDesenvolvedor)
+        .expect(201);
+
+    await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessoraA)
+        .send({
+            institutionId: instituicaoB._id,
+            email: desenvolvedor.email,
+            permissions: { prepararColetas: true },
+        })
+        .expect(404);
+
+    const convite = await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessoraA)
+        .send({
+            institutionId: instituicaoA._id,
+            email: desenvolvedor.email,
+            permissions: {
+                prepararColetas: true,
+                visualizarResultados: false,
+            },
+        })
+        .expect(201);
+    assert.equal(convite.body.acesso.status, "pending");
+    assert.equal(convite.body.acesso.collaborator.email, desenvolvedor.email);
+
+    const pendentes = await request(app)
+        .get("/api/institution-access")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.equal(pendentes.body.total, 1);
+    assert.equal(pendentes.body.acessos[0].institution.name, instituicaoA.name);
+
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/respond`)
+        .set("Authorization", authProfessoraA)
+        .send({ response: "accept" })
+        .expect(404);
+
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/respond`)
+        .set("Authorization", authDesenvolvedor)
+        .send({ response: "accept" })
+        .expect(200);
+
+    const instituicoes = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.equal(instituicoes.body.total, 2);
+    assert.ok(
+        instituicoes.body.instituicoes.some(
+            (item) => String(item._id) === String(instituicaoA._id),
+        ),
+    );
+    assert.equal(
+        instituicoes.body.instituicoes.some(
+            (item) => String(item._id) === String(instituicaoB._id),
+        ),
+        false,
+    );
+
+    await request(app)
+        .post("/api/groups")
+        .set("Authorization", authDesenvolvedor)
+        .send({ name: "Turma indevida", institutionId: instituicaoA._id })
+        .expect(403);
+    await request(app)
+        .post("/api/students")
+        .set("Authorization", authDesenvolvedor)
+        .send({ name: "Aluno indevido", groupId: turmaA._id })
+        .expect(403);
+
+    const alunosSemResultados = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.equal(alunosSemResultados.body.total, 3);
+    assert.equal(
+        alunosSemResultados.body.alunos.some(
+            (item) => String(item._id) === String(alunoA._id),
+        ),
+        false,
+    );
+
+    const coletaReal = await request(app)
+        .post("/api/collections")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            title: "Coleta preparada pelo desenvolvedor",
+            groupId: turmaA._id,
+            durationMinutes: 60,
+            discoveryMode: "assisted",
+        })
+        .expect(201);
+    assert.ok(coletaReal.body.codigoTemporario);
+
+    const coletasDaProfessora = await request(app)
+        .get("/api/collections")
+        .set("Authorization", authProfessoraA)
+        .expect(200);
+    assert.equal(coletasDaProfessora.body.total, 1);
+
+    const atualizado = await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/permissions`)
+        .set("Authorization", authProfessoraA)
+        .send({
+            permissions: {
+                prepararColetas: true,
+                visualizarResultados: true,
+            },
+        })
+        .expect(200);
+    assert.equal(
+        atualizado.body.acesso.permissions.visualizarResultados,
+        true,
+    );
+    assert.equal(
+        atualizado.body.acesso.permissions.gerenciarEstrutura,
+        false,
+    );
+
+    const alunosComResultados = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.ok(
+        alunosComResultados.body.alunos.some(
+            (item) => String(item._id) === String(alunoA._id),
+        ),
+    );
+    assert.equal(
+        alunosComResultados.body.alunos.some(
+            (item) => String(item._id) === String(alunoB._id),
+        ),
+        false,
+    );
+
+    await request(app)
+        .put(`/api/students/${alunoA._id}`)
+        .set("Authorization", authDesenvolvedor)
+        .send({ name: "Alteração indevida" })
+        .expect(403);
+
+    const estruturaLiberada = await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/permissions`)
+        .set("Authorization", authProfessoraA)
+        .send({
+            permissions: {
+                gerenciarEstrutura: true,
+                prepararColetas: true,
+                visualizarResultados: false,
+            },
+        })
+        .expect(200);
+    assert.equal(
+        estruturaLiberada.body.acesso.permissions.gerenciarEstrutura,
+        true,
+    );
+    assert.equal(
+        estruturaLiberada.body.acesso.permissions.visualizarResultados,
+        true,
+    );
+
+    const turmaDelegada = await request(app)
+        .post("/api/groups")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            name: "Turma criada pelo colaborador",
+            institutionId: instituicaoA._id,
+        })
+        .expect(201);
+    const alunoDelegado = await request(app)
+        .post("/api/students")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            name: "Aluno criado pelo colaborador",
+            groupId: turmaDelegada.body.turma._id,
+        })
+        .expect(201);
+    await request(app)
+        .put(`/api/students/${alunoDelegado.body.aluno._id}`)
+        .set("Authorization", authDesenvolvedor)
+        .send({ name: "Aluno atualizado pelo colaborador" })
+        .expect(200);
+    await request(app)
+        .delete(`/api/students/${alunoDelegado.body.aluno._id}`)
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    await request(app)
+        .delete(`/api/groups/${turmaDelegada.body.turma._id}`)
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+
+    await request(app)
+        .post("/api/groups")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            name: "Turma em escola sem convite",
+            institutionId: instituicaoB._id,
+        })
+        .expect(403);
+
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/revoke`)
+        .set("Authorization", authProfessoraB)
+        .expect(404);
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/revoke`)
+        .set("Authorization", authProfessoraA)
+        .expect(200);
+
+    const acessoPersistido = await InstitutionAccess.findById(
+        convite.body.acesso._id,
+    );
+    assert.equal(acessoPersistido.status, "revoked");
+
+    const instituicoesDepois = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.equal(instituicoesDepois.body.total, 1);
+    assert.equal(
+        String(instituicoesDepois.body.instituicoes[0]._id),
+        String(laboratorio.body.laboratorio.instituicao._id),
+    );
+
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            title: "Coleta após revogação",
+            groupId: turmaA._id,
+            durationMinutes: 60,
+            discoveryMode: "assisted",
+        })
+        .expect(404);
+    await request(app)
+        .post("/api/groups")
+        .set("Authorization", authDesenvolvedor)
+        .send({
+            name: "Turma após revogação",
+            institutionId: instituicaoA._id,
+        })
+        .expect(403);
+});
+
+test("desenvolvedor pode recusar e professora pode reenviar o convite", async () => {
+    const { professoraA, instituicaoA } = await criarCenarioEscolar();
+    const desenvolvedor = await User.create({
+        name: "Desenvolvedor que recusará",
+        email: "dev.recusa@ludus.local",
+        password: "Senha@123",
+        role: "developer",
+        emailVerifiedAt: new Date(),
+    });
+    const authProfessora = `Bearer ${tokenDe(professoraA)}`;
+    const authDesenvolvedor = `Bearer ${tokenDe(desenvolvedor)}`;
+
+    const primeiro = await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessora)
+        .send({
+            institutionId: instituicaoA._id,
+            email: desenvolvedor.email,
+            permissions: { prepararColetas: true },
+        })
+        .expect(201);
+
+    await request(app)
+        .patch(`/api/institution-access/${primeiro.body.acesso._id}/respond`)
+        .set("Authorization", authDesenvolvedor)
+        .send({ response: "decline" })
+        .expect(200);
+
+    const semAcesso = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", authDesenvolvedor)
+        .expect(200);
+    assert.equal(semAcesso.body.total, 0);
+
+    const reenviado = await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessora)
+        .send({
+            institutionId: instituicaoA._id,
+            email: desenvolvedor.email,
+            permissions: { visualizarResultados: true },
+        })
+        .expect(200);
+    assert.equal(reenviado.body.acesso.status, "pending");
+    assert.equal(reenviado.body.acesso.permissions.visualizarResultados, true);
+});
+
+test("professora pode colaborar em outra escola sem misturar seus vínculos", async () => {
+    const {
+        professoraA,
+        professoraB,
+        instituicaoA,
+        instituicaoB,
+        turmaA,
+        alunoA,
+        alunoB,
+    } = await criarCenarioEscolar();
+    const authProfessoraA = `Bearer ${tokenDe(professoraA)}`;
+    const authProfessoraB = `Bearer ${tokenDe(professoraB)}`;
+
+    const convite = await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessoraA)
+        .send({
+            institutionId: instituicaoA._id,
+            email: professoraB.email,
+            permissions: {
+                prepararColetas: true,
+                visualizarResultados: false,
+            },
+        })
+        .expect(201);
+    assert.equal(convite.body.acesso.collaborator.email, professoraB.email);
+
+    const listaAntes = await request(app)
+        .get("/api/institution-access")
+        .set("Authorization", authProfessoraB)
+        .expect(200);
+    assert.equal(listaAntes.body.acessos.length, 1);
+    assert.equal(listaAntes.body.acessos[0].status, "pending");
+    assert.equal(listaAntes.body.instituicoesGerenciadas.length, 1);
+    assert.equal(
+        String(listaAntes.body.instituicoesGerenciadas[0]._id),
+        String(instituicaoB._id),
+    );
+
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/respond`)
+        .set("Authorization", authProfessoraB)
+        .send({ response: "accept" })
+        .expect(200);
+
+    const instituicoes = await request(app)
+        .get("/api/institutions")
+        .set("Authorization", authProfessoraB)
+        .expect(200);
+    assert.equal(instituicoes.body.total, 2);
+    const escolaCompartilhada = instituicoes.body.instituicoes.find(
+        (item) => String(item._id) === String(instituicaoA._id),
+    );
+    const escolaPropria = instituicoes.body.instituicoes.find(
+        (item) => String(item._id) === String(instituicaoB._id),
+    );
+    assert.equal(escolaCompartilhada.access.shared, true);
+    assert.equal(escolaCompartilhada.access.manageStructure, false);
+    assert.equal(escolaCompartilhada.access.prepareCollections, true);
+    assert.equal(escolaPropria.access.shared, false);
+    assert.equal(escolaPropria.access.manageStructure, true);
+
+    const turmas = await request(app)
+        .get("/api/groups")
+        .set("Authorization", authProfessoraB)
+        .expect(200);
+    const turmaCompartilhada = turmas.body.turmas.find(
+        (item) => String(item._id) === String(turmaA._id),
+    );
+    assert.equal(turmaCompartilhada.access.manageStructure, false);
+
+    const alunosSemCompartilhados = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", authProfessoraB)
+        .expect(200);
+    assert.ok(
+        alunosSemCompartilhados.body.alunos.some(
+            (item) => String(item._id) === String(alunoB._id),
+        ),
+    );
+    assert.equal(
+        alunosSemCompartilhados.body.alunos.some(
+            (item) => String(item._id) === String(alunoA._id),
+        ),
+        false,
+    );
+
+    await request(app)
+        .post("/api/collections")
+        .set("Authorization", authProfessoraB)
+        .send({
+            title: "Coleta preparada pela professora colaboradora",
+            groupId: turmaA._id,
+            durationMinutes: 60,
+            discoveryMode: "assisted",
+        })
+        .expect(201);
+
+    await request(app)
+        .put(`/api/groups/${turmaA._id}`)
+        .set("Authorization", authProfessoraB)
+        .send({ name: "Alteração indevida" })
+        .expect(403);
+
+    await request(app)
+        .post("/api/institution-access/invitations")
+        .set("Authorization", authProfessoraB)
+        .send({
+            institutionId: instituicaoA._id,
+            email: professoraA.email,
+            permissions: { prepararColetas: true },
+        })
+        .expect(404);
+
+    await request(app)
+        .patch(`/api/institution-access/${convite.body.acesso._id}/permissions`)
+        .set("Authorization", authProfessoraA)
+        .send({
+            permissions: {
+                prepararColetas: true,
+                visualizarResultados: true,
+            },
+        })
+        .expect(200);
+
+    const alunosComCompartilhados = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", authProfessoraB)
+        .expect(200);
+    assert.ok(
+        alunosComCompartilhados.body.alunos.some(
+            (item) => String(item._id) === String(alunoA._id),
+        ),
+    );
 });
 
 test("somente administrador cria usuário interno com vínculo validado", async () => {
@@ -494,6 +1137,7 @@ test("novo cadastro exige confirmação de email com token de uso único", async
             email: "PENDENTE@ludus.local ",
             password: "Senha@123",
             institutionName: "Instituição pendente",
+            privacyAccepted: true,
         })
         .expect(201);
 
@@ -1170,6 +1814,70 @@ const sessaoObservacionalDeLote = (sessionId, gameId) => ({
     screenshots: [],
 });
 
+const sessaoSdkPareadaDeTeste = (
+    sessionId,
+    playerId,
+    status = "completed",
+) => ({
+    schemaVersion: "1.1.0",
+    captureMode: "sdk",
+    source: "ludus-unity-sdk",
+    sourceVersion: "0.2.0",
+    ingestionMethod: "direct-api",
+    capabilities: {
+        clicks: true,
+        mousePath: true,
+        dragPath: true,
+        screenshots: false,
+        inactivity: true,
+        focusEvents: true,
+        phaseEvents: true,
+        correctWrong: true,
+        categoryEvents: true,
+        customEvents: true,
+    },
+    sessionId,
+    runId: "run-sdk-pareado-001",
+    attemptNumber: 1,
+    status,
+    studentId: "000000000000000000000000",
+    playerId,
+    gameId: "jogo-teste",
+    gameVersion: "1.0.0",
+    platform: "WebGLPlayer",
+    startedAt: "2026-10-05T12:00:00.000Z",
+    ...(status === "completed"
+        ? { endedAt: "2026-10-05T12:00:05.000Z" }
+        : {}),
+    durationMs: 5000,
+    viewport: {
+        widthPx: 1280,
+        heightPx: 720,
+        coordinateUnit: "pixel",
+        coordinateOrigin: "bottom-left",
+    },
+    metrics: {
+        totalClicks: 0,
+        totalCorrect: 0,
+        totalWrong: 0,
+        firstActionMs: -1,
+        avgTimeBetweenActionsMs: 0,
+        inactivityCount: 0,
+        totalInactivityMs: 0,
+    },
+    clicks: [],
+    mousePath: [],
+    dragPath: [],
+    gameEvents: [
+        {
+            eventType: "CategorySelected",
+            timestamp: 0,
+            payload: { category: "Teste" },
+        },
+    ],
+    screenshots: [],
+});
+
 const loteObservacionalDeTeste = (nomeParticipante) => ({
     batchSchemaVersion: "1.0.0",
     batchType: "ludus-observa-batch",
@@ -1221,6 +1929,161 @@ const prepararColetaPareada = async ({ professora, turma, nomeParticipante }) =>
 
     return { criada, lote, pareada };
 };
+
+test("recebe checkpoint e conclusão do SDK diretamente para aluno reconhecido", async () => {
+    const { professoraA, turmaA, alunoA } = await criarCenarioEscolar();
+    const { pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: alunoA.name,
+    });
+    assert.equal(pareada.body.participante.resolutionStatus, "resolved");
+
+    const token = pareada.body.credencial.token;
+    const chaveCheckpoint = "a".repeat(64);
+    const sessionId = "sdk-pareado-resolvido-001";
+    await request(app)
+        .put("/api/collections/sdk-sessions/checkpoint")
+        .set("Authorization", `Bearer ${token}`)
+        .set("X-LUDUS-Checkpoint-Key", chaveCheckpoint)
+        .send(sessaoSdkPareadaDeTeste(sessionId, alunoA.name, "in_progress"))
+        .expect(200);
+
+    let sessao = await Session.findOne({ sessionId });
+    assert.equal(sessao.status, "in_progress");
+    assert.equal(String(sessao.studentId), String(alunoA._id));
+
+    await request(app)
+        .post("/api/collections/sdk-sessions")
+        .set("Authorization", `Bearer ${token}`)
+        .set("X-LUDUS-Checkpoint-Key", chaveCheckpoint)
+        .send(sessaoSdkPareadaDeTeste(sessionId, alunoA.name))
+        .expect(200);
+
+    sessao = await Session.findOne({ sessionId });
+    assert.equal(sessao.status, "completed");
+    assert.equal(sessao.playerId, alunoA.name);
+    assert.equal(sessao.captureMode, "sdk");
+    assert.equal(sessao.gameEvents.length, 1);
+    assert.equal(sessao.gameEvents[0].payloadData.category, "Teste");
+    const jogoReconhecido = await Game.findOne({
+        scopeKey: `user:${professoraA._id}`,
+        gameId: sessao.gameId,
+    });
+    assert.ok(jogoReconhecido);
+    assert.equal(jogoReconhecido.sourceType, "sdk-ludus");
+    let alunoAtualizado = await Student.findById(alunoA._id);
+    assert.ok(alunoAtualizado.assignedGameIds.includes(sessao.gameId));
+
+    await request(app)
+        .post("/api/collections/sdk-sessions")
+        .set("Authorization", `Bearer ${token}`)
+        .set("X-LUDUS-Checkpoint-Key", chaveCheckpoint)
+        .send(sessaoSdkPareadaDeTeste(sessionId, alunoA.name))
+        .expect(200);
+
+    assert.equal(
+        await Game.countDocuments({
+            scopeKey: `user:${professoraA._id}`,
+            gameId: sessao.gameId,
+        }),
+        1,
+    );
+    alunoAtualizado = await Student.findById(alunoA._id);
+    assert.equal(
+        alunoAtualizado.assignedGameIds.filter(
+            (gameId) => gameId === sessao.gameId,
+        ).length,
+        1,
+    );
+    assert.equal(await SdkCollectionSubmission.countDocuments(), 0);
+});
+
+test("preserva sessão do SDK para revisão quando o nome ainda não foi resolvido", async () => {
+    const { professoraA, turmaA, alunoA } = await criarCenarioEscolar();
+    const { criada, pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Participante SDK ainda não cadastrado",
+    });
+    assert.equal(pareada.body.participante.resolutionStatus, "pending");
+
+    const token = pareada.body.credencial.token;
+    const sessionId = "sdk-pareado-pendente-001";
+    const playerId = pareada.body.participante.displayName;
+    const checkpoint = await request(app)
+        .put("/api/collections/sdk-sessions/checkpoint")
+        .set("Authorization", `Bearer ${token}`)
+        .set("X-LUDUS-Checkpoint-Key", "b".repeat(64))
+        .send(sessaoSdkPareadaDeTeste(sessionId, playerId, "in_progress"))
+        .expect(202);
+    assert.equal(checkpoint.body.status, "pending");
+
+    const concluida = await request(app)
+        .post("/api/collections/sdk-sessions")
+        .set("Authorization", `Bearer ${token}`)
+        .set("X-LUDUS-Checkpoint-Key", "b".repeat(64))
+        .send(sessaoSdkPareadaDeTeste(sessionId, playerId))
+        .expect(200);
+    assert.equal(concluida.body.status, "pending");
+
+    const recebimento = await SdkCollectionSubmission.findOne({ sessionId });
+    assert.equal(recebimento.submissionKind, "completed");
+    assert.equal(recebimento.status, "pending");
+    assert.equal(await Session.countDocuments(), 0);
+
+    const adulterada = sessaoSdkPareadaDeTeste(sessionId, playerId);
+    adulterada.gameId = "outro-jogo";
+    await request(app)
+        .post("/api/collections/sdk-sessions")
+        .set("Authorization", `Bearer ${token}`)
+        .send(adulterada)
+        .expect(409);
+
+    const base = `/api/collections/${criada.body.coleta.collectionId}/participants/${pareada.body.participante.participantRef}`;
+    const autorizacao = `Bearer ${tokenDe(professoraA)}`;
+    await request(app)
+        .post(`${base}/resolve`)
+        .set("Authorization", autorizacao)
+        .send({ studentId: String(alunoA._id) })
+        .expect(200);
+    await request(app)
+        .patch(`${base}/import`)
+        .set("Authorization", autorizacao)
+        .send({ receiptIds: [recebimento.receiptId] })
+        .expect(200);
+
+    const importada = await SdkCollectionSubmission.findById(recebimento._id);
+    assert.equal(importada.status, "imported");
+    const sessao = await Session.findById(importada.importedSessionId);
+    assert.equal(String(sessao.studentId), String(alunoA._id));
+    assert.equal(sessao.captureMode, "sdk");
+});
+
+test("recusa sessão SDK sem credencial ou com identidade diferente do pareamento", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const { pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Participante SDK protegido",
+    });
+    const sessao = sessaoSdkPareadaDeTeste(
+        "sdk-pareado-protegido-001",
+        "Outro participante",
+    );
+
+    await request(app)
+        .post("/api/collections/sdk-sessions")
+        .send(sessao)
+        .expect(401);
+    await request(app)
+        .post("/api/collections/sdk-sessions")
+        .set("Authorization", `Bearer ${pareada.body.credencial.token}`)
+        .send(sessao)
+        .expect(403);
+    assert.equal(await Session.countDocuments(), 0);
+    assert.equal(await SdkCollectionSubmission.countDocuments(), 0);
+});
 
 test("recebe lote pareado de forma idempotente sem criar aluno ou sessao", async () => {
     const { professoraA, turmaA } = await criarCenarioEscolar();
@@ -2073,8 +2936,8 @@ test("atualiza checkpoint autenticado e o substitui pela sessão concluída", as
     assert.equal(exportacao.body.sessions[0].status, "completed");
 });
 
-test("recebe JPEG do SDK, persiste apenas a referencia e preserva o contexto", async () => {
-    const { professoraA, alunoA } = await criarCenarioEscolar();
+test("recebe JPEG do SDK, persiste a referencia e protege a leitura", async () => {
+    const { professoraA, professoraB, alunoA } = await criarCenarioEscolar();
     const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);
     const jpegFicticio = Buffer.from([
         0xff,
@@ -2142,6 +3005,23 @@ test("recebe JPEG do SDK, persiste apenas a referencia e preserva o contexto", a
             "contexto-atividade-ficticia",
         );
         assert.equal(heatmap.body.screenshots[0].caminho, screenshot.caminho);
+
+        await request(app).get(screenshot.caminho).expect(404);
+        await request(app)
+            .get(`/api/sessions/${sessaoWebgl.sessionId}/screenshots/0`)
+            .expect(401);
+
+        const capturaAutorizada = await request(app)
+            .get(`/api/sessions/${sessaoWebgl.sessionId}/screenshots/0`)
+            .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
+            .expect("Content-Type", /image\/jpeg/u)
+            .expect(200);
+        assert.deepEqual(capturaAutorizada.body, jpegFicticio);
+
+        await request(app)
+            .get(`/api/sessions/${sessaoWebgl.sessionId}/screenshots/0`)
+            .set("Authorization", `Bearer ${tokenDe(professoraB)}`)
+            .expect(404);
     } finally {
         if (caminhoCompleto && fs.existsSync(caminhoCompleto)) {
             fs.unlinkSync(caminhoCompleto);

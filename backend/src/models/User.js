@@ -3,7 +3,7 @@
 // LUDUS Acompanha — UFPel (2026)
 // Autor: Rodrigo Leitzke Bichet
 //
-// Model Mongoose do usuário do sistema (professor ou administrador).
+// Model Mongoose dos usuários do sistema.
 // =============================================================================
 
 const mongoose = require("mongoose");
@@ -21,6 +21,14 @@ const SolicitacaoInstituicaoSchema = new mongoose.Schema(
         rejectionReason: { type: String, trim: true, maxlength: 500 },
         reviewedAt: { type: Date },
         requestedAt: { type: Date, default: Date.now },
+    },
+    { _id: false },
+);
+
+const AceitePrivacidadeSchema = new mongoose.Schema(
+    {
+        noticeVersion: { type: String, required: true, trim: true, maxlength: 40 },
+        acceptedAt: { type: Date, required: true },
     },
     { _id: false },
 );
@@ -43,7 +51,7 @@ const UserSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["admin", "professor"],
+            enum: ["admin", "professor", "developer"],
             default: "professor",
         },
         institutionId: {
@@ -52,6 +60,10 @@ const UserSchema = new mongoose.Schema(
         },
         institutionRequest: {
             type: SolicitacaoInstituicaoSchema,
+            default: undefined,
+        },
+        privacyAcceptance: {
+            type: AceitePrivacidadeSchema,
             default: undefined,
         },
         emailVerifiedAt: { type: Date, default: null },

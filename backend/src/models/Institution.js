@@ -20,9 +20,23 @@ const InstitutionSchema = new mongoose.Schema(
             default: null,
             immutable: true,
         },
+        environmentType: {
+            type: String,
+            enum: ["real", "sandbox"],
+            default: "real",
+            immutable: true,
+        },
     },
     {
         timestamps: true,
+    },
+);
+
+InstitutionSchema.index(
+    { ownerUserId: 1, environmentType: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { environmentType: "sandbox" },
     },
 );
 

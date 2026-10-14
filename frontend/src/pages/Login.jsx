@@ -10,9 +10,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { textosAnonimos } from "../config/modoAnonimo";
 import "./Login.css";
 import Icone from "../components/shared/Icone";
+import LayoutAutenticacao from "../components/layout/LayoutAutenticacao";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -30,8 +30,8 @@ export default function Login() {
         setCarregando(true);
 
         try {
-            await login(email, password);
-            navegar("/");
+            const usuarioAutenticado = await login(email, password);
+            navegar(usuarioAutenticado?.role === "developer" ? "/documentacao" : "/");
         } catch (erroLogin) {
             setErro(erroLogin.response?.data?.mensagem || "Não foi possível entrar. Tente novamente.");
             setEmailNaoConfirmado(erroLogin.response?.data?.codigo === "EMAIL_NAO_CONFIRMADO");
@@ -41,21 +41,10 @@ export default function Login() {
     };
 
     return (
-        <div className="login-fundo">
-            <div className="login-card">
-                {/* Logo */}
-                <div className="login-logo">
-                    <span className="login-logo-icone"><Icone nome="jogo" tamanho={34} /></span>
-                    <div>
-                        <div className="login-logo-titulo">LUDUS</div>
-                        <div className="login-logo-subtitulo">ACOMPANHA</div>
-                    </div>
-
-                </div>
-
+        <LayoutAutenticacao>
                 <h2 className="login-titulo">Entrar no dashboard</h2>
                 <p className="login-subtitulo texto-leve">
-                    Acesse com suas credenciais de professor ou administrador
+                    Acesse como professor ou desenvolvedor
                 </p>
 
                 {/* Formulário */}
@@ -91,7 +80,7 @@ export default function Login() {
                     </Link>
 
                     {/* Mensagem de erro */}
-                    {erro && <div className="login-erro"><Icone nome="aviso" titulo="Atenção" /> {erro}</div>}
+                    {erro && <div className="login-erro" role="alert"><Icone nome="aviso" titulo="Atenção" /> {erro}</div>}
                     {emailNaoConfirmado && (
                         <Link className="auth-link" to="/confirmar-email">
                             Reenviar confirmação
@@ -111,10 +100,6 @@ export default function Login() {
                     Ainda não possui uma conta? <Link className="auth-link" to="/cadastro">Criar conta</Link>
                 </p>
 
-                <p className="login-rodape texto-leve">
-                    {textosAnonimos.loginRodape}
-                </p>
-            </div>
-        </div>
+        </LayoutAutenticacao>
     );
 }

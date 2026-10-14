@@ -218,14 +218,17 @@ export default function GerenciarUsuarios() {
     // -------------------------------------------------------------------------
     // Label amigável do papel do usuário
     // -------------------------------------------------------------------------
-    const labelRole = (role) =>
-        role === "admin" ? "Admin" : "Professor";
+    const labelRole = (role) => ({
+        admin: "Admin",
+        professor: "Professor",
+        developer: "Desenvolvedor",
+    })[role] || "Usuário";
 
     return (
         <div>
             <Header
                 titulo="Gerenciar Usuários"
-                subtitulo="Cadastre e gerencie professores e administradores"
+                subtitulo="Cadastre e gerencie professores, desenvolvedores e administradores"
             />
 
             <div className="pagina-conteudo">
@@ -281,9 +284,15 @@ export default function GerenciarUsuarios() {
                                 <select
                                     className="campo-input"
                                     value={role}
-                                    onChange={(e) => setRole(e.target.value)}
+                                    onChange={(e) => {
+                                        setRole(e.target.value);
+                                        if (e.target.value === "developer") {
+                                            setInstituicaoId("");
+                                        }
+                                    }}
                                 >
                                     <option value="professor">Professor</option>
+                                    <option value="developer">Desenvolvedor</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
@@ -295,6 +304,7 @@ export default function GerenciarUsuarios() {
                                 <select
                                     className="campo-input"
                                     value={instituicaoId}
+                                    disabled={role === "developer"}
                                     onChange={(e) =>
                                         setInstituicaoId(e.target.value)
                                     }
@@ -308,6 +318,11 @@ export default function GerenciarUsuarios() {
                                         </option>
                                     ))}
                                 </select>
+                                {role === "developer" && (
+                                    <small className="texto-leve">
+                                        Contas de desenvolvedor não possuem vínculo institucional.
+                                    </small>
+                                )}
                             </div>
                         </div>
 

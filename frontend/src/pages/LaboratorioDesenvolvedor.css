@@ -1,0 +1,117 @@
+.laboratorio-dev {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.laboratorio-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border-left: 4px solid var(--cor-primaria);
+}
+
+.laboratorio-aviso div {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.laboratorio-aviso p,
+.laboratorio-preparar p {
+    color: var(--cor-texto-leve);
+    line-height: 1.55;
+}
+
+.laboratorio-selo {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: #e8f6f1;
+    color: var(--cor-primaria-esc);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.laboratorio-preparar {
+    display: grid;
+    justify-items: start;
+    gap: 0.8rem;
+    max-width: 720px;
+}
+
+.laboratorio-resumo {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.laboratorio-resumo-card {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.laboratorio-resumo-card svg {
+    color: var(--cor-primaria);
+}
+
+.laboratorio-resumo-card span {
+    color: var(--cor-texto-leve);
+    font-size: 0.78rem;
+}
+
+.laboratorio-acoes,
+.laboratorio-roteiro {
+    display: grid;
+    gap: 1rem;
+}
+
+.laboratorio-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.laboratorio-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 86px;
+    padding: 0.9rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    color: var(--cor-texto);
+    text-decoration: none;
+    background: var(--cor-fundo);
+}
+
+.laboratorio-link:hover {
+    border-color: var(--cor-primaria);
+}
+
+.laboratorio-link > span {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.laboratorio-link small {
+    color: var(--cor-texto-leve);
+    line-height: 1.35;
+}
+
+.laboratorio-roteiro ol {
+    display: grid;
+    gap: 0.65rem;
+    padding-left: 1.25rem;
+    color: var(--cor-texto-leve);
+}
+
+@media (max-width: 880px) {
+    .laboratorio-resumo,
+    .laboratorio-links {
+        grid-template-columns: 1fr;
+    }
+
+    .laboratorio-aviso {
+        flex-direction: column;
+    }
+}

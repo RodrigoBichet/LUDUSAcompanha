@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./PrivacidadeLudusObserva.css";
 
-const EMAIL_CONTATO = "rodrigobichet39@gmail.com";
+const EMAIL_CONTATO = import.meta.env.VITE_PRIVACY_CONTACT_EMAIL?.trim();
 
 export default function PrivacidadeLudusObserva() {
     useEffect(() => {
@@ -170,9 +170,15 @@ export default function PrivacidadeLudusObserva() {
                         Vigência desta versão: 1º de setembro de 2026.
                     </p>
                 </div>
-                <a className="privacidade-observa-email" href={`mailto:${EMAIL_CONTATO}`}>
-                    {EMAIL_CONTATO}
-                </a>
+                {EMAIL_CONTATO ? (
+                    <a className="privacidade-observa-email" href={`mailto:${EMAIL_CONTATO}`}>
+                        {EMAIL_CONTATO}
+                    </a>
+                ) : (
+                    <p className="privacidade-observa-email">
+                        Consulte a instituição responsável pela aplicação.
+                    </p>
+                )}
             </section>
 
             <footer className="privacidade-observa-rodape">

@@ -86,8 +86,8 @@ export default function Perfil() {
             return;
         }
 
-        if (novaSenha.length < 6) {
-            setErroSenha("A nova senha deve ter no mínimo 6 caracteres.");
+        if (novaSenha.length < 8) {
+            setErroSenha("A nova senha deve ter no mínimo 8 caracteres.");
             return;
         }
 
@@ -129,7 +129,9 @@ export default function Perfil() {
                         <p className="perfil-role">
                             {usuario?.role === "admin"
                                 ? "Administrador"
-                                : "Professor"}
+                                : usuario?.role === "developer"
+                                    ? "Desenvolvedor"
+                                    : "Professor"}
                         </p>
                     </div>
                 </div>
@@ -196,7 +198,8 @@ export default function Perfil() {
                             <input
                                 className="campo-input"
                                 type="password"
-                                placeholder="Mínimo 6 caracteres"
+                                placeholder="Mínimo 8 caracteres"
+                                minLength={8}
                                 value={novaSenha}
                                 onChange={(e) => setNovaSenha(e.target.value)}
                             />
@@ -209,6 +212,7 @@ export default function Perfil() {
                                 className="campo-input"
                                 type="password"
                                 placeholder="Repita a nova senha"
+                                minLength={8}
                                 value={confirmarSenha}
                                 onChange={(e) =>
                                     setConfirmarSenha(e.target.value)

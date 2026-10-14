@@ -7,16 +7,16 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/studentsController");
-const { autenticar } = require("../middleware/auth");
+const { autenticar, autenticarEquipeEscolar } = require("../middleware/auth");
 
 router.get("/", autenticar, controller.listarAlunos);
 router.get("/overview", autenticar, controller.listarVisaoGeralAlunos);
 router.get("/for-game/:gameId", autenticar, controller.listarAlunosPorJogo);
-router.get("/individual", autenticar, controller.listarAlunosIndividuais);
-router.post("/individual", autenticar, controller.criarAlunoIndividual);
+router.get("/individual", autenticarEquipeEscolar, controller.listarAlunosIndividuais);
+router.post("/individual", autenticarEquipeEscolar, controller.criarAlunoIndividual);
 router.delete(
     "/individual/:id/games/:gameId",
-    autenticar,
+    autenticarEquipeEscolar,
     controller.removerAlunoIndividualDoJogo,
 );
 router.post("/", autenticar, controller.criarAluno);

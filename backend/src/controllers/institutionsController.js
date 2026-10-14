@@ -11,6 +11,9 @@ const {
     obterContextoEscolar,
     filtroInstituicoesAcessiveis,
     podeGerenciarInstituicao,
+    podeGerenciarEstruturaInstituicao,
+    podeGerenciarColetas,
+    podeAcessarResultados,
 } = require("../services/schoolAccess");
 
 const responderSemContexto = (res) =>
@@ -62,10 +65,28 @@ const listarInstituicoes = async (req, res) => {
             filtroInstituicoesAcessiveis(contexto),
         ).sort({ name: 1 });
 
+        const instituicoesComAcesso = instituicoes.map((instituicao) => {
+            const id = String(instituicao._id);
+            return {
+                ...instituicao.toObject(),
+                access: {
+                    shared:
+                        contexto.sharedInstitutionIds.includes(id) &&
+                        !contexto.managedInstitutionIds.includes(id),
+                    manageStructure: podeGerenciarEstruturaInstituicao(
+                        contexto,
+                        id,
+                    ),
+                    prepareCollections: podeGerenciarColetas(contexto, id),
+                    viewResults: podeAcessarResultados(contexto, id),
+                },
+            };
+        });
+
         return res.json({
             sucesso: true,
-            total: instituicoes.length,
-            instituicoes,
+            total: instituicoesComAcesso.length,
+            instituicoes: instituicoesComAcesso,
         });
     } catch (erro) {
         console.error("[LUDUS] Erro ao listar instituições:", erro.message);
@@ -82,8 +103,10 @@ const buscarInstituicao = async (req, res) => {
         if (!contexto) return responderSemContexto(res);
 
         const instituicao = await Institution.findOne({
-            _id: req.params.id,
-            ...filtroInstituicoesAcessiveis(contexto),
+            $and: [
+                { _id: req.params.id },
+                filtroInstituicoesAcessiveis(contexto),
+            ],
         });
         if (!instituicao) {
             return res.status(404).json({

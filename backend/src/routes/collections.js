@@ -13,6 +13,16 @@ router.post(
     autenticarEnvioObservacional,
     controller.receberLoteObservacional,
 );
+router.post(
+    "/sdk-sessions",
+    autenticarEnvioObservacional,
+    controller.receberSessaoSdkPareada,
+);
+router.put(
+    "/sdk-sessions/checkpoint",
+    autenticarEnvioObservacional,
+    controller.receberCheckpointSdkPareado,
+);
 router.get("/", autenticar, controller.listarColetas);
 router.get(
     "/:collectionId/submissions",

@@ -10,7 +10,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1.5rem;
-    background: linear-gradient(135deg, #eefcf7, #f7f5ff);
+    background: #eef7f3;
 }
 
 .introducao-coletas p,
@@ -239,22 +239,22 @@
     display: grid;
     justify-items: center;
     gap: 0.75rem;
-    border: 2px solid #5546eb;
+    border: 2px solid var(--cor-primaria);
     border-radius: var(--raio);
     padding: 1.5rem;
-    background: #f3f1ff;
+    background: #eef7f3;
     text-align: center;
 }
 
 .codigo-coleta p {
-    color: #30258b;
+    color: var(--cor-primaria-esc);
     font-weight: 700;
 }
 
 .codigo-coleta strong {
     font-size: clamp(1.7rem, 4vw, 2.6rem);
     letter-spacing: 0.12em;
-    color: #241a76;
+    color: var(--cor-primaria-esc);
     user-select: all;
 }
 
@@ -262,7 +262,7 @@
     border: none;
     border-radius: 8px;
     padding: 0.65rem 1rem;
-    background: #5546eb;
+    background: var(--cor-primaria);
     color: white;
     font-weight: 700;
     cursor: pointer;
@@ -276,9 +276,9 @@
 }
 
 .codigo-coleta .btn-apresentar-coleta {
-    border: 1px solid #5546eb;
+    border: 1px solid var(--cor-primaria);
     background: white;
-    color: #30258b;
+    color: var(--cor-primaria-esc);
 }
 
 .codigo-coleta small {
@@ -371,8 +371,8 @@
 }
 
 .btn-recebimentos-coleta {
-    border-color: #5546eb;
-    color: #30258b;
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria-esc);
 }
 
 .aviso-importacao-coleta {
@@ -415,10 +415,10 @@
 }
 
 .acoes-resumo-recebimentos button {
-    border: 1px solid #5546eb;
+    border: 1px solid var(--cor-primaria);
     border-radius: 8px;
     padding: 0.55rem 0.8rem;
-    background: #5546eb;
+    background: var(--cor-primaria);
     color: white;
     font-weight: 700;
     cursor: pointer;
@@ -457,7 +457,7 @@
 }
 
 .lista-recebimentos-coleta header {
-    background: #f3f1ff;
+    background: #eef7f3;
 }
 
 .lista-recebimentos-coleta header h4,
@@ -469,7 +469,7 @@
     border-radius: 999px;
     padding: 0.25rem 0.65rem;
     background: white;
-    color: #30258b;
+    color: var(--cor-primaria-esc);
     font-size: 0.8rem;
     font-weight: 800;
 }
@@ -482,19 +482,28 @@
 
 .acoes-recebimento-aluno button,
 .revisao-participante-coleta button {
-    border: 1px solid #5546eb;
+    border: 1px solid var(--cor-primaria);
     border-radius: 8px;
     padding: 0.5rem 0.75rem;
     background: white;
-    color: #30258b;
+    color: var(--cor-primaria-esc);
     font-weight: 700;
     cursor: pointer;
+}
+
+.acoes-recebimento-aluno .btn-adicionar-historico {
+    background: var(--cor-primaria);
+    color: #fff;
+}
+
+.acoes-recebimento-aluno .btn-adicionar-historico:hover:not(:disabled) {
+    background: var(--cor-primaria-esc);
 }
 
 .revisao-participante-coleta {
     display: grid;
     gap: 0.8rem;
-    border-top: 1px solid #dcd8ff;
+    border-top: 1px solid #cfe8de;
     border-bottom: 1px solid var(--cor-borda);
     padding: 1rem;
     background: #fff;
@@ -523,7 +532,7 @@
 }
 
 .revisao-participante-coleta .btn-criar-aluno-coleta {
-    background: #5546eb;
+    background: var(--cor-primaria);
     color: white;
 }
 
@@ -584,7 +593,7 @@
     height: 100dvh;
     overflow: hidden;
     padding: clamp(1rem, 2.5vh, 2rem);
-    background: linear-gradient(145deg, #17104f, #30258b 58%, #5546eb);
+    background: linear-gradient(145deg, #122a24, #176b52 58%, #27896b);
     color: white;
 }
 
@@ -633,7 +642,7 @@
     border-radius: 20px;
     padding: 0.16em 0.42em;
     background: white;
-    color: #241a76;
+    color: var(--cor-primaria-esc);
     font-size: clamp(4rem, 9vw, 7.5rem);
     letter-spacing: 0.12em;
     line-height: 1.1;
@@ -651,7 +660,7 @@
 }
 
 .conteudo-apresentacao-coleta small {
-    color: #dcd8ff;
+    color: #d9f2e9;
     font-size: 1rem;
 }
 

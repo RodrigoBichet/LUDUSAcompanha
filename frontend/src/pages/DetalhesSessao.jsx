@@ -11,7 +11,12 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Icone from "../components/shared/Icone";
-import { buscarSessao, heatmapSessao, listarJogos } from "../services/api";
+import {
+    buscarCapturaSessao,
+    buscarSessao,
+    heatmapSessao,
+    listarJogos,
+} from "../services/api";
 import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./DetalhesSessao.css";
 
@@ -23,17 +28,6 @@ const CORES_FASES = [
 ];
 
 const obterCorFase = (faseIndex) => CORES_FASES[faseIndex % CORES_FASES.length];
-
-const BACKEND_ORIGIN =
-    import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:3000";
-
-const montarUrlImagem = (caminho) => {
-    if (!caminho) return null;
-    if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
-        return caminho;
-    }
-    return `${BACKEND_ORIGIN}${caminho}`;
-};
 
 const obterPayloadEvento = (evento) => {
     if (evento?.payload && typeof evento.payload === "object") {
@@ -164,9 +158,13 @@ export default function DetalhesSessao() {
     const [searchParams] = useSearchParams();
     const modoFigura = searchParams.get("figura") === "1";
     const canvasRef = useRef(null);
+    const canvasAmpliadoRef = useRef(null);
     const segmentosHeatmapRef = useRef([]);
     const [itemHover, setItemHover] = useState(null);
     const [canvasClicavel, setCanvasClicavel] = useState(false);
+    const [mapaAmpliadoUrl, setMapaAmpliadoUrl] = useState("");
+    const [buscaSequencia, setBuscaSequencia] = useState("");
+    const [limiteSequencia, setLimiteSequencia] = useState(10);
 
     const [sessao, setSessao] = useState(null);
     const [heatmap, setHeatmap] = useState(null);
@@ -388,11 +386,19 @@ export default function DetalhesSessao() {
 
         const contextos = obterContextosCaptura();
         const fasesJogo = obterFasesJogo();
-        const screenshots = [...(heatmap.screenshots || [])].sort(
-            (a, b) => Number(a?.timestamp || 0) - Number(b?.timestamp || 0),
-        );
+        const screenshots = (heatmap.screenshots || [])
+            .map((screenshot, screenshotIndex) => ({
+                screenshot,
+                screenshotIndex,
+            }))
+            .sort(
+                (a, b) =>
+                    Number(a.screenshot?.timestamp || 0) -
+                    Number(b.screenshot?.timestamp || 0),
+            );
 
-        const recortesVisuais = screenshots.map((screenshot) => {
+        const recortesVisuais = screenshots.map(
+            ({ screenshot, screenshotIndex }) => {
             const timestamp = Number(screenshot?.timestamp || 0);
             const contexto =
                 contextos.find(
@@ -415,8 +421,10 @@ export default function DetalhesSessao() {
                 timestamp: contexto?.timestamp ?? timestamp,
                 contextEndTimestamp: contexto?.endTimestamp,
                 screenshot,
+                screenshotIndex,
             };
-        });
+            },
+        );
 
         const contextosRelevantes = contextos.some(
             (contexto) => contexto.tipo !== "scene",
@@ -505,11 +513,59 @@ export default function DetalhesSessao() {
             img.src = url;
         });
 
+    useEffect(() => {
+        if (!mapaAmpliadoUrl) return undefined;
+
+        const fecharComEscape = (evento) => {
+            if (evento.key === "Escape") setMapaAmpliadoUrl("");
+        };
+        const overflowAnterior = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        document.addEventListener("keydown", fecharComEscape);
+        return () => {
+            document.body.style.overflow = overflowAnterior;
+            document.removeEventListener("keydown", fecharComEscape);
+        };
+    }, [mapaAmpliadoUrl]);
+
+    useEffect(() => {
+        if (!mapaAmpliadoUrl || !canvasAmpliadoRef.current) return undefined;
+
+        let cancelado = false;
+        const imagem = new Image();
+        imagem.onload = () => {
+            if (cancelado || !canvasAmpliadoRef.current) return;
+            const canvas = canvasAmpliadoRef.current;
+            canvas.width = imagem.naturalWidth;
+            canvas.height = imagem.naturalHeight;
+            const contexto = canvas.getContext("2d");
+            contexto.clearRect(0, 0, canvas.width, canvas.height);
+            contexto.drawImage(imagem, 0, 0);
+        };
+        imagem.src = mapaAmpliadoUrl;
+
+        return () => {
+            cancelado = true;
+        };
+    }, [mapaAmpliadoUrl]);
+
     // Desenha o heatmap no canvas após carregar os dados
     useEffect(() => {
         if (!heatmap || !canvasRef.current) return;
 
         let cancelado = false;
+
+        const carregarCapturaProtegida = async (index) => {
+            if (!Number.isInteger(index)) return null;
+
+            const resposta = await buscarCapturaSessao(sessionId, index);
+            const urlTemporaria = URL.createObjectURL(resposta.data);
+            try {
+                return await carregarImagem(urlTemporaria);
+            } finally {
+                URL.revokeObjectURL(urlTemporaria);
+            }
+        };
 
         const desenharHeatmap = async () => {
             const canvas = canvasRef.current;
@@ -542,14 +598,12 @@ export default function DetalhesSessao() {
                   Infinity);
 
             // A visão geral usa fundo neutro para não misturar capturas de momentos diferentes.
-            const screenshotUrl = visualizacaoGeral
-                ? null
-                : montarUrlImagem(recorteAtual?.screenshot?.caminho);
-
             let imagemFundo = null;
-            if (screenshotUrl) {
+            if (!visualizacaoGeral && recorteAtual?.screenshot) {
                 try {
-                    imagemFundo = await carregarImagem(screenshotUrl);
+                    imagemFundo = await carregarCapturaProtegida(
+                        recorteAtual.screenshotIndex,
+                    );
                 } catch {
                     imagemFundo = null;
                 }
@@ -599,10 +653,10 @@ export default function DetalhesSessao() {
 
             let imagemReferencia = imagemFundo;
 
-            if (!imagemReferencia && recortes[0]?.screenshot?.caminho) {
+            if (!imagemReferencia && recortes[0]?.screenshot) {
                 try {
-                    imagemReferencia = await carregarImagem(
-                        montarUrlImagem(recortes[0].screenshot.caminho),
+                    imagemReferencia = await carregarCapturaProtegida(
+                        recortes[0].screenshotIndex,
                     );
                 } catch {
                     imagemReferencia = null;
@@ -808,8 +862,6 @@ export default function DetalhesSessao() {
             };
 
             const registrarCliqueClicavel = (clique, faseIndex) => {
-                if (!visualizacaoGeral) return;
-
                 const pos = mapearCoordenada(clique.x, clique.y);
 
                 segmentosHeatmapRef.current.push({
@@ -1214,6 +1266,20 @@ export default function DetalhesSessao() {
                     H / 2,
                 );
             }
+
+            if (canvasAmpliadoRef.current) {
+                const canvasAmpliado = canvasAmpliadoRef.current;
+                canvasAmpliado.width = canvas.width;
+                canvasAmpliado.height = canvas.height;
+                const contextoAmpliado = canvasAmpliado.getContext("2d");
+                contextoAmpliado.clearRect(
+                    0,
+                    0,
+                    canvasAmpliado.width,
+                    canvasAmpliado.height,
+                );
+                contextoAmpliado.drawImage(canvas, 0, 0);
+            }
         };
 
         desenharHeatmap();
@@ -1229,6 +1295,7 @@ export default function DetalhesSessao() {
         obterRecortesHeatmap,
         obterContextosCaptura,
         possuiCapacidade,
+        sessionId,
         temFasesConfiaveis,
         modoObservacional,
     ]);
@@ -1264,10 +1331,10 @@ export default function DetalhesSessao() {
         return Math.hypot(px - projX, py - projY);
     };
 
-    const obterPontoCanvas = (evento) => {
-        if (!canvasRef.current) return null;
+    const obterPontoCanvas = (evento, canvasAlvo = canvasRef.current) => {
+        if (!canvasAlvo) return null;
 
-        const canvas = canvasRef.current;
+        const canvas = canvasAlvo;
         const rect = canvas.getBoundingClientRect();
 
         return {
@@ -1277,8 +1344,11 @@ export default function DetalhesSessao() {
         };
     };
 
-    const obterSegmentoMaisProximo = (evento) => {
-        const ponto = obterPontoCanvas(evento);
+    const obterSegmentoMaisProximo = (
+        evento,
+        canvasAlvo = canvasRef.current,
+    ) => {
+        const ponto = obterPontoCanvas(evento, canvasAlvo);
         if (!ponto) return null;
 
         const limiteClique = Math.max(18, ponto.canvas.width * 0.012);
@@ -1315,8 +1385,8 @@ export default function DetalhesSessao() {
         return segmentoMaisProximo?.segmento || null;
     };
 
-    const abrirFasePeloCanvas = (evento) => {
-        const item = obterSegmentoMaisProximo(evento);
+    const abrirFasePeloCanvas = (evento, canvasAlvo = canvasRef.current) => {
+        const item = obterSegmentoMaisProximo(evento, canvasAlvo);
 
         if (item?.tipo === "interacao-semantica") {
             setItemHover(item);
@@ -1330,8 +1400,8 @@ export default function DetalhesSessao() {
         }
     };
 
-    const atualizarHoverCanvas = (evento) => {
-        const item = obterSegmentoMaisProximo(evento);
+    const atualizarHoverCanvas = (evento, canvasAlvo = canvasRef.current) => {
+        const item = obterSegmentoMaisProximo(evento, canvasAlvo);
 
         const mudouHover =
             itemHover?.faseIndex !== item?.faseIndex ||
@@ -1685,6 +1755,50 @@ export default function DetalhesSessao() {
         return fases;
     };
 
+    const termoBuscaSequencia = buscaSequencia.trim().toLocaleLowerCase("pt-BR");
+    const eventoCorrespondeBusca = (evento) => {
+        if (!termoBuscaSequencia) return true;
+        const payload = obterPayloadEvento(evento);
+        return [
+            evento.eventType,
+            nomeEvento(evento.eventType, payload),
+            JSON.stringify(payload),
+        ]
+            .join(" ")
+            .toLocaleLowerCase("pt-BR")
+            .includes(termoBuscaSequencia);
+    };
+    const eventosSemanticosFiltrados = (sessao?.gameEvents || []).filter(
+        eventoCorrespondeBusca,
+    );
+    const eventosSemanticosVisiveis = eventosSemanticosFiltrados.slice(
+        0,
+        limiteSequencia,
+    );
+    const linhaTempoObservacionalFiltrada = linhaTempoObservacional.filter(
+        (evento) =>
+            !termoBuscaSequencia ||
+            `${evento.titulo} ${evento.detalhe}`
+                .toLocaleLowerCase("pt-BR")
+                .includes(termoBuscaSequencia),
+    );
+    const linhaTempoObservacionalVisivel = linhaTempoObservacionalFiltrada.slice(
+        0,
+        limiteSequencia,
+    );
+    const totalSequenciaFiltrada = modoObservacional
+        ? linhaTempoObservacionalFiltrada.length
+        : eventosSemanticosFiltrados.length;
+
+    const abrirMapaAmpliado = () => {
+        if (!canvasRef.current) return;
+        try {
+            setMapaAmpliadoUrl(canvasRef.current.toDataURL("image/png"));
+        } catch {
+            setMapaAmpliadoUrl("");
+        }
+    };
+
     return (
         <div>
             {/* O jogo é a referência principal de navegação da atividade. */}
@@ -1711,7 +1825,7 @@ export default function DetalhesSessao() {
                         : "pagina-conteudo"
                 }
             >
-                <button className="btn-voltar" onClick={() => navegar(-1)}>
+                <button className="btn-voltar btn-voltar-compacto" onClick={() => navegar(-1)}>
                     ← Voltar
                 </button>
 
@@ -2062,6 +2176,18 @@ export default function DetalhesSessao() {
                                         );
                                     })()}
 
+                                <div className="heatmap-canvas-acoes">
+                                    <button
+                                        type="button"
+                                        className="btn-ampliar-mapa"
+                                        onClick={abrirMapaAmpliado}
+                                        aria-label="Ampliar mapa da atividade"
+                                    >
+                                        <span aria-hidden="true">⛶</span>
+                                        Ampliar mapa
+                                    </button>
+                                </div>
+
                                 <div className="heatmap-canvas-wrap">
                                     <canvas
                                         ref={canvasRef}
@@ -2157,9 +2283,32 @@ export default function DetalhesSessao() {
                                         : "Sequência da sessão"}
                                 </h3>
 
+                                <div className="sequencia-ferramentas">
+                                    <label htmlFor="busca-sequencia">
+                                        Pesquisar na sequência
+                                    </label>
+                                    <input
+                                        id="busca-sequencia"
+                                        type="search"
+                                        value={buscaSequencia}
+                                        placeholder="Ex.: erro, botão, categoria..."
+                                        onChange={(evento) => {
+                                            setBuscaSequencia(evento.target.value);
+                                            setLimiteSequencia(10);
+                                        }}
+                                    />
+                                    <span>
+                                        {Math.min(
+                                            limiteSequencia,
+                                            totalSequenciaFiltrada,
+                                        )}{" "}
+                                        de {totalSequenciaFiltrada} eventos
+                                    </span>
+                                </div>
+
                                 {modoObservacional ? (
                                     <div className="linha-tempo-observacional">
-                                        {linhaTempoObservacional.map(
+                                        {linhaTempoObservacionalVisivel.map(
                                             (evento) => (
                                                 <div
                                                     key={evento.id}
@@ -2194,7 +2343,7 @@ export default function DetalhesSessao() {
                                         obterRecortesHeatmap();
                                     const fasesAgrupadas =
                                         agruparEventosPorFase(
-                                            sessao.gameEvents || [],
+                                            eventosSemanticosVisiveis,
                                             recortesDaSessao,
                                         );
 
@@ -2496,11 +2645,180 @@ export default function DetalhesSessao() {
                                         </>
                                     );
                                 })()}
+                                {totalSequenciaFiltrada > limiteSequencia && (
+                                    <button
+                                        type="button"
+                                        className="btn-ver-mais-sequencia"
+                                        onClick={() =>
+                                            setLimiteSequencia(
+                                                (atual) => atual + 10,
+                                            )
+                                        }
+                                    >
+                                        Ver mais eventos
+                                    </button>
+                                )}
+                                {totalSequenciaFiltrada === 0 &&
+                                    buscaSequencia && (
+                                        <p className="sequencia-sem-resultados">
+                                            Nenhum evento corresponde à pesquisa.
+                                        </p>
+                                    )}
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {mapaAmpliadoUrl && (
+                <div
+                    className="mapa-ampliado-backdrop"
+                    role="presentation"
+                    onMouseDown={(evento) => {
+                        if (evento.target === evento.currentTarget) {
+                            setMapaAmpliadoUrl("");
+                        }
+                    }}
+                >
+                    <div
+                        className="mapa-ampliado-dialogo"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="titulo-mapa-ampliado"
+                    >
+                        <div className="mapa-ampliado-cabecalho">
+                            <div>
+                                <h2 id="titulo-mapa-ampliado">
+                                    Mapa da atividade
+                                </h2>
+                                <p>Visualização ampliada do recorte selecionado</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMapaAmpliadoUrl("")}
+                                aria-label="Fechar mapa ampliado"
+                            >
+                                <Icone nome="fechar" />
+                            </button>
+                        </div>
+                        <div className="mapa-ampliado-legenda" aria-label="Legenda do mapa">
+                            {possuiCapacidade("mousePath") && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-movimento" />
+                                    Movimento
+                                </span>
+                            )}
+                            {possuiCapacidade("dragPath") && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-arraste" />
+                                    Arraste
+                                </span>
+                            )}
+                            {possuiCapacidade("clicks") && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-clique" />
+                                    Clique
+                                </span>
+                            )}
+                            {temBotoesAcompanhados && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-semantica botao" />
+                                    Botão
+                                </span>
+                            )}
+                            {temCamposTextoAcompanhados && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-semantica texto" />
+                                    Campo de texto
+                                </span>
+                            )}
+                            {temObjetosClicaveisAcompanhados && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-semantica clicavel" />
+                                    Objeto clicável
+                                </span>
+                            )}
+                            {temObjetosArrastaveisAcompanhados && (
+                                <span className="heatmap-legenda-item">
+                                    <span className="heatmap-legenda-semantica arrastavel" />
+                                    Objeto arrastável
+                                </span>
+                            )}
+                        </div>
+                        <div className="mapa-ampliado-conteudo">
+                            <canvas
+                                ref={canvasAmpliadoRef}
+                                className="canvas-mapa-ampliado"
+                                aria-label="Mapa ampliado das interações registradas na atividade"
+                                onClick={(evento) =>
+                                    abrirFasePeloCanvas(
+                                        evento,
+                                        canvasAmpliadoRef.current,
+                                    )
+                                }
+                                onMouseMove={(evento) =>
+                                    atualizarHoverCanvas(
+                                        evento,
+                                        canvasAmpliadoRef.current,
+                                    )
+                                }
+                                onMouseLeave={limparHoverCanvas}
+                            />
+                        </div>
+                        <div
+                            className={`mapa-ampliado-detalhe ${itemHover?.tipo === "interacao-semantica" ? (itemHover.interactionKind === "text-input" ? "texto" : itemHover.interactionKind === "button" ? "botao" : itemHover.interactionKind === "clickable-object" ? "clicavel" : itemHover.interactionKind === "draggable-object" ? "arrastavel" : "outro") : itemHover?.tipo || "vazio"}`}
+                            role="status"
+                            aria-live="polite"
+                        >
+                            {itemHover ? (
+                                <>
+                                    <div className="mapa-ampliado-detalhe-topo">
+                                        <strong>
+                                            {itemHover.nome ||
+                                                (itemHover.tipo === "clique"
+                                                    ? "Clique registrado"
+                                                    : itemHover.tipo === "arraste"
+                                                      ? "Trajeto de arraste"
+                                                      : "Movimento registrado")}
+                                        </strong>
+                                        <span>
+                                            {itemHover.contexto ||
+                                                itemHover.faseNome ||
+                                                "Interação registrada neste recorte"}
+                                            {Number.isFinite(itemHover.timestamp)
+                                                ? ` • ${(itemHover.timestamp / 1000).toFixed(1)}s`
+                                                : ""}
+                                        </span>
+                                    </div>
+                                    <span>
+                                        {itemHover.interactionKind === "button" &&
+                                        itemHover.action === "activated"
+                                            ? "Botão acionado"
+                                            : itemHover.interactionKind === "text-input" &&
+                                                itemHover.action === "completed"
+                                              ? itemHover.wasEmpty === true
+                                                  ? "Campo deixado vazio"
+                                                  : `${Number(itemHover.characterCount) || 0} caracteres informados`
+                                              : itemHover.interactionKind === "clickable-object"
+                                                ? "Objeto clicado"
+                                                : itemHover.interactionKind === "draggable-object"
+                                                  ? `Arraste de ${Number(itemHover.distancePx || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} px em ${(Number(itemHover.durationMs || 0) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} s`
+                                                  : itemHover.tipo === "clique"
+                                                    ? "Ponto de clique registrado"
+                                                    : itemHover.tipo === "arraste"
+                                                      ? "Trecho do caminho de arraste"
+                                                      : "Trecho do movimento do ponteiro"}
+                                    </span>
+                                </>
+                            ) : (
+                                <span>
+                                    Passe o mouse sobre uma linha ou marcador para ver os detalhes.
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

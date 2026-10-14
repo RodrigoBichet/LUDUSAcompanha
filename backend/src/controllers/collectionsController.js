@@ -8,11 +8,16 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Group = require("../models/Group");
 const Game = require("../models/Game");
+const Session = require("../models/Session");
 const Student = require("../models/Student");
 const CollectionParticipant = require("../models/CollectionParticipant");
 const ObservationCollection = require("../models/ObservationCollection");
 const ObservationSubmission = require("../models/ObservationSubmission");
+const SdkCollectionSubmission = require("../models/SdkCollectionSubmission");
 const {
+    validarENormalizarSessao,
+    salvarOuAtualizarCheckpoint,
+    concluirCheckpoint,
     prepararDadosImportacao,
     buscarSessaoDuplicadaImportada,
     registrarJogoEAssociarAluno,
@@ -22,11 +27,15 @@ const {
     ErroValidacaoTelemetria,
 } = require("../services/telemetryValidator");
 const {
+    prepararSessaoParaExportacao,
+} = require("../services/sessionExporter");
+const {
     validarLoteTelemetria,
 } = require("../services/batchTelemetryValidator");
 const {
     obterContextoEscolar,
-    podeAcessarInstituicao,
+    podeGerenciarColetas,
+    podeAcessarResultados,
     buscarAlunoComAcesso,
 } = require("../services/schoolAccess");
 const {
@@ -47,6 +56,7 @@ const DURACAO_MINIMA_MINUTOS = 15;
 const DURACAO_MAXIMA_MINUTOS = 480;
 const LIMITE_ORIGENS = 20;
 const DURACAO_MAXIMA_CREDENCIAL_SEGUNDOS = 8 * 60 * 60;
+const STUDENT_ID_PENDENTE = "000000000000000000000000";
 
 const resumirColeta = (coleta) => ({
     collectionId: coleta.collectionId,
@@ -67,6 +77,25 @@ const resumirColeta = (coleta) => ({
         coleta.status === "active" &&
         new Date(coleta.expiresAt).getTime() <= Date.now(),
 });
+
+const buscarColetaComPermissao = async (
+    req,
+    collectionId,
+    { exigirResultados = false } = {},
+) => {
+    const contexto = await obterContextoEscolar(req.usuarioId);
+    if (!contexto) return null;
+    const coleta = await ObservationCollection.findOne({ collectionId });
+    if (
+        !coleta ||
+        !podeGerenciarColetas(contexto, coleta.institutionId) ||
+        (exigirResultados &&
+            !podeAcessarResultados(contexto, coleta.institutionId))
+    ) {
+        return null;
+    }
+    return coleta;
+};
 
 const normalizarOrigens = (origens) => {
     if (origens === undefined) return [];
@@ -192,7 +221,7 @@ const criarColeta = async (req, res) => {
         const turma = await Group.findById(groupId).select("name institutionId");
         if (
             !turma ||
-            !podeAcessarInstituicao(contexto, turma.institutionId)
+            !podeGerenciarColetas(contexto, turma.institutionId)
         ) {
             return res.status(404).json({
                 sucesso: false,
@@ -273,7 +302,7 @@ const listarColetas = async (req, res) => {
         }
 
         const coletas = await ObservationCollection.find({
-            ownerUserId: req.usuarioId,
+            institutionId: { $in: contexto.collectionInstitutionIds },
         }).sort({ createdAt: -1 });
 
         return res.json({
@@ -292,10 +321,10 @@ const listarColetas = async (req, res) => {
 
 const revogarColeta = async (req, res) => {
     try {
-        const coleta = await ObservationCollection.findOne({
-            collectionId: req.params.collectionId,
-            ownerUserId: req.usuarioId,
-        });
+        const coleta = await buscarColetaComPermissao(
+            req,
+            req.params.collectionId,
+        );
 
         if (!coleta) {
             return res.status(404).json({
@@ -331,10 +360,10 @@ const revogarColeta = async (req, res) => {
 
 const substituirCodigoColeta = async (req, res) => {
     try {
-        const coleta = await ObservationCollection.findOne({
-            collectionId: req.params.collectionId,
-            ownerUserId: req.usuarioId,
-        });
+        const coleta = await buscarColetaComPermissao(
+            req,
+            req.params.collectionId,
+        );
 
         if (!coleta) {
             return res.status(404).json({
@@ -527,6 +556,353 @@ const parearParticipante = async (req, res) => {
 const calcularDigestSessao = (sessao) =>
     crypto.createHash("sha256").update(JSON.stringify(sessao)).digest("hex");
 
+const criarErroEnvioSdk = (mensagem, status = 400) => {
+    const erro = new Error(mensagem);
+    erro.status = status;
+    return erro;
+};
+
+const obterPareamentoSdkAtivo = async (credencial) => {
+    const agora = new Date();
+    const coleta = await ObservationCollection.findOne({
+        collectionId: credencial.collectionId,
+        status: "active",
+        startsAt: { $lte: agora },
+        expiresAt: { $gt: agora },
+    });
+    if (!coleta) {
+        throw criarErroEnvioSdk(
+            "A coleta não está disponível para recebimento.",
+            401,
+        );
+    }
+
+    const participante = await CollectionParticipant.findOne({
+        participantRef: credencial.participantRef,
+        collectionRef: coleta._id,
+    });
+    if (!participante) {
+        throw criarErroEnvioSdk(
+            "O participante não pertence à coleta informada.",
+            401,
+        );
+    }
+
+    return { coleta, participante };
+};
+
+const validarSessaoSdkPareada = (
+    dadosBrutos,
+    coleta,
+    participante,
+    statusEsperado,
+) => {
+    const dados = validarENormalizarSessao(dadosBrutos);
+
+    if (
+        dados.captureMode !== "sdk" ||
+        dados.ingestionMethod !== "direct-api"
+    ) {
+        throw criarErroEnvioSdk(
+            "Esta rota aceita somente sessões diretas do LUDUS Unity SDK.",
+        );
+    }
+    if (dados.studentId !== STUDENT_ID_PENDENTE) {
+        throw criarErroEnvioSdk(
+            "A identidade do aluno é definida pelo pareamento da coleta.",
+            403,
+        );
+    }
+    if (dados.playerId !== participante.displayName) {
+        throw criarErroEnvioSdk(
+            "A sessão não corresponde ao participante pareado.",
+            403,
+        );
+    }
+    if (dados.status !== statusEsperado) {
+        throw criarErroEnvioSdk(
+            statusEsperado === "in_progress"
+                ? "O progresso parcial precisa estar em andamento."
+                : "A sessão final precisa estar concluída.",
+        );
+    }
+
+    const jogosPreparados = coleta.gameTargets || [];
+    if (
+        jogosPreparados.length > 0 &&
+        !jogosPreparados.some((jogo) => jogo.gameId === dados.gameId)
+    ) {
+        throw criarErroEnvioSdk(
+            "O jogo desta sessão não pertence à coleta informada.",
+            403,
+        );
+    }
+
+    return dados;
+};
+
+const validarOrigemSdkDaColeta = (req, coleta) => {
+    const origem = String(req.get("Origin") || "").trim();
+    const origensPermitidas = coleta.allowedOrigins || [];
+    if (
+        origem &&
+        origensPermitidas.length > 0 &&
+        !origensPermitidas.includes(origem)
+    ) {
+        throw criarErroEnvioSdk(
+            "A origem deste jogo não pertence à coleta informada.",
+            403,
+        );
+    }
+};
+
+const prepararSessaoSdkResolvida = (dados, aluno) => ({
+    ...dados,
+    studentId: String(aluno._id),
+    playerId: aluno.name,
+    ingestionMethod: "direct-api",
+});
+
+const salvarRecebimentoSdkPendente = async ({
+    coleta,
+    participante,
+    dados,
+    submissionKind,
+}) => {
+    const payloadCanonico = prepararSessaoParaExportacao(dados);
+    const digest = calcularDigestSessao(payloadCanonico);
+    let recebimento = await SdkCollectionSubmission.findOne({
+        collectionRef: coleta._id,
+        participantRef: participante._id,
+        sessionId: dados.sessionId,
+    });
+
+    if (!recebimento) {
+        try {
+            recebimento = await SdkCollectionSubmission.create({
+                receiptId: `sdk-receipt-${crypto.randomUUID()}`,
+                collectionRef: coleta._id,
+                participantRef: participante._id,
+                sessionId: dados.sessionId,
+                payloadDigest: digest,
+                sessionPayload: payloadCanonico,
+                submissionKind,
+            });
+            return { recebimento, criado: true };
+        } catch (erro) {
+            if (erro?.code !== 11000) throw erro;
+            recebimento = await SdkCollectionSubmission.findOne({
+                collectionRef: coleta._id,
+                participantRef: participante._id,
+                sessionId: dados.sessionId,
+            });
+        }
+    }
+
+    if (!recebimento) {
+        throw criarErroEnvioSdk(
+            "Não foi possível confirmar o recebimento da sessão.",
+            409,
+        );
+    }
+    if (recebimento.status === "imported") {
+        return { recebimento, criado: false };
+    }
+    if (recebimento.submissionKind === "completed") {
+        if (
+            submissionKind === "completed" &&
+            recebimento.payloadDigest !== digest
+        ) {
+            throw criarErroEnvioSdk(
+                "Uma sessão concluída com este identificador já foi recebida com outro conteúdo.",
+                409,
+            );
+        }
+        return { recebimento, criado: false };
+    }
+
+    recebimento.payloadDigest = digest;
+    recebimento.sessionPayload = payloadCanonico;
+    recebimento.submissionKind = submissionKind;
+    await recebimento.save();
+    return { recebimento, criado: false };
+};
+
+const marcarRecebimentoSdkImportado = async (
+    coleta,
+    participante,
+    sessao,
+) => {
+    await SdkCollectionSubmission.findOneAndUpdate(
+        {
+            collectionRef: coleta._id,
+            participantRef: participante._id,
+            sessionId: sessao.sessionId,
+        },
+        {
+            status: "imported",
+            submissionKind: "completed",
+            importedSessionId: sessao._id,
+            reviewedAt: new Date(),
+        },
+    );
+};
+
+const responderErroEnvioSdk = (res, erro) => {
+    if (erro instanceof ErroValidacaoTelemetria || erro.status) {
+        return res.status(erro.status || 400).json({
+            sucesso: false,
+            mensagem: erro.message,
+            detalhes: erro.detalhes || [],
+        });
+    }
+
+    console.error("[LUDUS] Erro ao receber sessão pareada do SDK:", erro.message);
+    return res.status(500).json({
+        sucesso: false,
+        mensagem: "Erro interno ao receber a sessão do jogo.",
+    });
+};
+
+const receberCheckpointSdkPareado = async (req, res) => {
+    try {
+        const { coleta, participante } = await obterPareamentoSdkAtivo(
+            req.credencialObservacional,
+        );
+        validarOrigemSdkDaColeta(req, coleta);
+        const dados = validarSessaoSdkPareada(
+            req.body,
+            coleta,
+            participante,
+            "in_progress",
+        );
+        dados.screenshots = [];
+
+        if (participante.resolutionStatus !== "resolved" || !participante.studentId) {
+            const { recebimento } = await salvarRecebimentoSdkPendente({
+                coleta,
+                participante,
+                dados,
+                submissionKind: "checkpoint",
+            });
+            return res.status(202).json({
+                sucesso: true,
+                mensagem: "Progresso protegido enquanto o participante aguarda confirmação.",
+                receiptId: recebimento.receiptId,
+                sessionId: dados.sessionId,
+                status: "pending",
+            });
+        }
+
+        const aluno = await Student.findById(participante.studentId);
+        if (!aluno || String(aluno.groupId) !== String(coleta.groupId)) {
+            throw criarErroEnvioSdk(
+                "O aluno pareado não está disponível nesta turma.",
+                409,
+            );
+        }
+        const dadosResolvidos = prepararSessaoSdkResolvida(dados, aluno);
+        const chave = String(req.get("X-LUDUS-Checkpoint-Key") || "")
+            .trim()
+            .toLowerCase();
+        const checkpoint = await salvarOuAtualizarCheckpoint(
+            dadosResolvidos,
+            chave,
+        );
+
+        return res.status(200).json({
+            sucesso: true,
+            mensagem: "Progresso parcial salvo.",
+            sessionId: checkpoint.sessionId,
+            status: checkpoint.status,
+        });
+    } catch (erro) {
+        return responderErroEnvioSdk(res, erro);
+    }
+};
+
+const receberSessaoSdkPareada = async (req, res) => {
+    try {
+        const { coleta, participante } = await obterPareamentoSdkAtivo(
+            req.credencialObservacional,
+        );
+        validarOrigemSdkDaColeta(req, coleta);
+        const dados = validarSessaoSdkPareada(
+            req.body,
+            coleta,
+            participante,
+            "completed",
+        );
+
+        if (participante.resolutionStatus !== "resolved" || !participante.studentId) {
+            const { recebimento, criado } = await salvarRecebimentoSdkPendente({
+                coleta,
+                participante,
+                dados,
+                submissionKind: "completed",
+            });
+            return res.status(criado ? 202 : 200).json({
+                sucesso: true,
+                mensagem: "Sessão recebida e preservada para confirmação da professora.",
+                receiptId: recebimento.receiptId,
+                sessionId: dados.sessionId,
+                status: "pending",
+            });
+        }
+
+        const aluno = await Student.findById(participante.studentId);
+        if (!aluno || String(aluno.groupId) !== String(coleta.groupId)) {
+            throw criarErroEnvioSdk(
+                "O aluno pareado não está disponível nesta turma.",
+                409,
+            );
+        }
+        const dadosResolvidos = prepararSessaoSdkResolvida(dados, aluno);
+        let sessao = await Session.findOne({
+            sessionId: dadosResolvidos.sessionId,
+        }).select("+checkpointKeyHash");
+        let criado = false;
+
+        if (sessao?.status === "completed") {
+            if (
+                String(sessao.studentId) !== String(aluno._id) ||
+                sessao.gameId !== dadosResolvidos.gameId
+            ) {
+                throw criarErroEnvioSdk(
+                    "Já existe outra sessão com este identificador.",
+                    409,
+                );
+            }
+        } else if (sessao) {
+            const chave = String(req.get("X-LUDUS-Checkpoint-Key") || "")
+                .trim()
+                .toLowerCase();
+            sessao = await concluirCheckpoint(sessao, dadosResolvidos, chave);
+        } else {
+            sessao = await salvarSessaoNormalizada(dadosResolvidos, {
+                resetarCapturaSolicitada: true,
+            });
+            criado = true;
+        }
+
+        await registrarJogoEAssociarAluno({
+            usuarioId: coleta.ownerUserId,
+            aluno,
+            dados: dadosResolvidos,
+            nomeJogoDetectado: dadosResolvidos.gameId,
+        });
+        await marcarRecebimentoSdkImportado(coleta, participante, sessao);
+        return res.status(criado ? 201 : 200).json({
+            sucesso: true,
+            mensagem: "Sessão do jogo registrada no histórico do aluno.",
+            sessionId: sessao.sessionId,
+            status: sessao.status,
+        });
+    } catch (erro) {
+        return responderErroEnvioSdk(res, erro);
+    }
+};
+
 const receberLoteObservacional = async (req, res) => {
     try {
         const lote = validarLoteTelemetria(req.body?.lote);
@@ -666,10 +1042,10 @@ const receberLoteObservacional = async (req, res) => {
 
 const listarSubmissoesColeta = async (req, res) => {
     try {
-        const coleta = await ObservationCollection.findOne({
-            collectionId: req.params.collectionId,
-            ownerUserId: req.usuarioId,
-        }).select("_id collectionId title");
+        const coleta = await buscarColetaComPermissao(
+            req,
+            req.params.collectionId,
+        );
 
         if (!coleta) {
             return res.status(404).json({
@@ -678,7 +1054,7 @@ const listarSubmissoesColeta = async (req, res) => {
             });
         }
 
-        const [participantes, submissoes] = await Promise.all([
+        const [participantes, submissoesObservacionais, submissoesSdk] = await Promise.all([
             CollectionParticipant.find({ collectionRef: coleta._id })
                 .select(
                     "_id participantRef displayName resolutionStatus studentId",
@@ -690,7 +1066,17 @@ const listarSubmissoesColeta = async (req, res) => {
                 )
                 .sort({ createdAt: -1 })
                 .lean(),
+            SdkCollectionSubmission.find({ collectionRef: coleta._id })
+                .select(
+                    "receiptId participantRef sessionId status submissionKind sessionPayload createdAt",
+                )
+                .sort({ createdAt: -1 })
+                .lean(),
         ]);
+        const submissoes = [
+            ...submissoesObservacionais,
+            ...submissoesSdk,
+        ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const participantePorId = new Map(
             participantes.map((item) => [String(item._id), item]),
         );
@@ -739,6 +1125,7 @@ const listarSubmissoesColeta = async (req, res) => {
                 receiptId: item.receiptId,
                 sessionId: item.sessionId,
                 status: item.status,
+                submissionKind: item.submissionKind || "completed",
                 gameId: sessao.gameId,
                 startedAt: sessao.startedAt,
                 endedAt: sessao.endedAt,
@@ -768,7 +1155,16 @@ const listarSubmissoesColeta = async (req, res) => {
             },
             totalParticipantes: recebimentos.length,
             totalSessoes: submissoes.length,
-            totalPendentes: submissoes.filter((item) => item.status === "pending").length,
+            totalPendentes: submissoes.filter(
+                (item) =>
+                    item.status === "pending" &&
+                    item.submissionKind !== "checkpoint",
+            ).length,
+            totalEmAndamento: submissoes.filter(
+                (item) =>
+                    item.status === "pending" &&
+                    item.submissionKind === "checkpoint",
+            ).length,
             totalImportadas: submissoes.filter((item) => item.status === "imported").length,
             recebimentos,
         });
@@ -799,9 +1195,8 @@ const resolverParticipanteColeta = async (req, res) => {
             });
         }
 
-        const coleta = await ObservationCollection.findOne({
-            collectionId,
-            ownerUserId: req.usuarioId,
+        const coleta = await buscarColetaComPermissao(req, collectionId, {
+            exigirResultados: true,
         });
         if (!coleta) {
             return res.status(404).json({
@@ -926,9 +1321,11 @@ const importarSessoesColeta = async (req, res) => {
             new Set(ids).size !== ids.length) {
             return res.status(400).json({ sucesso: false, mensagem: "Selecione de 1 a 100 recibos distintos." });
         }
-        const coleta = await ObservationCollection.findOne({
-            collectionId: req.params.collectionId, ownerUserId: req.usuarioId,
-        });
+        const coleta = await buscarColetaComPermissao(
+            req,
+            req.params.collectionId,
+            { exigirResultados: true },
+        );
         if (!coleta) return res.status(404).json({ sucesso: false, mensagem: "Coleta não encontrada." });
         const participante = await CollectionParticipant.findOne({
             collectionRef: coleta._id, participantRef: req.params.participantRef,
@@ -941,11 +1338,20 @@ const importarSessoesColeta = async (req, res) => {
         if (!aluno || String(aluno.groupId) !== String(coleta.groupId)) {
             return res.status(404).json({ sucesso: false, mensagem: "Aluno indisponível na turma desta coleta." });
         }
-        const itens = await ObservationSubmission.find({
-            collectionRef: coleta._id, participantRef: participante._id, receiptId: { $in: ids },
-        });
+        const [itensObservacionais, itensSdk] = await Promise.all([
+            ObservationSubmission.find({
+                collectionRef: coleta._id, participantRef: participante._id, receiptId: { $in: ids },
+            }),
+            SdkCollectionSubmission.find({
+                collectionRef: coleta._id, participantRef: participante._id, receiptId: { $in: ids },
+            }),
+        ]);
+        const itens = [...itensObservacionais, ...itensSdk];
         if (itens.length !== ids.length || itens.some((item) => item.status === "rejected")) {
             return res.status(400).json({ sucesso: false, mensagem: "Um dos recibos não está disponível para este aluno." });
+        }
+        if (itens.some((item) => item.submissionKind === "checkpoint")) {
+            return res.status(409).json({ sucesso: false, mensagem: "A sessão do jogo ainda está em andamento. Aguarde a conclusão antes de adicioná-la ao histórico." });
         }
         // Revalidar todos antes de iniciar qualquer persistência.
         const preparados = itens.map((item) => ({
@@ -997,7 +1403,9 @@ module.exports = {
     listarColetas,
     listarSubmissoesColeta,
     parearParticipante,
+    receberCheckpointSdkPareado,
     receberLoteObservacional,
+    receberSessaoSdkPareada,
     resolverParticipanteColeta,
     revogarColeta,
     substituirCodigoColeta,

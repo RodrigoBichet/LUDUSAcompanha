@@ -7,42 +7,112 @@
     background: var(--cor-sidebar);
     display: flex;
     flex-direction: column;
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 0.85rem;
     z-index: 100;
+    transition: width 0.2s ease;
+}
+
+.sidebar-alternar {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    right: -14px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 0 9px 9px 0;
+    background: var(--cor-sidebar);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.sidebar-alternar:hover {
+    color: #ffffff;
+    background: #263b50;
+}
+
+.sidebar.recolhida {
+    width: var(--sidebar-largura-recolhida);
+    padding-inline: 0.55rem;
+}
+
+.sidebar.recolhida .sidebar-logo {
+    justify-content: center;
+    padding-inline: 0;
+}
+
+.sidebar.recolhida .marca-ludus-principal {
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+}
+
+.sidebar.recolhida .marca-ludus-complemento,
+.sidebar.recolhida .nav-item > span,
+.sidebar.recolhida .nav-separador,
+.sidebar.recolhida .nav-escola-nome,
+.sidebar.recolhida .sidebar-vinculo-pendente,
+.sidebar.recolhida .conta-usuario-dados,
+.sidebar.recolhida .conta-usuario-sair {
+    display: none;
+}
+
+.sidebar.recolhida .nav-item,
+.sidebar.recolhida .nav-item.subitem {
+    justify-content: center;
+    min-height: 44px;
+    margin-left: 0;
+    padding: 0.7rem;
+}
+
+.sidebar.recolhida .nav-escola-grupo {
+    display: grid;
+}
+
+.sidebar.recolhida .conta-usuario-topo {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 0.35rem;
+}
+
+.sidebar.recolhida .conta-usuario-link {
+    justify-content: center;
 }
 
 .sidebar-logo {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.5rem 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    padding: 0.35rem 0.65rem 1.15rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    text-decoration: none;
 }
 
-.sidebar-logo-img {
-    width: 100%;
-    max-width: 190px;
-    height: auto;
-    display: block;
-}
-
-.logo-icone {
-    font-size: 1.75rem;
-}
-
-.logo-titulo {
+.sidebar-marca-principal,
+.sidebar-marca-complemento {
     font-family: var(--fonte-titulo);
-    font-size: 1.25rem;
-    color: var(--cor-primaria);
+    color: #ffffff;
+    font-weight: 900;
     line-height: 1;
+    text-transform: uppercase;
 }
 
-.logo-subtitulo {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+.sidebar-marca-principal {
+    font-size: 1.65rem;
+    letter-spacing: 0.045em;
+}
+
+.sidebar-marca-complemento {
+    color: var(--cor-primaria-clara);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
 }
 
 .sidebar-nav {
@@ -50,18 +120,43 @@
     flex-direction: column;
     gap: 0.25rem;
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(78, 203, 160, 0.58) rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    border: 2px solid var(--cor-sidebar);
+    border-radius: 999px;
+    background: rgba(78, 203, 160, 0.58);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(78, 203, 160, 0.82);
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
     border-radius: 8px;
     color: rgba(255, 255, 255, 0.6);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.86rem;
     transition: all 0.2s;
 }
 
@@ -72,7 +167,42 @@
 
 .nav-item.ativo {
     background: rgba(78, 203, 160, 0.15);
-    color: var(--cor-primaria);
+    color: var(--cor-primaria-clara);
+}
+
+.nav-item.subitem {
+    min-height: 0;
+    margin-left: 0.4rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.78rem;
+}
+
+.nav-item.indisponivel {
+    opacity: 0.42;
+    cursor: not-allowed;
+    user-select: none;
+}
+
+.nav-item.indisponivel:hover {
+    color: rgba(255, 255, 255, 0.6);
+    background: transparent;
+}
+
+.nav-escola-grupo {
+    display: grid;
+    gap: 0.15rem;
+    padding-bottom: 0.45rem;
+}
+
+.nav-escola-nome {
+    padding: 0.45rem 1rem 0.2rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .nav-icone {
@@ -108,7 +238,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--cor-primaria), #3aa0ff);
+    background: var(--cor-primaria);
     color: white;
     font-size: 1rem;
     font-weight: 800;
@@ -194,6 +324,10 @@
 }
 
 @media (max-width: 760px) {
+    .sidebar-alternar {
+        display: none;
+    }
+
     .sidebar {
         position: relative;
         width: 100%;
@@ -202,20 +336,65 @@
         gap: 0.5rem;
     }
 
+    .sidebar.recolhida {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+    }
+
+    .sidebar.recolhida .sidebar-logo {
+        justify-content: flex-start;
+    }
+
+    .sidebar.recolhida .marca-ludus-principal {
+        font-size: 1.35rem;
+    }
+
+    .sidebar.recolhida .marca-ludus-complemento,
+    .sidebar.recolhida .nav-item > span {
+        display: inline;
+    }
+
+    .sidebar.recolhida .conta-usuario-dados {
+        display: grid;
+    }
+
+    .sidebar.recolhida .conta-usuario-sair {
+        display: block;
+    }
+
+    .sidebar.recolhida .nav-item,
+    .sidebar.recolhida .nav-item.subitem {
+        justify-content: flex-start;
+        padding: 0.65rem 0.8rem;
+    }
+
+    .sidebar.recolhida .conta-usuario-topo {
+        grid-template-columns: minmax(0, 1fr) auto;
+        justify-items: stretch;
+        padding: 0.45rem;
+    }
+
     .sidebar-logo {
-        justify-content: center;
+        justify-content: flex-start;
+        align-items: flex-start;
         padding: 0 0 0.5rem;
         margin: 0;
     }
 
-    .sidebar-logo-img {
-        width: 132px;
+    .sidebar-marca-principal {
+        font-size: 1.35rem;
+    }
+
+    .sidebar-marca-complemento {
+        font-size: 0.56rem;
     }
 
     .sidebar-nav {
         flex: initial;
         flex-direction: row;
+        overflow-y: hidden;
         overflow-x: auto;
+        padding-right: 0;
         padding-bottom: 0.2rem;
         scrollbar-width: thin;
     }
@@ -226,43 +405,30 @@
         padding: 0.65rem 0.8rem;
     }
 
+    .nav-item.subitem {
+        margin-left: 0;
+        min-height: 44px;
+        padding: 0.65rem 0.8rem;
+    }
+
+    .nav-escola-grupo {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        padding: 0;
+    }
+
+    .nav-escola-nome {
+        max-width: 150px;
+        padding: 0.45rem 0.5rem;
+    }
+
     .sidebar-vinculo-pendente {
         margin: 0;
         flex: 0 0 auto;
     }
 
-    .sidebar-usuario {
-        position: absolute;
-        top: 0.65rem;
-        right: 0.75rem;
-        margin: 0;
-        padding: 0.35rem;
-        background: transparent;
-    }
-
-    .sidebar-usuario .usuario-info,
-    .sidebar-rodape .texto-leve,
     .nav-separador {
         display: none;
-    }
-
-    .usuario-avatar {
-        width: 34px;
-        height: 34px;
-    }
-
-    .sidebar-rodape {
-        position: absolute;
-        top: 0.65rem;
-        left: 0.75rem;
-        width: auto;
-        padding: 0;
-        border: 0;
-    }
-
-    .btn-sair {
-        min-height: 34px;
-        margin: 0;
-        padding: 0.35rem 0.55rem;
     }
 }

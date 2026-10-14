@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ConfirmacaoEstadoJogo from "../components/ConfirmacaoEstadoJogo";
 import ConfirmacaoExcluirJogo from "../components/ConfirmacaoExcluirJogo";
 import Header from "../components/layout/Header";
@@ -15,7 +15,6 @@ import Icone from "../components/shared/Icone";
 import { useAuth } from "../contexts/AuthContext";
 import {
     listarJogos,
-    criarJogo,
     atualizarJogo,
     arquivarJogo,
     excluirJogo,
@@ -54,6 +53,7 @@ const preencherOrigemUnityPlay = (entryUrl, origensAtuais) => {
 
 export default function Home() {
     const { usuario, recarregarUsuario } = useAuth();
+    const desenvolvedor = usuario?.role === "developer";
     const vinculoPendente = Boolean(
         usuario?.role === "professor" &&
         !usuario?.institutionId &&
@@ -62,8 +62,6 @@ export default function Home() {
     const solicitacaoRecusada =
         usuario?.institutionRequest?.status === "rejected";
     const navegar = useNavigate();
-    const [searchParams] = useSearchParams();
-    const nomeJogoSugerido = searchParams.get("novoJogo") || "";
     const [jogos, setJogos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
@@ -76,17 +74,7 @@ export default function Home() {
     const [cidadeSolicitada, setCidadeSolicitada] = useState(
         usuario?.institutionRequest?.city || "",
     );
-    const [mostrarCadastroJogo, setMostrarCadastroJogo] = useState(
-        Boolean(nomeJogoSugerido),
-    );
-    const [salvandoJogo, setSalvandoJogo] = useState(false);
     const [erroJogo, setErroJogo] = useState("");
-    const [formJogo, setFormJogo] = useState({
-        name: nomeJogoSugerido,
-        description: "",
-        entryUrl: "",
-        captureOrigins: "",
-    });
     const [jogoEmEdicao, setJogoEmEdicao] = useState(null);
     const [formEdicaoJogo, setFormEdicaoJogo] = useState({});
     const [processandoJogoId, setProcessandoJogoId] = useState(null);
@@ -181,43 +169,6 @@ export default function Home() {
             );
         } finally {
             setSalvandoSolicitacao(false);
-        }
-    };
-
-    const handleCadastrarJogo = async (evento) => {
-        evento.preventDefault();
-
-        try {
-            setSalvandoJogo(true);
-            setErroJogo("");
-            const resposta = await criarJogo({
-                name: formJogo.name,
-                description: formJogo.description,
-                scopeType: "personal",
-                sourceType: "external-json",
-                observationTarget: {
-                    entryUrl: formJogo.entryUrl,
-                    captureOrigins: formJogo.captureOrigins
-                        .split(/\r?\n/)
-                        .filter((item) => item.trim()),
-                },
-            });
-            const jogo = resposta.data.jogo;
-            setJogos((atuais) => [...atuais, jogo]);
-            setFormJogo({
-                name: "",
-                description: "",
-                entryUrl: "",
-                captureOrigins: "",
-            });
-            setMostrarCadastroJogo(false);
-        } catch (erroCadastro) {
-            setErroJogo(
-                erroCadastro.response?.data?.mensagem ||
-                    "Não foi possível cadastrar o jogo.",
-            );
-        } finally {
-            setSalvandoJogo(false);
         }
     };
 
@@ -335,11 +286,45 @@ export default function Home() {
     return (
         <div>
             <Header
-                titulo="Jogos"
-                subtitulo="Selecione um jogo para acompanhar os alunos"
+                titulo={desenvolvedor ? "Área do desenvolvedor" : "Meus jogos"}
+                subtitulo={
+                    desenvolvedor
+                        ? "Gerencie os jogos que você integrará ao LUDUS Acompanha"
+                        : "Selecione um jogo para acompanhar os alunos"
+                }
             />
 
             <div className="pagina-conteudo">
+                {desenvolvedor && (
+                    <section className="card portal-dev-introducao">
+                        <div className="portal-dev-cabecalho">
+                            <span className="portal-dev-selo">
+                                Perfil de desenvolvedor
+                            </span>
+                            <h2>Prepare seu jogo para a integração</h2>
+                            <p>
+                                Siga a documentação, envie uma atividade de teste e
+                                confira aqui o jogo reconhecido automaticamente. Esta
+                                área permite corrigir as informações quando necessário.
+                            </p>
+                        </div>
+                        <ol className="portal-dev-etapas">
+                            <li>
+                                <strong>1. Consulte o guia</strong>
+                                <span>Comece pelo tutorial isolado da documentação.</span>
+                            </li>
+                            <li>
+                                <strong>2. Integre o SDK</strong>
+                                <span>Configure cenas, atividades e eventos relevantes.</span>
+                            </li>
+                            <li>
+                                <strong>3. Valide o envio</strong>
+                                <span>Confira a sessão e o cadastro automático do jogo.</span>
+                            </li>
+                        </ol>
+                    </section>
+                )}
+
                 {vinculoPendente && (
                     <section className="card vinculo-pendente" role="status">
                         <div className="vinculo-pendente-icone">
@@ -429,130 +414,13 @@ export default function Home() {
                     <>
                         <div className="jogos-selecao">
                             <div>
-                                <h2>Jogo acompanhado</h2>
+                                <h2>Meus jogos</h2>
                                 <p className="texto-leve">
-                                    Escolha o jogo para visualizar os dados dos
-                                    alunos.
+                                    {desenvolvedor
+                                        ? "Confira os jogos reconhecidos pelas sessões e corrija suas informações quando necessário."
+                                        : "Consulte os jogos reconhecidos nas atividades e acompanhe os dados dos alunos."}
                                 </p>
                             </div>
-
-                            <div className="acoes-jogos">
-                                <button
-                                    type="button"
-                                    className="btn-primario"
-                                    onClick={() => {
-                                        setMostrarCadastroJogo((aberto) => !aberto);
-                                        setErroJogo("");
-                                    }}
-                                >
-                                    {mostrarCadastroJogo
-                                        ? "Fechar cadastro"
-                                        : "+ Cadastrar jogo"}
-                                </button>
-                            </div>
-
-                            {mostrarCadastroJogo && (
-                                <form
-                                    className="form-cadastro-jogo"
-                                    onSubmit={handleCadastrarJogo}
-                                >
-                                    <label className="campo-grupo">
-                                        <span className="campo-label">
-                                            Nome que aparecerá no LUDUS
-                                        </span>
-                                        <input
-                                            className="campo-input"
-                                            value={formJogo.name}
-                                            placeholder="Ex.: Para que serve?"
-                                            onChange={(evento) =>
-                                                setFormJogo((atual) => ({
-                                                    ...atual,
-                                                    name: evento.target.value,
-                                                }))
-                                            }
-                                            required
-                                            maxLength={120}
-                                        />
-                                    </label>
-                                    <label className="campo-grupo">
-                                        <span className="campo-label">
-                                            Breve descrição (opcional)
-                                        </span>
-                                        <input
-                                            className="campo-input"
-                                            value={formJogo.description}
-                                            placeholder="Ex.: Jogo para relacionar objetos às suas funções"
-                                            onChange={(evento) =>
-                                                setFormJogo((atual) => ({
-                                                    ...atual,
-                                                    description: evento.target.value,
-                                                }))
-                                            }
-                                            maxLength={1000}
-                                        />
-                                    </label>
-                                    <label className="campo-grupo form-cadastro-jogo-largura-total">
-                                        <span className="campo-label">
-                                            Página onde a criança abre o jogo (opcional)
-                                        </span>
-                                        <input
-                                            className="campo-input"
-                                            type="url"
-                                            value={formJogo.entryUrl}
-                                            placeholder="https://play.unity.com/pt/games/..."
-                                            onChange={(evento) =>
-                                                setFormJogo((atual) => ({
-                                                    ...atual,
-                                                    entryUrl: evento.target.value,
-                                                    captureOrigins: preencherOrigemUnityPlay(
-                                                        evento.target.value,
-                                                        atual.captureOrigins,
-                                                    ),
-                                                }))
-                                            }
-                                        />
-                                        <small className="texto-leve">
-                                            Cole o endereço que aparece no navegador quando o jogo está aberto. Você pode deixar vazio e informar depois.
-                                        </small>
-                                    </label>
-                                    <details className="configuracao-avancada-jogo form-cadastro-jogo-largura-total">
-                                        <summary>Configuração técnica do site (normalmente automática)</summary>
-                                        <label className="campo-grupo">
-                                            <span className="campo-label">
-                                                Endereço interno do jogo
-                                            </span>
-                                            <textarea
-                                                className="campo-input"
-                                                value={formJogo.captureOrigins}
-                                                placeholder="Ex.: https://play-prod.struckd.com"
-                                                onChange={(evento) =>
-                                                    setFormJogo((atual) => ({
-                                                        ...atual,
-                                                        captureOrigins: evento.target.value,
-                                                    }))
-                                                }
-                                            />
-                                            <small className="texto-leve">
-                                                No Unity Play, este endereço é preenchido automaticamente. Só altere se receber orientação técnica.
-                                            </small>
-                                        </label>
-                                    </details>
-                                    {erroJogo && (
-                                        <p className="erro-cadastro-jogo">
-                                            {erroJogo}
-                                        </p>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        className="btn-primario btn-salvar-cadastro-jogo"
-                                        disabled={salvandoJogo}
-                                    >
-                                        {salvandoJogo
-                                            ? "Cadastrando..."
-                                            : "Salvar jogo"}
-                                    </button>
-                                </form>
-                            )}
 
                             <div className="jogos-opcoes">
                                 {jogosDisponiveis.length === 0 && (
@@ -564,7 +432,8 @@ export default function Home() {
                                         />
                                         <p>Nenhum jogo cadastrado ainda.</p>
                                         <p className="texto-leve">
-                                            Cadastre um jogo ou importe o primeiro JSON de uma sessão.
+                                            O jogo aparecerá automaticamente após a
+                                            primeira sessão recebida ser adicionada ao histórico.
                                         </p>
                                     </div>
                                 )}
@@ -576,8 +445,17 @@ export default function Home() {
                                         <button
                                             type="button"
                                             className="jogo-opcao-principal"
-                                            onClick={() => selecionarJogo(jogo)}
+                                            onClick={() =>
+                                                desenvolvedor
+                                                    ? abrirEdicaoJogo(jogo)
+                                                    : selecionarJogo(jogo)
+                                            }
                                             disabled={!jogo.ativo}
+                                            aria-label={
+                                                desenvolvedor
+                                                    ? `Editar ${jogo.nome}`
+                                                    : `Abrir ${jogo.nome}`
+                                            }
                                         >
                                             <span className="jogo-opcao-nome">
                                                 {jogo.nome}
@@ -641,7 +519,7 @@ export default function Home() {
                                         <label className="campo-grupo">
                                             <span className="campo-label">Nome que aparecerá no LUDUS</span>
                                             <input className="campo-input" value={formEdicaoJogo.name} required maxLength={120}
-                                                placeholder="Ex.: Para que serve?"
+                                                placeholder="Ex.: Nome do seu jogo"
                                                 onChange={(evento) => setFormEdicaoJogo((atual) => ({ ...atual, name: evento.target.value }))} />
                                         </label>
                                         <label className="campo-grupo">
@@ -674,6 +552,11 @@ export default function Home() {
                                                 <small className="texto-leve">No Unity Play, este endereço é preenchido automaticamente. Só altere se receber orientação técnica.</small>
                                             </label>
                                         </details>
+                                        {erroJogo && (
+                                            <p className="erro-cadastro-jogo" role="alert">
+                                                {erroJogo}
+                                            </p>
+                                        )}
                                         <div className="modal-edicao-jogo-acoes">
                                             <button type="button" className="btn-secundario" onClick={() => setJogoEmEdicao(null)} disabled={Boolean(processandoJogoId)}>
                                                 Cancelar

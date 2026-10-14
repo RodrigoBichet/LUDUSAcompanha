@@ -43,7 +43,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4ecba0, #3aa0ff);
+    background: var(--cor-primaria);
     color: white;
     font-size: 1.1rem;
     font-weight: 800;

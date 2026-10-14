@@ -52,6 +52,11 @@ router.get(
     autenticar,
     controller.exportarSessao,
 );
+router.get(
+    "/:sessionId/screenshots/:index",
+    autenticar,
+    controller.buscarScreenshotSessao,
+);
 
 // GET  /api/sessions/:id   — busca sessão completa
 router.get("/:sessionId", autenticar, controller.buscarSessao);

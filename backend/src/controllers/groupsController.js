@@ -8,6 +8,7 @@ const Student = require("../models/Student");
 const {
     obterContextoEscolar,
     podeAcessarInstituicao,
+    podeGerenciarEstruturaInstituicao,
 } = require("../services/schoolAccess");
 
 const responderSemContexto = (res) =>
@@ -16,9 +17,22 @@ const responderSemContexto = (res) =>
         mensagem: "Usuário autenticado não foi encontrado.",
     });
 
+const serializarTurmaComAcesso = (turma, contexto) => {
+    const institutionId = turma.institutionId?._id || turma.institutionId;
+    return {
+        ...turma.toObject(),
+        access: {
+            manageStructure: podeGerenciarEstruturaInstituicao(
+                contexto,
+                institutionId,
+            ),
+        },
+    };
+};
+
 const buscarTurmaAcessivel = async (contexto, id) => {
     const turma = await Group.findById(id)
-        .populate("institutionId", "name city ownerUserId")
+        .populate("institutionId", "name city ownerUserId environmentType")
         .populate("professorId", "name email");
     if (!turma || !podeAcessarInstituicao(contexto, turma.institutionId?._id)) {
         return null;
@@ -38,7 +52,7 @@ const criarTurma = async (req, res) => {
 
         const contexto = await obterContextoEscolar(req.usuarioId);
         if (!contexto) return responderSemContexto(res);
-        if (!podeAcessarInstituicao(contexto, institutionId)) {
+        if (!podeGerenciarEstruturaInstituicao(contexto, institutionId)) {
             return res.status(403).json({
                 sucesso: false,
                 mensagem: "Sem permissão para criar turma nesta instituição.",
@@ -73,15 +87,21 @@ const listarTurmas = async (req, res) => {
         const contexto = await obterContextoEscolar(req.usuarioId);
         if (!contexto) return responderSemContexto(res);
 
-        const filtro = contexto.todasInstituicoes
-            ? {}
-            : { institutionId: { $in: contexto.institutionIds } };
+        const filtro = {
+            institutionId: { $in: contexto.institutionIds },
+        };
         const turmas = await Group.find(filtro)
-            .populate("institutionId", "name city")
+            .populate("institutionId", "name city environmentType")
             .populate("professorId", "name email")
             .sort({ name: 1 });
 
-        return res.json({ sucesso: true, total: turmas.length, turmas });
+        return res.json({
+            sucesso: true,
+            total: turmas.length,
+            turmas: turmas.map((turma) =>
+                serializarTurmaComAcesso(turma, contexto),
+            ),
+        });
     } catch (erro) {
         console.error("[LUDUS] Erro ao listar turmas:", erro.message);
         return res.status(500).json({
@@ -102,7 +122,10 @@ const buscarTurma = async (req, res) => {
                 mensagem: "Turma não encontrada ou sem permissão de acesso.",
             });
         }
-        return res.json({ sucesso: true, turma });
+        return res.json({
+            sucesso: true,
+            turma: serializarTurmaComAcesso(turma, contexto),
+        });
     } catch (erro) {
         console.error("[LUDUS] Erro ao buscar turma:", erro.message);
         return res.status(500).json({
@@ -124,8 +147,20 @@ const atualizarTurma = async (req, res) => {
             });
         }
 
+        if (
+            !podeGerenciarEstruturaInstituicao(
+                contexto,
+                turma.institutionId._id,
+            )
+        ) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado permite consultar turmas, mas não alterá-las.",
+            });
+        }
+
         const institutionId = req.body.institutionId || turma.institutionId._id;
-        if (!podeAcessarInstituicao(contexto, institutionId)) {
+        if (!podeGerenciarEstruturaInstituicao(contexto, institutionId)) {
             return res.status(403).json({
                 sucesso: false,
                 mensagem: "Sem permissão para mover a turma para esta instituição.",
@@ -169,6 +204,18 @@ const deletarTurma = async (req, res) => {
             return res.status(404).json({
                 sucesso: false,
                 mensagem: "Turma não encontrada ou sem permissão para removê-la.",
+            });
+        }
+
+        if (
+            !podeGerenciarEstruturaInstituicao(
+                contexto,
+                turma.institutionId._id,
+            )
+        ) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado permite consultar turmas, mas não removê-las.",
             });
         }
 

@@ -172,17 +172,23 @@ As anotacoes do professor ficam embutidas dentro do documento do aluno, pois sao
 | ------------------------- | -------- | ----------- | ---------------------------------------------------------- |
 | `_id`                     | ObjectId | automatico  | Identificador real do aluno                                |
 | `name`                    | String   | sim         | Nome do aluno                                              |
-| `birthDate`               | Date     | nao         | Data de nascimento                                         |
+| `birthDate`               | Date     | nao         | Data de nascimento; preencher somente quando necessária    |
 | `groupId`                 | ObjectId | sim         | Referencia a `groups`                                      |
-| `supportLevel`            | String   | nao         | `"Nivel 1"`, `"Nivel 2"`, `"Nivel 3"` ou `"Nao informado"` |
-| `otherConditions`         | String   | nao         | Campo textual para outras informacoes relevantes           |
-| `guardianName`            | String   | nao         | Nome do responsavel                                        |
-| `guardianContact`         | String   | nao         | Contato do responsavel                                     |
+| `supportLevel`            | String   | legado      | Preservado para compatibilidade; nao coletado pela interface atual |
+| `otherConditions`         | String   | legado      | Preservado para compatibilidade; nao coletado pela interface atual |
+| `guardianName`            | String   | legado      | Preservado para compatibilidade; nao coletado pela interface atual |
+| `guardianContact`         | String   | legado      | Preservado para compatibilidade; nao coletado pela interface atual |
 | `anotacoes`               | Array    | nao         | Observacoes registradas pelo professor                     |
 | `capturaSolicitada`       | Boolean  | nao         | Indica se a proxima sessao deve salvar imagens             |
 | `capturaSolicitadaOrigem` | String   | nao         | `"dashboard"`, `"unity"` ou `null`                         |
 | `createdAt`               | Date     | automatico  | Data de criacao                                            |
 | `updatedAt`               | Date     | automatico  | Data da ultima atualizacao                                 |
+
+Por minimizacao de dados, a interface atual nao solicita informacoes clinicas
+nem dados de contato de responsaveis. Os campos marcados como `legado` continuam
+no schema somente para preservar registros existentes e compatibilidade de
+payload; nao devem ser usados em novos cadastros. Anotacoes devem se limitar ao
+contexto pedagogico da atividade, sem diagnosticos ou contatos pessoais.
 
 ### Estrutura de `anotacoes`
 
@@ -303,9 +309,11 @@ Imagens capturadas por fase quando a captura estava ativa.
 | ----------- | ------ | ---------------------------------------------------- |
 | `faseIndex` | Number | Indice da fase, iniciando em 0                       |
 | `timestamp` | Number | Tempo relativo da captura                            |
-| `caminho`   | String | Caminho publico da imagem em `/uploads/screenshots/` |
+| `caminho`   | String | Referencia interna em `/uploads/screenshots/`        |
 
-O backend nao salva `screenshotBase64` no banco. Ele recebe a imagem em base64, grava o arquivo em disco e armazena apenas o caminho publico.
+O backend nao salva `screenshotBase64` no banco. Ele recebe a imagem em base64,
+grava o arquivo em disco e armazena apenas uma referencia interna. A leitura e
+feita pela rota autenticada de sessoes; o diretorio nao e exposto publicamente.
 
 ---
 
@@ -480,9 +488,13 @@ Variaveis publicas configuradas no Netlify:
 
 ```env
 VITE_API_URL=https://ludus-acompanha-api.onrender.com/api
-VITE_BACKEND_ORIGIN=https://ludus-acompanha-api.onrender.com
 VITE_MODO_ANONIMO=false
+VITE_PRIVACY_CONTACT_EMAIL=contato-institucional@exemplo.edu.br
 ```
+
+`VITE_PRIVACY_CONTACT_EMAIL` deve apontar para um canal institucional realmente
+monitorado pelo responsável pela aplicação. É uma variável pública do frontend,
+portanto não deve conter senha, token ou qualquer outro segredo.
 
 O arquivo `frontend/public/_redirects` contem `/* /index.html 200`, necessario para que rotas React, como `/login`, `/aluno/:id` e `/sessao/:sessionId`, funcionem ao abrir ou recarregar diretamente.
 
@@ -513,13 +525,15 @@ As imagens capturadas durante as sessoes do jogo sao salvas localmente pelo back
 backend/uploads/screenshots/
 ```
 
-Essa pasta e servida pelo Express pela rota publica:
+Essa pasta nao e publicada diretamente pelo Express. O dashboard solicita cada
+imagem pela rota autenticada:
 
 ```txt
-/uploads
+GET /api/sessions/:sessionId/screenshots/:index
 ```
 
-Exemplo de caminho salvo em uma sessao:
+O backend valida o JWT e o acesso do usuario ao aluno antes de entregar o JPEG.
+O caminho interno mantido em uma sessao segue o formato:
 
 ```txt
 /uploads/screenshots/<sessionId>_fase0.jpg
@@ -595,10 +609,12 @@ Com o `.env` configurado, execute o script de criacao do administrador inicial:
 
 ```bash
 cd backend
-node src/scripts/criarAdmin.js
+node src/scripts/criarAdmin.js --name="Nome do administrador" --email=admin@exemplo.com
 ```
 
-Antes de rodar, confira o email e a senha definidos no script.
+O script gera uma senha temporária forte e a exibe uma única vez no terminal.
+Use-a no primeiro acesso e troque-a imediatamente na página de perfil. O
+procedimento não exige gravar email ou senha no código-fonte.
 
 ---
 
@@ -709,6 +725,7 @@ Observacoes:
 | POST   | `/api/sessions`                     | Recebe sessao enviada pela Unity |
 | GET    | `/api/sessions`                     | Lista sessoes para debug         |
 | GET    | `/api/sessions/:sessionId`          | Busca sessao especifica          |
+| GET    | `/api/sessions/:sessionId/screenshots/:index` | Entrega captura com autenticacao |
 | GET    | `/api/sessions/student/:studentId`  | Historico de sessoes de um aluno |
 | GET    | `/api/dashboard/summary/:studentId` | Resumo consolidado do aluno      |
 | GET    | `/api/dashboard/alerts/:studentId`  | Indicadores pedagogicos do aluno |

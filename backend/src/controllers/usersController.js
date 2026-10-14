@@ -9,7 +9,7 @@
 const User = require("../models/User");
 const Institution = require("../models/Institution");
 
-const papeisValidos = new Set(["admin", "professor"]);
+const papeisValidos = new Set(["admin", "professor", "developer"]);
 const emailValido = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const normalizarEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizarTexto = (valor) => String(valor || "").trim().replace(/\s+/g, " ");
@@ -27,7 +27,9 @@ const criarUsuario = async (req, res) => {
         const email = normalizarEmail(req.body.email);
         const password = req.body.password;
         const role = req.body.role || "professor";
-        const institutionId = req.body.institutionId || null;
+        const institutionId = role === "developer"
+            ? null
+            : req.body.institutionId || null;
 
         if (!name || !emailValido(email) || typeof password !== "string" || password.length < 8) {
             return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email válido e senha com pelo menos 8 caracteres." });
@@ -135,13 +137,16 @@ const atualizarUsuario = async (req, res) => {
 
         const nomeNormalizado = String(name || "").trim();
         const emailNormalizado = normalizarEmail(email);
+        const institutionIdEfetivo = role === "developer"
+            ? null
+            : institutionId || null;
         if (!nomeNormalizado || !emailValido(emailNormalizado) || !papeisValidos.has(role)) {
             return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email e papel válidos." });
         }
         if (String(req.params.id) === String(req.usuarioId) && role !== "admin") {
             return res.status(409).json({ sucesso: false, mensagem: "Você não pode remover o próprio papel administrativo." });
         }
-        if (institutionId && !(await validarInstituicao(institutionId))) {
+        if (institutionIdEfetivo && !(await validarInstituicao(institutionIdEfetivo))) {
             return res.status(400).json({ sucesso: false, mensagem: "Instituição informada não existe." });
         }
         const emailEmUso = await User.exists({ email: emailNormalizado, _id: { $ne: usuario._id } });
@@ -152,8 +157,10 @@ const atualizarUsuario = async (req, res) => {
         usuario.name = nomeNormalizado;
         usuario.email = emailNormalizado;
         usuario.role = role;
-        usuario.institutionId = institutionId || null;
-        if (institutionId) usuario.institutionRequest = undefined;
+        usuario.institutionId = institutionIdEfetivo;
+        if (institutionIdEfetivo || role === "developer") {
+            usuario.institutionRequest = undefined;
+        }
         await usuario.save();
 
         console.log(`[LUDUS] Usuário atualizado: ${usuario.email}`);

@@ -1,0 +1,85 @@
+.conta-usuario-topo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+    padding: 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.conta-usuario-link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.2rem;
+    border-radius: 7px;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.conta-usuario-link.ativo {
+    background: rgba(78, 203, 160, 0.14);
+}
+
+.conta-usuario-avatar {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--cor-primaria);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+
+.conta-usuario-dados {
+    display: grid;
+    min-width: 0;
+    line-height: 1.1;
+}
+
+.conta-usuario-dados strong {
+    max-width: 92px;
+    overflow: hidden;
+    color: #ffffff;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conta-usuario-dados small {
+    margin-top: 0.14rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.6rem;
+}
+
+.conta-usuario-sair {
+    min-height: 30px;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.66rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.conta-usuario-sair:hover {
+    border-color: var(--cor-erro);
+    color: #ffaaaa;
+    background: rgba(252, 129, 129, 0.1);
+}
+
+@media (max-width: 760px) {
+    .conta-usuario-topo {
+        margin-top: 0;
+        flex: 0 0 auto;
+    }
+}

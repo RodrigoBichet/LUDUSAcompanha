@@ -4,6 +4,7 @@ const { gerarTokenOpaco, resumirToken, expiraEmMinutos } = require("../services/
 const { enviarEmail } = require("../services/emailService");
 
 const URL_FRONTEND = () => process.env.FRONTEND_URL || "http://localhost:5173";
+const VERSAO_AVISO_PRIVACIDADE = "2026-10-09";
 const normalizarEmail = (email) => String(email || "").trim().toLowerCase();
 const senhaValida = (senha) => typeof senha === "string" && senha.length >= 8;
 const emailValido = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -35,10 +36,23 @@ const registrar = async (req, res) => {
         const name = String(req.body.name || "").trim();
         const email = normalizarEmail(req.body.email);
         const password = req.body.password;
+        const role = req.body.role === "developer" ? "developer" : "professor";
         const institutionName = String(req.body.institutionName || "").trim();
         const institutionCity = String(req.body.institutionCity || "").trim();
-        if (!name || !emailValido(email) || !senhaValida(password) || !institutionName) {
-            return res.status(400).json({ sucesso: false, mensagem: "Informe nome, email válido, instituição e senha com pelo menos 8 caracteres." });
+        const instituicaoObrigatoria = role === "professor";
+        if (req.body.privacyAccepted !== true) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Leia e aceite o aviso de privacidade antes de criar a conta.",
+            });
+        }
+        if (!name || !emailValido(email) || !senhaValida(password) || (instituicaoObrigatoria && !institutionName)) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: instituicaoObrigatoria
+                    ? "Informe nome, email válido, instituição e senha com pelo menos 8 caracteres."
+                    : "Informe nome, email válido e senha com pelo menos 8 caracteres.",
+            });
         }
         if (name.length > 160 || institutionName.length > 160 || institutionCity.length > 120) {
             return res.status(400).json({ sucesso: false, mensagem: "Um dos campos informados ultrapassa o tamanho permitido." });
@@ -47,12 +61,18 @@ const registrar = async (req, res) => {
 
         const token = gerarTokenOpaco();
         const usuario = await User.create({
-            name, email, password, role: "professor",
-            institutionRequest: {
-                name: institutionName,
-                city: institutionCity || undefined,
-                requestedAt: new Date(),
+            name, email, password, role,
+            privacyAcceptance: {
+                noticeVersion: VERSAO_AVISO_PRIVACIDADE,
+                acceptedAt: new Date(),
             },
+            ...(role === "professor" && {
+                institutionRequest: {
+                    name: institutionName,
+                    city: institutionCity || undefined,
+                    requestedAt: new Date(),
+                },
+            }),
             emailVerificationTokenHash: resumirToken(token),
             emailVerificationExpiresAt: expiraEmMinutos(30),
         });

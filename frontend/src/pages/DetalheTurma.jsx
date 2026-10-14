@@ -45,15 +45,12 @@ export default function DetalheTurma() {
     const [erroForm, setErroForm] = useState("");
     const [agora] = useState(() => Date.now());
     const remocao = useConfirmacaoRemocao();
+    const podeEditarEstrutura = turma?.access?.manageStructure !== false;
 
     // Campos do formulário
     const [form, setForm] = useState({
         name: "",
         birthDate: "",
-        supportLevel: "Não informado",
-        otherConditions: "",
-        guardianName: "",
-        guardianContact: "",
     });
 
     const montarUrlAluno = (alunoId) => {
@@ -123,10 +120,6 @@ export default function DetalheTurma() {
         setForm({
             name: "",
             birthDate: "",
-            supportLevel: "Não informado",
-            otherConditions: "",
-            guardianName: "",
-            guardianContact: "",
         });
     };
 
@@ -211,7 +204,7 @@ export default function DetalheTurma() {
                                 <h2>Alunos</h2>
                                 <span className="badge">{alunos.length}</span>
                             </div>
-                            {!mostrarForm && (
+                            {!mostrarForm && podeEditarEstrutura && (
                                 <button
                                     className="btn-primario"
                                     onClick={() => setMostrarForm(true)}
@@ -222,7 +215,7 @@ export default function DetalheTurma() {
                         </div>
 
                         {/* Formulário de novo aluno */}
-                        {mostrarForm && (
+                        {mostrarForm && podeEditarEstrutura && (
                             <div className="card form-card">
                                 <h3>Cadastrar Aluno</h3>
                                 <form
@@ -250,7 +243,7 @@ export default function DetalheTurma() {
 
                                     <div className="campo-grupo">
                                         <label className="campo-label">
-                                            Data de nascimento
+                                            Data de nascimento (opcional)
                                         </label>
                                         <input
                                             type="date"
@@ -264,90 +257,9 @@ export default function DetalheTurma() {
                                             }
                                             disabled={salvando}
                                         />
-                                    </div>
-
-                                    <div className="campo-grupo">
-                                        <label className="campo-label">
-                                            Nível de suporte relacionado ao TEA
-                                        </label>
-                                        <select
-                                            className="campo-input"
-                                            value={form.supportLevel}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    supportLevel:
-                                                        e.target.value,
-                                                })
-                                            }
-                                            disabled={salvando}
-                                        >
-                                            <option>Não informado</option>
-                                            <option>Nível 1</option>
-                                            <option>Nível 2</option>
-                                            <option>Nível 3</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="campo-grupo">
-                                        <label className="campo-label">
-                                            Outras condições ou informações
-                                            relevantes (opcional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="campo-input"
-                                            placeholder="Ex.: TDAH, síndrome de Down ou informação compartilhada pela família/escola"
-                                            value={form.otherConditions}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    otherConditions:
-                                                        e.target.value,
-                                                })
-                                            }
-                                            disabled={salvando}
-                                        />
-                                    </div>
-
-                                    <div className="campo-grupo">
-                                        <label className="campo-label">
-                                            Nome do responsável
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="campo-input"
-                                            placeholder="Nome do pai/mãe"
-                                            value={form.guardianName}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    guardianName:
-                                                        e.target.value,
-                                                })
-                                            }
-                                            disabled={salvando}
-                                        />
-                                    </div>
-
-                                    <div className="campo-grupo">
-                                        <label className="campo-label">
-                                            Contato do responsável
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="campo-input"
-                                            placeholder="Telefone ou email"
-                                            value={form.guardianContact}
-                                            onChange={(e) =>
-                                                setForm({
-                                                    ...form,
-                                                    guardianContact:
-                                                        e.target.value,
-                                                })
-                                            }
-                                            disabled={salvando}
-                                        />
+                                        <small className="texto-leve">
+                                            Informe somente quando esse dado for necessário ao acompanhamento pedagógico.
+                                        </small>
                                     </div>
 
                                     {erroForm && (
@@ -383,9 +295,11 @@ export default function DetalheTurma() {
                             <div className="card estado-vazio">
                                 <Icone nome="usuario" tamanho={34} className="estado-vazio-icone" />
                                 <p>Nenhum aluno cadastrado nesta turma.</p>
-                                <p className="texto-leve">
-                                    Clique em "+ Novo Aluno" para começar.
-                                </p>
+                                {podeEditarEstrutura && (
+                                    <p className="texto-leve">
+                                        Clique em "+ Novo Aluno" para começar.
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <div className="lista-alunos">
@@ -421,22 +335,6 @@ export default function DetalheTurma() {
                                                                 {idade} anos
                                                             </span>
                                                         )}
-                                                        {aluno.supportLevel !==
-                                                            "Não informado" && (
-                                                            <span className="chip-nivel">
-                                                                TEA{" "}
-                                                                {
-                                                                    aluno.supportLevel
-                                                                }
-                                                            </span>
-                                                        )}
-                                                        {aluno.otherConditions && (
-                                                            <span className="chip-condicao">
-                                                                {
-                                                                    aluno.otherConditions
-                                                                }
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -453,13 +351,15 @@ export default function DetalheTurma() {
                                                 >
                                                     Ver perfil →
                                                 </button>
-                                                <button
-                                                    className="btn-deletar"
-                                                    onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
-                                                    disabled={remocao.ocupado}
-                                                >
-                                                    <Icone nome="excluir" />
-                                                </button>
+                                                {podeEditarEstrutura && (
+                                                    <button
+                                                        className="btn-deletar"
+                                                        onClick={(evento) => abrirExclusaoAluno(aluno, evento.currentTarget)}
+                                                        disabled={remocao.ocupado}
+                                                    >
+                                                        <Icone nome="excluir" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );

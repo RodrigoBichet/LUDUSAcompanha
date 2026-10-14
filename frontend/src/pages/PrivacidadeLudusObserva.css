@@ -150,6 +150,7 @@
 
 .privacidade-observa-email {
     justify-self: end;
+    margin: 0;
     padding: 0.9rem 1.1rem;
     border-radius: 10px;
     background: var(--cor-primaria-esc);

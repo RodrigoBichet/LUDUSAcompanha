@@ -37,7 +37,7 @@ const {
 } = require("../services/sessionExporter");
 
 // Pasta onde as capturas visuais das sessões serão salvas.
-// Fica em backend/uploads/screenshots/ — servida como static pelo Express
+// A leitura dos arquivos ocorre somente pela rota autenticada de sessões.
 const PASTA_SCREENSHOTS = path.join(__dirname, "../../uploads/screenshots");
 const MAX_SCREENSHOTS_POR_SESSAO = 20;
 const MAX_BYTES_POR_SCREENSHOT = 2 * 1024 * 1024;
@@ -485,7 +485,10 @@ const registrarJogoEAssociarAluno = async ({
             $setOnInsert: {
                 gameId: dados.gameId,
                 name: nomeJogoDetectado || dados.gameId,
-                sourceType: "external-json",
+                sourceType:
+                    dados.captureMode === "sdk"
+                        ? "sdk-ludus"
+                        : "external-json",
                 scopeType: "personal",
                 scopeKey,
                 ownerUserId: usuarioId,
@@ -1111,6 +1114,77 @@ const buscarSessao = async (req, res) => {
     }
 };
 
+// -------------------------------------------------------------------------
+// buscarScreenshotSessao — GET /api/sessions/:sessionId/screenshots/:index
+// Entrega uma captura somente após validar o usuário e seu acesso ao aluno.
+// -------------------------------------------------------------------------
+
+const buscarScreenshotSessao = async (req, res) => {
+    try {
+        const index = Number(req.params.index);
+        if (!Number.isInteger(index) || index < 0) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: "Índice de captura inválido.",
+            });
+        }
+
+        const sessao = await Session.findOne({
+            sessionId: req.params.sessionId,
+        }).select("studentId screenshots");
+
+        if (!sessao) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Captura não encontrada.",
+            });
+        }
+
+        const aluno = await buscarAlunoComAcesso(
+            req.usuarioId,
+            sessao.studentId,
+        );
+        if (!aluno) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Captura não encontrada.",
+            });
+        }
+
+        const caminhoPublico = sessao.screenshots?.[index]?.caminho;
+        if (
+            typeof caminhoPublico !== "string" ||
+            !PADRAO_CAMINHO_SCREENSHOT.test(caminhoPublico)
+        ) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Captura não encontrada.",
+            });
+        }
+
+        const caminhoArquivo = path.join(
+            PASTA_SCREENSHOTS,
+            path.basename(caminhoPublico),
+        );
+        if (!fs.existsSync(caminhoArquivo)) {
+            return res.status(404).json({
+                sucesso: false,
+                mensagem: "Arquivo da captura não está disponível.",
+            });
+        }
+
+        res.set("Cache-Control", "private, no-store");
+        res.type("image/jpeg");
+        return res.sendFile(caminhoArquivo);
+    } catch (erro) {
+        console.error("[LUDUS] Erro ao buscar captura:", erro.message);
+        return res.status(500).json({
+            sucesso: false,
+            mensagem: "Erro interno ao buscar captura.",
+        });
+    }
+};
+
 const criarNomeArquivoSeguro = (valor, fallback) => {
     const nome = String(valor || "")
         .normalize("NFKD")
@@ -1346,6 +1420,9 @@ const sessoesPorAluno = async (req, res) => {
 };
 
 module.exports = {
+    validarENormalizarSessao,
+    salvarOuAtualizarCheckpoint,
+    concluirCheckpoint,
     prepararDadosImportacao,
     buscarSessaoDuplicadaImportada,
     registrarJogoEAssociarAluno,
@@ -1358,6 +1435,7 @@ module.exports = {
     confirmarImportacaoLote,
     listarSessoes,
     buscarSessao,
+    buscarScreenshotSessao,
     exportarSessao,
     exportarExecucao,
     removerSessaoImportada,

@@ -190,6 +190,13 @@ const criarJogo = async (req, res) => {
             });
         }
 
+        if (usuario.role === "developer" && scopeType !== "personal") {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "Desenvolvedores podem cadastrar somente jogos pessoais.",
+            });
+        }
+
         let institutionId = null;
         if (scopeType === "institutional") {
             if (usuario.role === "professor") {

@@ -35,7 +35,8 @@
     font-weight: 600;
     cursor: pointer;
 }
-.confirmacao-historico-acoes .confirmacao-historico-confirmar { background: #493be3; border-color: #493be3; color: #fff; }
+.confirmacao-historico-acoes .confirmacao-historico-confirmar { background: #188a70; border-color: #188a70; color: #fff; }
+.confirmacao-historico-acoes .confirmacao-historico-confirmar:hover:not(:disabled) { background: #126f5b; border-color: #126f5b; }
 .confirmacao-historico-acoes button:focus-visible { outline: 3px solid #267f8a; outline-offset: 3px; }
 .confirmacao-historico-acoes button:disabled { opacity: 0.65; cursor: wait; }
 @media (max-width: 480px) {

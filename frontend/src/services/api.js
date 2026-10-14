@@ -41,6 +41,11 @@ export const heatmapSessao = (sessionId) =>
 // Sessions
 // -------------------------------------------------------------------------
 export const buscarSessao = (sessionId) => api.get(`/sessions/${sessionId}`);
+export const buscarCapturaSessao = (sessionId, index) =>
+    api.get(
+        `/sessions/${encodeURIComponent(sessionId)}/screenshots/${encodeURIComponent(index)}`,
+        { responseType: "blob" },
+    );
 export const baixarJsonSessao = (sessionId) =>
     api.get(`/sessions/export/${encodeURIComponent(sessionId)}`, {
         responseType: "blob",
@@ -170,6 +175,26 @@ export const criarInstituicaoEVincularProfessor = (id) =>
 export const atualizarPerfil = (dados) => api.put("/auth/perfil", dados);
 export const atualizarSolicitacaoInstituicao = (dados) =>
     api.put("/auth/institution-request", dados);
+
+// -------------------------------------------------------------------------
+// Laboratório do desenvolvedor
+// -------------------------------------------------------------------------
+export const obterLaboratorioDesenvolvedor = () => api.get("/developer/lab");
+export const prepararLaboratorioDesenvolvedor = () =>
+    api.post("/developer/lab/setup");
+
+// -------------------------------------------------------------------------
+// Colaborações institucionais
+// -------------------------------------------------------------------------
+export const listarAcessosInstitucionais = () => api.get("/institution-access");
+export const convidarColaborador = (dados) =>
+    api.post("/institution-access/invitations", dados);
+export const aceitarOuRecusarConviteInstitucional = (id, response) =>
+    api.patch(`/institution-access/${id}/respond`, { response });
+export const atualizarPermissoesInstitucionais = (id, permissions) =>
+    api.patch(`/institution-access/${id}/permissions`, { permissions });
+export const revogarAcessoInstitucional = (id) =>
+    api.patch(`/institution-access/${id}/revoke`);
 
 // -------------------------------------------------------------------------
 // Jogos

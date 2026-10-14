@@ -1,4 +1,10 @@
 const caminhos = {
+    inicio: (
+        <>
+            <path d="m3 11 9-8 9 8" />
+            <path d="M5 10v11h14V10M9 21v-7h6v7" />
+        </>
+    ),
     jogos: (
         <>
             <path d="M4 19V10" />
@@ -79,6 +85,12 @@ const caminhos = {
             <path d="M4 19h16" />
         </>
     ),
+    copiar: (
+        <>
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
+        </>
+    ),
     imagem: (
         <>
             <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -90,6 +102,31 @@ const caminhos = {
         <>
             <path d="M8 8h8a5 5 0 0 1 4.8 6.4l-1 3.2a2 2 0 0 1-3.3.8L14 16h-4l-2.5 2.4a2 2 0 0 1-3.3-.8l-1-3.2A5 5 0 0 1 8 8Z" />
             <path d="M8 11v4M6 13h4M16 12h.01M18 14h.01" />
+        </>
+    ),
+    unity: (
+        <>
+            <path d="m12 2 9 5v10l-9 5-9-5V7Z" />
+            <path d="m3 7 9 5 9-5M12 12v10" />
+        </>
+    ),
+    extensao: (
+        <>
+            <path d="M8 3h5v4a2 2 0 1 0 4 0V3h4v6h-3a2 2 0 1 0 0 4h3v8h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3Z" />
+        </>
+    ),
+    api: (
+        <>
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="19" cy="6" r="2" />
+            <circle cx="19" cy="18" r="2" />
+            <path d="m7 11 10-4M7 13l10 4" />
+        </>
+    ),
+    dashboard: (
+        <>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 8h18M8 8v13M11 12h7M11 16h4" />
         </>
     ),
     alvo: (

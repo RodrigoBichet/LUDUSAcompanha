@@ -19,9 +19,19 @@ lote multi-jogo do capturador, vincular os jogos ao participante e conferir as
 sessoes no mapa esta em
 [Guia de importacao end to end](docs/GUIA_IMPORTACAO_END_TO_END.md).
 
-A política pública de privacidade do capturador observacional está disponível
-em `https://ludus-acompanha.netlify.app/privacidade/ludus-observa` e também pode
-ser conferida localmente em `/privacidade/ludus-observa`, sem autenticação.
+Para preparar a validação da integração por terceiros, consulte o
+[`plano de avaliação com desenvolvedores`](docs/PLANO_AVALIACAO_DESENVOLVEDORES_RENOTE.md).
+Ele é um rascunho metodológico para alinhamento com os orientadores, não um
+formulário final nem evidência de avaliação já realizada.
+
+A política pública geral do projeto cobre cadastro, dashboard, SDK LUDUS e
+LUDUS Observa. Ela pode ser conferida localmente em `/privacidade`, sem
+autenticação. A política específica do capturador observacional continua
+disponível em `/privacidade/ludus-observa`.
+
+Novos cadastros exigem a leitura e o aceite explícito do aviso resumido. O
+backend registra a versão e a data desse aceite, preservando a compatibilidade
+com contas anteriores.
 
 ## Captura Web observacional
 
@@ -149,7 +159,10 @@ npm install
 npm run dev
 ```
 
-Acesse em `http://localhost:5173` — sera redirecionado para a tela de login.
+Acesse em `http://localhost:5173` para abrir a página pública do LUDUS
+Acompanha. Com uma sessão autenticada, a visão operacional permanece em `/` e
+a apresentação pública continua disponível em `/inicio`, integrada à mesma
+barra lateral do dashboard.
 
 Para validar manualmente a importação de lote sem ler o `.env` e sem acessar o
 Atlas, use `npm run dev:lote:temp` dentro de `backend` e siga o
@@ -169,7 +182,15 @@ O ambiente inicial de demonstracao esta publicado desde **20/07/2026**:
 | API | `https://ludus-acompanha-api.onrender.com` |
 | Health check | `https://ludus-acompanha-api.onrender.com/` |
 
-O dashboard publicado usa `VITE_API_URL` e `VITE_BACKEND_ORIGIN` para acessar a API e as screenshots. Para configuracao detalhada de deploy, variaveis de ambiente e limitacoes conhecidas, consulte [`docs/SETUP.md`](docs/SETUP.md).
+O dashboard publicado usa `VITE_API_URL` para acessar a API. As capturas visuais
+sao obtidas por uma rota autenticada da propria API, sem URL publica de arquivo.
+Para configuracao detalhada de deploy, variaveis de ambiente e limitacoes
+conhecidas, consulte [`docs/SETUP.md`](docs/SETUP.md).
+
+Antes de publicar uma nova versão ou iniciar uma aplicação acompanhada, use o
+[`checklist da candidata a lançamento`](docs/CHECKLIST_RELEASE_CANDIDATA.md).
+Ele reúne os testes entre SDK, API e dashboard, o ensaio com 30 computadores,
+privacidade, rollback e as evidências que devem ser preservadas para avaliação.
 
 Ao iniciar pelo comando `npm start`, o backend valida a configuração antes de
 abrir a conexão. Em produção, são recusados MongoDB ausente, segredo JWT fraco,
@@ -196,9 +217,12 @@ conscientemente em `CORS_ORIGINS`, sem liberar a Web inteira.
 
 ```bash
 cd backend
-# Edite src/scripts/criarAdmin.js com seu email e senha
-node src/scripts/criarAdmin.js
+node src/scripts/criarAdmin.js --name="Nome do administrador" --email=admin@exemplo.com
 ```
+
+O script gera uma senha temporária forte, exibe-a uma única vez no terminal e
+não mantém credenciais pessoais no código. Entre no dashboard e troque essa
+senha imediatamente na página de perfil.
 
 ### Redefinir a senha de um administrador existente
 
@@ -312,6 +336,8 @@ local controlado; nunca em producao.
 | POST   | `/api/collections`                 | Cria coleta e exibe seu código temporário uma vez |
 | POST   | `/api/collections/pair`            | Valida nome e código e emite credencial observacional limitada |
 | POST   | `/api/collections/submissions`     | Recebe sessões pareadas em uma caixa pendente, com recibos idempotentes |
+| POST   | `/api/collections/sdk-sessions`    | Recebe a sessão concluída do SDK com credencial temporária da coleta |
+| PUT    | `/api/collections/sdk-sessions/checkpoint` | Protege o progresso parcial do SDK dentro da coleta pareada |
 | GET    | `/api/collections/:collectionId/submissions` | Lista resumos pendentes da coleta para revisão da professora |
 | GET    | `/api/collections`                  | Lista coletas criadas pela conta autenticada |
 | PATCH  | `/api/collections/:collectionId/replace-code` | Substitui o código de uma coleta ativa sem expor ou persistir o valor anterior |
@@ -328,8 +354,10 @@ local controlado; nunca em producao.
 
 | Tela                   | Rota                  | Descricao                                                                 |
 | ---------------------- | --------------------- | ------------------------------------------------------------------------- |
+| Página inicial pública | `/inicio`             | Apresentação do projeto, ferramentas, jornadas, limites e documentação |
 | Login                  | `/login`              | Autenticacao JWT                                                          |
-| Jogos                  | `/`                   | Catálogo de jogos e acesso direto aos alunos associados                    |
+| Jogos (autenticado)    | `/`                   | Catálogo de jogos e acesso direto aos alunos associados                    |
+| Documentação do SDK   | `/documentacao`       | Guias públicos da integração Unity para professor e desenvolvedor; o guia do LUDUS Observa será publicado futuramente |
 | Alunos                 | `/alunos`             | Visão geral dos alunos e dos jogos com sessões registradas                 |
 | Coletas                | `/coletas`            | Criação, validade, listagem e revogação de coletas escolares observacionais |
 | Detalhes Sessao        | `/sessao/:sessionId`  | Mapa de interacoes e sequencia da sessao por fase                         |
@@ -434,6 +462,14 @@ recibo idempotente. Esse recebimento não cria automaticamente um aluno nem uma
 sessão definitiva: a revisão e confirmação docente permanecem como etapa
 separada do fluxo.
 
+Jogos Unity com o LUDUS SDK usam o mesmo pareamento de nome+código, mas enviam
+sessões canônicas pelas rotas `/api/collections/sdk-sessions`. Se o nome
+corresponde a um único aluno da turma, o backend substitui a identidade
+temporária pelo `studentId` canônico e registra a sessão diretamente. Se o nome
+estiver pendente ou for homônimo, checkpoints e sessão concluída ficam em uma
+caixa separada do SDK até a professora revisar o participante. Os recibos da
+extensão permanecem imutáveis e não são reutilizados como checkpoint.
+
 Na tela **Coletas**, a professora pode abrir **Ver recebimentos** para consultar
 os participantes e as sessões pendentes agrupadas por nome. A resposta apresenta
 somente jogo, horário, duração e totais técnicos de interação; coordenadas,
@@ -497,7 +533,7 @@ O professor pode ativar, no perfil do aluno, a opcao **Salvar imagem da proxima 
 
 A solicitacao pode ser feita pelo dashboard ou pelo interruptor do jogo Unity. Para evitar conflitos, o backend registra tambem a origem da solicitacao em `capturaSolicitadaOrigem` (`dashboard` ou `unity`). Se uma origem ja ativou a captura, a outra interface exibe aviso e bloqueia a alteracao ate a sessao ser registrada ou a propria origem cancelar.
 
-Apos o backend receber uma sessao com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime sao salvas em `backend/uploads/screenshots/` e nao devem ser versionadas no Git.
+Apos o backend receber uma sessao com imagens, `capturaSolicitada` volta para `false` e `capturaSolicitadaOrigem` volta para `null`. As imagens geradas em runtime sao salvas em `backend/uploads/screenshots/`, nao devem ser versionadas no Git e so sao entregues pela API depois da autenticacao e da verificacao de acesso ao aluno.
 
 Na tela de detalhes da sessao, o mapa de interacoes possui aba **Geral** e abas por fase. Quando ha imagens capturadas, cada fase exibe o caminho do mouse, arrastes e cliques sobre o print correspondente. Quando nao ha imagens, o sistema mantem o mapa geral de interacoes em uma area neutra.
 

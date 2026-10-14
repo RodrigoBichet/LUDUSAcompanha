@@ -193,10 +193,6 @@ export default function PerfilAluno() {
             setFormAluno({
                 name: aluno.name,
                 birthDate: aluno.birthDate?.split("T")[0] || "",
-                supportLevel: aluno.supportLevel || "Não informado",
-                otherConditions: aluno.otherConditions || "",
-                guardianName: aluno.guardianName || "",
-                guardianContact: aluno.guardianContact || "",
                 institutionId:
                     aluno.groupId?.institutionId?._id ||
                     aluno.groupId?.institutionId ||
@@ -1243,7 +1239,7 @@ export default function PerfilAluno() {
             />
 
             <div className="pagina-conteudo">
-                <button className="btn-voltar" onClick={() => navegar(-1)}>
+                <button className="btn-voltar btn-voltar-compacto" onClick={() => navegar(-1)}>
                     ← Voltar
                 </button>
 
@@ -1380,44 +1376,6 @@ export default function PerfilAluno() {
                                                     "Não informada"}
                                             </span>
                                         </div>
-                                        <div className="info-item">
-                                            <span className="texto-leve">
-                                                Nível de suporte relacionado ao
-                                                TEA
-                                            </span>
-                                            <span>{aluno.supportLevel}</span>
-                                        </div>
-                                        {aluno.otherConditions && (
-                                            <div className="info-item">
-                                                <span className="texto-leve">
-                                                    Outras condições ou
-                                                    informações relevantes
-                                                </span>
-                                                <span>
-                                                    {aluno.otherConditions}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {aluno.guardianName && (
-                                            <div className="info-item">
-                                                <span className="texto-leve">
-                                                    Responsável
-                                                </span>
-                                                <span>
-                                                    {aluno.guardianName}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {aluno.guardianContact && (
-                                            <div className="info-item">
-                                                <span className="texto-leve">
-                                                    Contato
-                                                </span>
-                                                <span>
-                                                    {aluno.guardianContact}
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
 
@@ -1597,85 +1555,6 @@ export default function PerfilAluno() {
                                                 </select>
                                             </div>
                                         </fieldset>
-                                        <div className="campo-grupo">
-                                            <label className="campo-label">
-                                                Nível de suporte relacionado ao
-                                                TEA
-                                            </label>
-                                            <select
-                                                className="campo-input"
-                                                value={formAluno.supportLevel}
-                                                onChange={(e) =>
-                                                    setFormAluno({
-                                                        ...formAluno,
-                                                        supportLevel:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            >
-                                                <option>Não informado</option>
-                                                <option>Nível 1</option>
-                                                <option>Nível 2</option>
-                                                <option>Nível 3</option>
-                                            </select>
-                                        </div>
-                                        <div className="campo-grupo">
-                                            <label className="campo-label">
-                                                Outras condições ou informações
-                                                relevantes (opcional)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="campo-input"
-                                                placeholder="Ex.: TDAH, síndrome de Down ou informação compartilhada pela família/escola"
-                                                value={
-                                                    formAluno.otherConditions
-                                                }
-                                                onChange={(e) =>
-                                                    setFormAluno({
-                                                        ...formAluno,
-                                                        otherConditions:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                        <div className="campo-grupo">
-                                            <label className="campo-label">
-                                                Responsável
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="campo-input"
-                                                value={formAluno.guardianName}
-                                                onChange={(e) =>
-                                                    setFormAluno({
-                                                        ...formAluno,
-                                                        guardianName:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                        <div className="campo-grupo">
-                                            <label className="campo-label">
-                                                Contato
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="campo-input"
-                                                value={
-                                                    formAluno.guardianContact
-                                                }
-                                                onChange={(e) =>
-                                                    setFormAluno({
-                                                        ...formAluno,
-                                                        guardianContact:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
                                         <button
                                             type="submit"
                                             className="btn-primario"
@@ -2057,7 +1936,13 @@ export default function PerfilAluno() {
                             {/* Atividades registradas */}
                             {sessoes.length > 0 && (
                                 <div className="card secao-card">
-                                    <h3>Atividades registradas</h3>
+                                    <div className="atividades-registradas-titulo">
+                                        <div>
+                                            <h3>Atividades registradas</h3>
+                                            <span>Abra uma atividade para acessar a análise completa</span>
+                                        </div>
+                                        <Icone nome="dashboard" />
+                                    </div>
                                     <p className="texto-leve descricao-sessoes-registradas">
                                         {gameIdSelecionado
                                             ? "Atividades salvas para este aluno neste jogo."
@@ -2164,8 +2049,8 @@ export default function PerfilAluno() {
                                                                 )}
                                                             </span>
                                                         </div>
-                                                        <span className="jogador-seta">
-                                                            →
+                                                        <span className="sessao-abrir-analise">
+                                                            Ver análise <span aria-hidden="true">→</span>
                                                         </span>
                                                     </button>
                                                     <div className="acoes-sessao">

@@ -32,7 +32,6 @@ No segundo CMD, force o frontend a usar somente a API local:
 ```cmd
 cd C:\UNITY\ProjetosGithub\LUDUSAcompanha\frontend
 set VITE_API_URL=http://localhost:3000/api
-set VITE_BACKEND_ORIGIN=http://localhost:3000
 npm run dev
 ```
 

@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Icone from "../components/shared/Icone";
+import { useAuth } from "../contexts/AuthContext";
 import { listarJogos, listarVisaoGeralAlunos } from "../services/api";
 import { criarMapaNomesJogos, obterNomeJogo } from "../utils/jogos";
 import "./Alunos.css";
 
 export default function Alunos() {
+    const { usuario } = useAuth();
+    const desenvolvedor = usuario?.role === "developer";
     const navegar = useNavigate();
+    const [searchParams] = useSearchParams();
+    const institutionIdSelecionada = searchParams.get("institutionId");
     const [alunos, setAlunos] = useState([]);
     const [nomesJogos, setNomesJogos] = useState(new Map());
     const [busca, setBusca] = useState("");
@@ -41,10 +46,17 @@ export default function Alunos() {
     }, []);
 
     const alunosFiltrados = useMemo(() => {
+        const alunosDoContexto = institutionIdSelecionada
+            ? alunos.filter(
+                (aluno) =>
+                    String(aluno.groupId?.institutionId || "") ===
+                    institutionIdSelecionada,
+            )
+            : alunos;
         const termo = busca.trim().toLocaleLowerCase("pt-BR");
-        if (!termo) return alunos;
+        if (!termo) return alunosDoContexto;
 
-        return alunos.filter((aluno) => {
+        return alunosDoContexto.filter((aluno) => {
             const nomes = (aluno.jogos || []).map((jogo) =>
                 obterNomeJogo(jogo.gameId, nomesJogos),
             );
@@ -54,7 +66,7 @@ export default function Alunos() {
                     .includes(termo),
             );
         });
-    }, [alunos, busca, nomesJogos]);
+    }, [alunos, busca, institutionIdSelecionada, nomesJogos]);
 
     const abrirAluno = (aluno, gameId = null) => {
         const parametros = new URLSearchParams();
@@ -66,17 +78,34 @@ export default function Alunos() {
     return (
         <div>
             <Header
-                titulo="Alunos"
-                subtitulo="Consulte cada aluno e as atividades registradas nos jogos"
+                titulo={
+                    desenvolvedor && institutionIdSelecionada
+                        ? "Resultados compartilhados"
+                        : desenvolvedor
+                            ? "Alunos acompanhados"
+                            : "Alunos"
+                }
+                subtitulo={
+                    desenvolvedor
+                        ? "Consulte somente os resultados autorizados em cada ambiente"
+                        : "Consulte cada aluno e as atividades registradas nos jogos"
+                }
             />
 
             <div className="pagina-conteudo">
                 <div className="card alunos-visao-intro">
                     <div>
-                        <h2>Visão por aluno</h2>
+                        <h2>
+                            {desenvolvedor
+                                ? institutionIdSelecionada
+                                    ? "Perfis autorizados"
+                                    : "Perfis disponíveis"
+                                : "Visão por aluno"}
+                        </h2>
                         <p className="texto-leve">
-                            Selecione um aluno para reunir seu acompanhamento ou
-                            abra diretamente um dos jogos registrados.
+                            {desenvolvedor
+                                ? "Selecione um aluno para conferir somente as sessões, capturas e eventos liberados pelo responsável."
+                                : "Selecione um aluno para reunir seu acompanhamento ou abra diretamente um dos jogos registrados."}
                         </p>
                     </div>
                     <label className="alunos-busca">

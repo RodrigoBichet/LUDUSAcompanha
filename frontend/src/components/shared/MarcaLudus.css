@@ -1,0 +1,40 @@
+.marca-ludus {
+    display: inline-flex;
+    flex-direction: column;
+    width: fit-content;
+    gap: 0.08rem;
+    color: var(--cor-texto);
+    line-height: 0.86;
+    text-transform: uppercase;
+}
+
+.marca-ludus-principal {
+    font-family: var(--fonte-titulo);
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+}
+
+.marca-ludus-complemento {
+    color: var(--cor-primaria-esc);
+    font-family: var(--fonte-titulo);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.19em;
+}
+
+.marca-ludus-clara {
+    color: #ffffff;
+}
+
+.marca-ludus-clara .marca-ludus-complemento {
+    color: var(--cor-primaria-clara, #4ecba0);
+}
+
+.marca-ludus-compacta .marca-ludus-principal {
+    font-size: 1.55rem;
+}
+
+.marca-ludus-compacta .marca-ludus-complemento {
+    font-size: 0.58rem;
+}

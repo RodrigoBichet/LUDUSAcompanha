@@ -13,9 +13,10 @@ const Session = require("../models/Session");
 const Group = require("../models/Group");
 const {
     obterContextoEscolar,
-    podeAcessarInstituicao,
+    podeGerenciarEstruturaInstituicao,
     montarFiltroAcessoAlunos,
     buscarAlunoComAcesso,
+    podeGerenciarAluno,
 } = require("../services/schoolAccess");
 
 const GAME_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,99}$/;
@@ -117,7 +118,7 @@ const listarVisaoGeralAlunos = async (req, res) => {
 
         const alunos = await Student.find(filtroAcesso)
             .select("name groupId enrollmentMode")
-            .populate("groupId", "name")
+            .populate("groupId", "name institutionId")
             .sort({ name: 1 });
         const idsAlunos = alunos.map((aluno) => aluno._id);
 
@@ -355,7 +356,11 @@ const criarAluno = async (req, res) => {
 
         const contexto = await obterContextoEscolar(req.usuarioId);
         const turma = await Group.findById(groupId).select("institutionId");
-        if (!contexto || !turma || !podeAcessarInstituicao(contexto, turma.institutionId)) {
+        if (
+            !contexto ||
+            !turma ||
+            !podeGerenciarEstruturaInstituicao(contexto, turma.institutionId)
+        ) {
             return res.status(403).json({
                 sucesso: false,
                 mensagem: "Sem permissão para cadastrar aluno nesta turma.",
@@ -491,6 +496,12 @@ const atualizarAluno = async (req, res) => {
                 mensagem: "Aluno não encontrado",
             });
         }
+        if (!(await podeGerenciarAluno(req.usuarioId, alunoAtual))) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado permite consultar resultados, mas não alterar alunos.",
+            });
+        }
 
         let turmaSelecionada = null;
         if (atualizaVinculoEscolar && groupId) {
@@ -501,7 +512,7 @@ const atualizarAluno = async (req, res) => {
             if (
                 !contexto ||
                 !turmaSelecionada ||
-                !podeAcessarInstituicao(
+                !podeGerenciarEstruturaInstituicao(
                     contexto,
                     turmaSelecionada.institutionId,
                 )
@@ -573,6 +584,13 @@ const deletarAluno = async (req, res) => {
             });
         }
 
+        if (!(await podeGerenciarAluno(req.usuarioId, aluno))) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado não permite remover alunos.",
+            });
+        }
+
         if (aluno.deletionProtected) {
             return res.status(403).json({
                 sucesso: false,
@@ -631,6 +649,13 @@ const adicionarAnotacao = async (req, res) => {
             });
         }
 
+        if (!(await podeGerenciarAluno(req.usuarioId, aluno))) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado não permite adicionar anotações.",
+            });
+        }
+
         aluno.anotacoes.push({
             texto: texto.trim(),
             autorId: req.usuarioId,
@@ -667,6 +692,13 @@ const deletarAnotacao = async (req, res) => {
             return res.status(404).json({
                 sucesso: false,
                 mensagem: "Aluno não encontrado",
+            });
+        }
+
+        if (!(await podeGerenciarAluno(req.usuarioId, aluno))) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado não permite remover anotações.",
             });
         }
 
@@ -712,6 +744,13 @@ const solicitarCaptura = async (req, res) => {
             return res.status(404).json({
                 sucesso: false,
                 mensagem: "Aluno não encontrado",
+            });
+        }
+
+        if (!(await podeGerenciarAluno(req.usuarioId, aluno))) {
+            return res.status(403).json({
+                sucesso: false,
+                mensagem: "O acesso compartilhado não permite alterar a solicitação de capturas.",
             });
         }
 

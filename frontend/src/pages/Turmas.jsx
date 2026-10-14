@@ -24,6 +24,7 @@ import "./Turmas.css";
 
 export default function Turmas() {
     const { usuario } = useAuth();
+    const desenvolvedor = usuario?.role === "developer";
     const navegar = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -61,6 +62,18 @@ export default function Turmas() {
     const instituicaoSelecionada = institutionIdSelecionada
         ? instituicoes.find((inst) => inst._id === institutionIdSelecionada)
         : null;
+    const ambienteRealCompartilhado = Boolean(
+        instituicaoSelecionada?.access?.shared ||
+        (desenvolvedor &&
+            instituicaoSelecionada &&
+            instituicaoSelecionada.environmentType !== "sandbox"),
+    );
+    const podeEditarEstrutura = Boolean(
+        instituicaoSelecionada &&
+            (ambienteRealCompartilhado
+                ? instituicaoSelecionada.access?.manageStructure === true
+                : instituicaoSelecionada.access?.manageStructure !== false),
+    );
 
     const montarUrlTurma = (turmaId) => {
         const params = new URLSearchParams();
@@ -101,13 +114,6 @@ export default function Turmas() {
     useEffect(() => {
         if (carregando) return;
 
-        if (!institutionIdSelecionada && instituicoes.length === 1) {
-            const params = new URLSearchParams(searchParams);
-            params.set("institutionId", instituicoes[0]._id);
-            navegar(`/turmas?${params.toString()}`, { replace: true });
-            return;
-        }
-
         if (institutionIdSelecionada && abrirNovaTurma) {
             const params = new URLSearchParams(searchParams);
             params.delete("nova");
@@ -117,7 +123,6 @@ export default function Turmas() {
         abrirNovaTurma,
         carregando,
         institutionIdSelecionada,
-        instituicoes,
         navegar,
         searchParams,
     ]);
@@ -143,6 +148,14 @@ export default function Turmas() {
         setNomeTurma("");
         setInstituicaoId("");
         setErroForm("");
+    };
+
+    const voltarParaInstituicoes = () => {
+        fecharForm();
+        const params = new URLSearchParams();
+        if (gameIdSelecionado) params.set("gameId", gameIdSelecionado);
+        const query = params.toString();
+        navegar(query ? `/turmas?${query}` : "/turmas");
     };
 
     const handleSalvarTurma = async (e) => {
@@ -199,71 +212,82 @@ export default function Turmas() {
     return (
         <div>
             <Header
-                titulo={instituicaoSelecionada?.name || "Instituições"}
+                titulo={
+                    instituicaoSelecionada?.name ||
+                    (desenvolvedor ? "Turmas de teste" : "Instituições")
+                }
                 subtitulo={
                     instituicaoSelecionada
-                        ? "Turmas vinculadas a esta instituição"
-                        : "Organize instituições, turmas e alunos"
+                        ? ambienteRealCompartilhado
+                            ? podeEditarEstrutura
+                                ? "Ambiente real compartilhado com permissão para gerenciar turmas e alunos"
+                                : "Ambiente real compartilhado em modo de consulta"
+                            : desenvolvedor
+                            ? "Turmas e alunos fictícios do laboratório"
+                            : "Turmas vinculadas a esta instituição"
+                        : desenvolvedor
+                            ? "Escolha o laboratório ou uma escola compartilhada"
+                            : "Organize instituições, turmas e alunos"
                 }
             />
 
             <div className="pagina-conteudo">
-                <section className="instituicoes-escolares">
-                    <div className="secao-titulo">
-                        <h2>Instituições</h2>
-                        {!carregando && (
-                            <span className="badge">
-                                {instituicoes.length}
-                            </span>
-                        )}
-                    </div>
+                {!institutionIdSelecionada && (
+                    <section className="instituicoes-escolares">
+                        <div className="secao-titulo">
+                            <h2>
+                                {desenvolvedor ? "Ambientes disponíveis" : "Instituições"}
+                            </h2>
+                            {!carregando && (
+                                <span className="badge">
+                                    {instituicoes.length}
+                                </span>
+                            )}
+                        </div>
 
-                    {!carregando && instituicoes.length === 0 ? (
-                        <div className="card estado-vazio">
-                            <p>
-                                Nenhuma instituição está vinculada à sua conta.
-                                Solicite o vínculo a uma pessoa administradora.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="lista-instituicoes-escolares">
-                            {instituicoes.map((instituicao) => (
-                                <button
-                                    key={instituicao._id}
-                                    type="button"
-                                    className={
-                                        institutionIdSelecionada ===
-                                        instituicao._id
-                                            ? "card instituicao-escolar-card selecionada"
-                                            : "card instituicao-escolar-card"
-                                    }
-                                    onClick={() =>
-                                        navegar(montarUrlInstituicao(instituicao._id))
-                                    }
-                                >
-                                    <span className="instituicao-escolar-icone">
-                                        <Icone nome="instituicao" />
-                                    </span>
-                                    <span>
-                                        <strong>{instituicao.name}</strong>
-                                        <small>
-                                            {instituicao.city ||
-                                                "Cidade não informada"}
-                                        </small>
-                                    </span>
-                                    <span className="aluno-individual-seta">
-                                        →
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                        {!carregando && instituicoes.length === 0 ? (
+                            <div className="card estado-vazio">
+                                <p>
+                                    {desenvolvedor
+                                        ? "Crie o Laboratório de testes antes de organizar as turmas."
+                                        : "Nenhuma instituição está vinculada à sua conta. Solicite o vínculo a uma pessoa administradora."}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="lista-instituicoes-escolares">
+                                {instituicoes.map((instituicao) => (
+                                    <button
+                                        key={instituicao._id}
+                                        type="button"
+                                        className="card instituicao-escolar-card"
+                                        onClick={() =>
+                                            navegar(montarUrlInstituicao(instituicao._id))
+                                        }
+                                    >
+                                        <span className="instituicao-escolar-icone">
+                                            <Icone nome="instituicao" />
+                                        </span>
+                                        <span>
+                                            <strong>{instituicao.name}</strong>
+                                            <small>
+                                                {instituicao.city ||
+                                                    "Cidade não informada"}
+                                            </small>
+                                        </span>
+                                        <span className="aluno-individual-seta">
+                                            →
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {institutionIdSelecionada && (
                     <button
                         className="btn-voltar"
-                        onClick={() => navegar("/turmas")}
+                        onClick={voltarParaInstituicoes}
                     >
                         ← Voltar para instituições
                     </button>
@@ -289,7 +313,7 @@ export default function Turmas() {
                                     </span>
                                 )}
                             </div>
-                            {!mostrarForm && (
+                            {!mostrarForm && podeEditarEstrutura && (
                                 <button
                                     className="btn-primario"
                                     onClick={() => {
@@ -308,7 +332,7 @@ export default function Turmas() {
                         </div>
 
                         {/* Formulário de nova turma */}
-                        {mostrarForm && (
+                        {mostrarForm && podeEditarEstrutura && (
                             <div className="card form-card">
                                 <h3>
                                     {editando ? "Editar Turma" : "Nova Turma"}
@@ -392,9 +416,11 @@ export default function Turmas() {
                                         <Icone nome="instituicao" />
                                     </span>
                                     <p>Nenhuma turma cadastrada ainda.</p>
-                                    <p className="texto-leve">
-                                        Clique em "+ Nova Turma" para começar.
-                                    </p>
+                                    {podeEditarEstrutura && (
+                                        <p className="texto-leve">
+                                            Clique em "+ Nova Turma" para começar.
+                                        </p>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="lista-turmas">
@@ -438,21 +464,23 @@ export default function Turmas() {
                                                 >
                                                     Ver alunos →
                                                 </button>
-                                                <button
-                                                    className="btn-acao editar"
-                                                    onClick={() =>
-                                                        abrirEdicao(turma)
-                                                    }
-                                                >
-                                                    <Icone nome="editar" />
-                                                </button>
-                                                <button
-                                                    className="btn-deletar"
-                                                    onClick={(evento) => abrirRemocaoTurma(turma, evento.currentTarget)}
-                                                    disabled={remocao.ocupado}
-                                                >
-                                                    <Icone nome="excluir" />
-                                                </button>
+                                                {podeEditarEstrutura && (
+                                                    <>
+                                                        <button
+                                                            className="btn-acao editar"
+                                                            onClick={() => abrirEdicao(turma)}
+                                                        >
+                                                            <Icone nome="editar" />
+                                                        </button>
+                                                        <button
+                                                            className="btn-deletar"
+                                                            onClick={(evento) => abrirRemocaoTurma(turma, evento.currentTarget)}
+                                                            disabled={remocao.ocupado}
+                                                        >
+                                                            <Icone nome="excluir" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

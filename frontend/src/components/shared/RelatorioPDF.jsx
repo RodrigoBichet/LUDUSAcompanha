@@ -195,42 +195,6 @@ export default function RelatorioPDF({
                             <span className="pdf-dado-valor">{idade} anos</span>
                         </div>
                     )}
-                    <div className="pdf-dado">
-                        <span className="pdf-dado-label">
-                            Nível de suporte relacionado ao TEA
-                        </span>
-                        <span className="pdf-dado-valor">
-                            {aluno?.supportLevel || "Não informado"}
-                        </span>
-                    </div>
-                    {aluno?.otherConditions && (
-                        <div className="pdf-dado">
-                            <span className="pdf-dado-label">
-                                Outras condições ou informações relevantes
-                            </span>
-                            <span className="pdf-dado-valor">
-                                {aluno.otherConditions}
-                            </span>
-                        </div>
-                    )}
-                    {aluno?.guardianName && (
-                        <div className="pdf-dado">
-                            <span className="pdf-dado-label">Responsável</span>
-                            <span className="pdf-dado-valor">
-                                {aluno.guardianName}
-                            </span>
-                        </div>
-                    )}
-                    {aluno?.guardianContact && (
-                        <div className="pdf-dado">
-                            <span className="pdf-dado-label">
-                                Contato do responsável
-                            </span>
-                            <span className="pdf-dado-valor">
-                                {aluno.guardianContact}
-                            </span>
-                        </div>
-                    )}
                 </div>
             </div>
 
