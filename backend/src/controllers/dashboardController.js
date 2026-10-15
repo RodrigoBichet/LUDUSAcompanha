@@ -11,10 +11,12 @@
 const Session = require("../models/Session");
 const { buscarAlunoComAcesso } = require("../services/schoolAccess");
 
-const montarFiltroSessao = (studentId, gameId) => {
+const montarFiltroSessao = (studentId, gameId, incluirParciais = false) => {
     const filtro = {
         studentId,
-        status: { $nin: ["in_progress", "interrupted"] },
+        status: incluirParciais
+            ? { $ne: "interrupted" }
+            : { $nin: ["in_progress", "interrupted"] },
     };
 
     if (gameId && gameId !== "todos") {
@@ -46,7 +48,7 @@ const resumoJogador = async (req, res) => {
         }
 
         const sessoes = await Session.find(
-            montarFiltroSessao(studentId, gameId),
+            montarFiltroSessao(studentId, gameId, true),
         ).sort({ startedAt: 1 });
 
         if (sessoes.length === 0) {

@@ -52,6 +52,18 @@ const formatarDuracao = (valor) => {
     return minutos > 0 ? `${minutos}min ${resto}s` : `${resto}s`;
 };
 
+const LIMITE_SESSAO_ATIVA_MS = 60 * 1000;
+
+const checkpointAindaAtivo = (sessao, agora) => {
+    if (sessao?.submissionKind !== "checkpoint") return false;
+    if (!agora) return true;
+    const ultimaAtualizacao = new Date(
+        sessao.lastReceivedAt || sessao.receivedAt,
+    ).getTime();
+    return Number.isFinite(ultimaAtualizacao) &&
+        agora - ultimaAtualizacao < LIMITE_SESSAO_ATIVA_MS;
+};
+
 const listarImportacoesConfirmadas = (caixa) =>
     (caixa?.recebimentos || [])
         .filter((recebimento) => recebimento.resolutionStatus === "resolved")
@@ -108,6 +120,22 @@ export default function Coletas() {
     const importacaoEmCurso = useRef(false);
     const focoListaColetas = useRef(null);
     const [resultadoImportacao, setResultadoImportacao] = useState({});
+    const [agora, setAgora] = useState(0);
+
+    useEffect(() => {
+        const iniciarRelogio = window.setTimeout(
+            () => setAgora(Date.now()),
+            0,
+        );
+        const temporizador = window.setInterval(
+            () => setAgora(Date.now()),
+            15_000,
+        );
+        return () => {
+            window.clearTimeout(iniciarRelogio);
+            window.clearInterval(temporizador);
+        };
+    }, []);
 
     const turmasPorId = useMemo(
         () => new Map(turmas.map((turma) => [String(turma._id), turma])),
@@ -780,6 +808,14 @@ export default function Coletas() {
                                     (total, item) => total + item.pendentes.length,
                                     0,
                                 );
+                                const checkpoints = (caixa?.recebimentos || [])
+                                    .flatMap((recebimento) => recebimento.sessoes)
+                                    .filter((sessao) => sessao.submissionKind === "checkpoint");
+                                const totalEmAndamento = checkpoints.filter((sessao) =>
+                                    checkpointAindaAtivo(sessao, agora),
+                                ).length;
+                                const totalFicaramEmAndamento =
+                                    checkpoints.length - totalEmAndamento;
 
                                 return (
                                     <article className="card coleta-card" key={coleta.collectionId}>
@@ -891,7 +927,7 @@ export default function Coletas() {
                                                 ? "Carregando recebimentos..."
                                                 : coletaAberta === coleta.collectionId
                                                   ? "Ocultar recebimentos"
-                                                  : "Ver recebimentos"}
+                                                  : "Ver dados recebidos"}
                                         </button>
 
                                         {coletaAberta === coleta.collectionId &&
@@ -904,7 +940,8 @@ export default function Coletas() {
                                                         <div className="acoes-resumo-recebimentos">
                                                             <span>
                                                                 {caixa.totalPendentes} pendentes
-                                                                {caixa.totalEmAndamento > 0 ? ` • ${caixa.totalEmAndamento} em andamento` : ""}
+                                                                {totalEmAndamento > 0 ? ` • ${totalEmAndamento} em andamento` : ""}
+                                                                {totalFicaramEmAndamento > 0 ? ` • ${totalFicaramEmAndamento} ficaram em andamento` : ""}
                                                                 {` • ${caixa.totalImportadas} no histórico`}
                                                             </span>
                                                             {totalSessoesConfirmadas > 0 && (
@@ -952,6 +989,15 @@ export default function Coletas() {
                                                                             {recebimento.resolutionStatus === "resolved" && recebimento.sessoes.some((item) => item.status === "pending" && item.submissionKind !== "checkpoint") && (
                                                                                 <button className="btn-adicionar-historico" type="button" disabled={Boolean(importandoParticipante)} onClick={() => adicionarAoHistorico(coleta, recebimento)}>
                                                                                     {importandoParticipante === recebimento.participantRef ? "Adicionando..." : "Adicionar sessões ao histórico"}
+                                                                                </button>
+                                                                            )}
+                                                                            {recebimento.resolutionStatus === "resolved" && recebimento.sessoes.some((item) => item.status === "imported") && (
+                                                                                <button
+                                                                                    className="btn-ver-dados-aluno"
+                                                                                    type="button"
+                                                                                    onClick={() => navegar(`/aluno/${recebimento.resolvedStudent.studentId}`)}
+                                                                                >
+                                                                                    Ver dados do aluno
                                                                                 </button>
                                                                             )}
                                                                             {recebimento.resolutionStatus !== "resolved" && (
@@ -1024,13 +1070,32 @@ export default function Coletas() {
                                                                                 <div>
                                                                                     <strong>{formatarNomeJogo(sessao.gameId)}</strong>
                                                                                     <small>{formatarData(sessao.receivedAt)}</small>
-                                                                                    <small>{sessao.status === "imported" ? "Adicionada ao histórico" : sessao.status === "rejected" ? "Recusada" : sessao.submissionKind === "checkpoint" ? "Em andamento — progresso protegido" : "Pendente"}</small>
+                                                                                    <small>
+                                                                                        {sessao.status === "imported"
+                                                                                            ? "Adicionada ao histórico"
+                                                                                            : sessao.status === "rejected"
+                                                                                              ? "Recusada"
+                                                                                              : sessao.submissionKind === "checkpoint"
+                                                                                                ? checkpointAindaAtivo(sessao, agora)
+                                                                                                    ? "Em andamento — progresso protegido"
+                                                                                                    : "Ficou em andamento — último progresso salvo"
+                                                                                                : "Pendente"}
+                                                                                    </small>
                                                                                     {resultadoImportacao[sessao.receiptId] && <small role="alert">{resultadoImportacao[sessao.receiptId]}</small>}
                                                                                 </div>
                                                                                 <span>{formatarDuracao(sessao.durationMs)}</span>
                                                                                 <span>{sessao.totalCliques} cliques</span>
                                                                                 <span>{sessao.totalPontosMovimento} movimentos</span>
                                                                                 <span>{sessao.totalPontosArraste} pontos de arraste</span>
+                                                                                {sessao.submissionKind === "checkpoint" && recebimento.resolutionStatus === "resolved" && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn-ver-progresso"
+                                                                                        onClick={() => navegar(`/aluno/${recebimento.resolvedStudent.studentId}`)}
+                                                                                    >
+                                                                                        Ver progresso salvo
+                                                                                    </button>
+                                                                                )}
                                                                             </li>
                                                                         ))}
                                                                     </ul>

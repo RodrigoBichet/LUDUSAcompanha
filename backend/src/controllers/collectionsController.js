@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Group = require("../models/Group");
 const Game = require("../models/Game");
+const Institution = require("../models/Institution");
 const Session = require("../models/Session");
 const Student = require("../models/Student");
 const CollectionParticipant = require("../models/CollectionParticipant");
@@ -416,7 +417,10 @@ const localizarAlunoUnicoNaTurma = async (coleta, identidade) => {
         }
     });
 
-    return correspondencias.length === 1 ? correspondencias[0] : null;
+    return {
+        aluno: correspondencias.length === 1 ? correspondencias[0] : null,
+        quantidade: correspondencias.length,
+    };
 };
 
 const obterOuCriarParticipante = async (coleta, identidade) => {
@@ -427,7 +431,31 @@ const obterOuCriarParticipante = async (coleta, identidade) => {
     const existente = await CollectionParticipant.findOne(filtro);
     if (existente) return existente;
 
-    const alunoUnico = await localizarAlunoUnicoNaTurma(coleta, identidade);
+    const correspondencia = await localizarAlunoUnicoNaTurma(
+        coleta,
+        identidade,
+    );
+    let alunoUnico = correspondencia.aluno;
+    let alunoCriadoNoLaboratorio = null;
+
+    if (!alunoUnico && correspondencia.quantidade === 0) {
+        const laboratorio = await Institution.exists({
+            _id: coleta.institutionId,
+            environmentType: "sandbox",
+        });
+
+        if (laboratorio) {
+            alunoCriadoNoLaboratorio = await Student.create({
+                name: identidade.displayName,
+                groupId: coleta.groupId,
+                institutionId: coleta.institutionId,
+                ownerUserId: coleta.ownerUserId,
+                enrollmentMode: "school",
+                deletionProtected: false,
+            });
+            alunoUnico = alunoCriadoNoLaboratorio;
+        }
+    }
 
     try {
         return await CollectionParticipant.create({
@@ -441,7 +469,21 @@ const obterOuCriarParticipante = async (coleta, identidade) => {
     } catch (erro) {
         if (erro?.code === 11000) {
             const criadoEmParalelo = await CollectionParticipant.findOne(filtro);
-            if (criadoEmParalelo) return criadoEmParalelo;
+            if (criadoEmParalelo) {
+                if (alunoCriadoNoLaboratorio) {
+                    await Student.deleteOne({
+                        _id: alunoCriadoNoLaboratorio._id,
+                        deletionProtected: false,
+                    });
+                }
+                return criadoEmParalelo;
+            }
+        }
+        if (alunoCriadoNoLaboratorio) {
+            await Student.deleteOne({
+                _id: alunoCriadoNoLaboratorio._id,
+                deletionProtected: false,
+            });
         }
         throw erro;
     }
@@ -809,6 +851,12 @@ const receberCheckpointSdkPareado = async (req, res) => {
             dadosResolvidos,
             chave,
         );
+        await salvarRecebimentoSdkPendente({
+            coleta,
+            participante,
+            dados,
+            submissionKind: "checkpoint",
+        });
 
         return res.status(200).json({
             sucesso: true,
@@ -858,6 +906,12 @@ const receberSessaoSdkPareada = async (req, res) => {
             );
         }
         const dadosResolvidos = prepararSessaoSdkResolvida(dados, aluno);
+        await salvarRecebimentoSdkPendente({
+            coleta,
+            participante,
+            dados,
+            submissionKind: "completed",
+        });
         let sessao = await Session.findOne({
             sessionId: dadosResolvidos.sessionId,
         }).select("+checkpointKeyHash");
@@ -1068,7 +1122,7 @@ const listarSubmissoesColeta = async (req, res) => {
                 .lean(),
             SdkCollectionSubmission.find({ collectionRef: coleta._id })
                 .select(
-                    "receiptId participantRef sessionId status submissionKind sessionPayload createdAt",
+                    "receiptId participantRef sessionId status submissionKind importedSessionId sessionPayload createdAt updatedAt",
                 )
                 .sort({ createdAt: -1 })
                 .lean(),
@@ -1140,6 +1194,10 @@ const listarSubmissoesColeta = async (req, res) => {
                     ? sessao.dragPath.length
                     : 0,
                 receivedAt: item.createdAt,
+                lastReceivedAt: item.updatedAt || item.createdAt,
+                importedSessionId: item.importedSessionId
+                    ? String(item.importedSessionId)
+                    : null,
             });
         }
 

@@ -500,6 +500,22 @@
     background: var(--cor-primaria-esc);
 }
 
+.acoes-recebimento-aluno .btn-ver-dados-aluno,
+.lista-recebimentos-coleta .btn-ver-progresso {
+    background: var(--cor-primaria);
+    color: #fff;
+}
+
+.lista-recebimentos-coleta .btn-ver-progresso {
+    border: 1px solid var(--cor-primaria);
+    border-radius: 8px;
+    padding: 0.45rem 0.65rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .revisao-participante-coleta {
     display: grid;
     gap: 0.8rem;

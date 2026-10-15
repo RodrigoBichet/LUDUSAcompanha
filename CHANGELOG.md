@@ -9,6 +9,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Documentação, privacidade e qualidade
 
+- o fluxo de coletas do laboratório passa a criar automaticamente o aluno
+  fictício quando o nome ainda não existe, exigir pelo menos duas partes no
+  nome e oferecer atalhos diretos para o perfil ou para o último progresso
+  protegido; escolas reais e homônimos continuam sob revisão consciente;
+- checkpoints recentes e interrompidos passam a ser diferenciados como
+  **Em andamento** e **Ficou em andamento**, sem apresentar uma sessão parcial
+  como se tivesse sido concluída;
+- a análise de sessões automáticas recupera a busca por cena no percurso da
+  jogada e usa uma apresentação neutra, sem sugerir que cada recorte seja um
+  botão;
 - os atalhos do tutorial passam a usar uma transição curta e previsível até o
   início exato de cada grupo, compensando o cabeçalho fixo; a instalação pelo
   Package Manager recebe uma sequência visual de três passos com imagens reais,

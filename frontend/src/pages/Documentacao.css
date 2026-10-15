@@ -637,6 +637,15 @@
     height: calc(100% - 2.45rem);
 }
 
+.documentacao-video-etapa {
+    margin: -0.25rem 0 1.5rem;
+}
+
+.documentacao-video-etapa .documentacao-video-tutorial {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
 .documentacao-exemplo-real {
     margin-top: 1rem;
     border: 1px solid #a8ddcb;
@@ -1487,7 +1496,43 @@
     .documentacao-transicao-jogo-real > span { justify-self: start; }
 }
 
+#etapa-conectar,
+#tutorial-etapa-simples,
+#etapa-mapa,
+#etapa-regras,
+#tutorial-detalhado,
+#tutorial-preparacao,
+#configuracao-sdk-detalhada,
+#tutorial-conectar,
+#integrar-jogo-real {
+    scroll-margin-top: 7rem;
+}
+
+.documentacao-referencia-expandivel {
+    margin: 1.5rem 0 2rem;
+    border: 2px solid #27896b;
+    border-radius: 12px;
+}
+
+.documentacao-referencia-expandivel > .documentacao-tutorial-destaque {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.documentacao-referencia-expandivel > summary {
+    padding: 1rem 1.2rem;
+}
+
+.documentacao-referencia-expandivel[open] > summary {
+    border-bottom-color: #a8ddcb;
+}
+
 @media (max-width: 900px) {
+    #etapa-conectar,
+    #etapa-mapa,
+    #etapa-regras,
+    #tutorial-detalhado,
     #tutorial-preparacao,
     #configuracao-sdk-detalhada,
     #tutorial-conectar,

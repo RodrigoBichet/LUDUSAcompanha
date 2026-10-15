@@ -70,6 +70,12 @@ const ROTULOS_CAPACIDADES = {
     customEvents: "Contextos e eventos registrados",
 };
 
+const EVENTOS_TECNICOS_DA_COLETA = new Set([
+    "CaptureContextStarted",
+    "CaptureContextEnded",
+    "SessionEnded",
+]);
+
 const obterTempoInteracao = (item) =>
     Number(item?.timestamp ?? item?.t ?? item?.time ?? 0);
 
@@ -418,6 +424,7 @@ export default function DetalhesSessao() {
                     screenshot?.contextInstanceId ||
                     `captura-${timestamp}`,
                 contextName: contexto?.nome || "Recorte acompanhado",
+                contextKind: contexto?.tipo || "",
                 timestamp: contexto?.timestamp ?? timestamp,
                 contextEndTimestamp: contexto?.endTimestamp,
                 screenshot,
@@ -439,6 +446,7 @@ export default function DetalhesSessao() {
                   ? contextosRelevantes.map((contexto) => ({
                         identificador: contexto.identificador,
                         contextName: contexto.nome,
+                        contextKind: contexto.tipo,
                         timestamp: contexto.timestamp,
                         contextEndTimestamp: contexto.endTimestamp,
                         screenshot: null,
@@ -462,6 +470,7 @@ export default function DetalhesSessao() {
             );
             const chaveFase = fase?.faseId || "sem-fase";
             const atividadeIndex = contadorAtividades.get(chaveFase) || 0;
+            const contextoEhCena = recorte.contextKind === "scene";
             contadorAtividades.set(chaveFase, atividadeIndex + 1);
 
             const proximoRecorteMesmaFase = recortesBase
@@ -482,13 +491,18 @@ export default function DetalhesSessao() {
                 faseChave: fase
                     ? `${fase.faseIndex}-${fase.faseId}`
                     : "sem-fase",
-                faseNome: fase?.faseNome || "Atividades acompanhadas",
+                faseNome:
+                    fase?.faseNome ||
+                    (contextoEhCena ? "Cenas percorridas" : "Atividades acompanhadas"),
                 categoria: fase?.categoria || "",
                 faseTimestamp: fase?.timestamp ?? timestamp,
                 faseEndTimestamp:
                     fase?.endTimestamp ?? sessao?.durationMs ?? Infinity,
                 atividadeIndex,
-                nome: `Atividade ${atividadeIndex + 1}`,
+                nome:
+                    contextoEhCena && recorte.contextName
+                        ? recorte.contextName
+                        : `Atividade ${atividadeIndex + 1}`,
                 endTimestamp:
                     recorte.contextEndTimestamp ??
                     proximoRecorteMesmaFase?.timestamp ??
@@ -1768,7 +1782,12 @@ export default function DetalhesSessao() {
             .toLocaleLowerCase("pt-BR")
             .includes(termoBuscaSequencia);
     };
-    const eventosSemanticosFiltrados = (sessao?.gameEvents || []).filter(
+    const eventosSemanticosBase = (sessao?.gameEvents || []).filter(
+        (evento) => !EVENTOS_TECNICOS_DA_COLETA.has(evento.eventType),
+    );
+    const modoSdkAutomatico =
+        !modoObservacional && eventosSemanticosBase.length === 0;
+    const eventosSemanticosFiltrados = eventosSemanticosBase.filter(
         eventoCorrespondeBusca,
     );
     const eventosSemanticosVisiveis = eventosSemanticosFiltrados.slice(
@@ -1789,6 +1808,44 @@ export default function DetalhesSessao() {
     const totalSequenciaFiltrada = modoObservacional
         ? linhaTempoObservacionalFiltrada.length
         : eventosSemanticosFiltrados.length;
+    const recortesAutomaticos = modoSdkAutomatico
+        ? obterRecortesHeatmap().map((recorte, indice) => {
+              const inicio = Number(recorte.timestamp || 0);
+              const fim = Number(
+                  recorte.endTimestamp ?? sessao?.durationMs ?? inicio,
+              );
+              const dentroDoRecorte = (item) => {
+                  const tempo = obterTempoInteracao(item);
+                  return tempo >= inicio && tempo <= fim;
+              };
+
+              return {
+                  id: recorte.identificador || `recorte-${indice}`,
+                  nome:
+                      recorte.contextName ||
+                      recorte.nome ||
+                      `Cena ${indice + 1}`,
+                  duracaoMs: Math.max(0, fim - inicio),
+                  cliques: (sessao?.clicks || []).filter(dentroDoRecorte)
+                      .length,
+                  movimentos: (sessao?.mousePath || []).filter(dentroDoRecorte)
+                      .length,
+                  arrastes: gestosArraste.filter((gesto) =>
+                      dentroDoRecorte({ timestamp: gesto.inicio }),
+                  ).length,
+              };
+          })
+        : [];
+    const recortesAutomaticosFiltrados = recortesAutomaticos.filter(
+        (recorte) =>
+            !termoBuscaSequencia ||
+            recorte.nome
+                .toLocaleLowerCase("pt-BR")
+                .includes(termoBuscaSequencia),
+    );
+    const totalItensSequencia = modoSdkAutomatico
+        ? recortesAutomaticosFiltrados.length
+        : totalSequenciaFiltrada;
 
     const abrirMapaAmpliado = () => {
         if (!canvasRef.current) return;
@@ -1990,35 +2047,6 @@ export default function DetalhesSessao() {
                                     <div>
                                         <h3>Mapa da atividade</h3>
                                         <div className="heatmap-legenda">
-                                            {obterRecortesHeatmap().map(
-                                                (recorte, index, recortes) => (
-                                                    <span
-                                                        key={
-                                                            recorte.identificador ||
-                                                            recorte.nome
-                                                        }
-                                                        className="heatmap-legenda-item"
-                                                    >
-                                                        <span
-                                                            className="heatmap-legenda-cor"
-                                                            style={{
-                                                                background:
-                                                                    obterCorFase(
-                                                                        index,
-                                                                    ).linha,
-                                                            }}
-                                                        />
-                                                        {new Set(
-                                                            recortes.map(
-                                                                (item) =>
-                                                                    item.faseChave,
-                                                            ),
-                                                        ).size > 1
-                                                            ? `${recorte.faseNome} · ${recorte.nome}`
-                                                            : recorte.nome}
-                                                    </span>
-                                                ),
-                                            )}
                                             {possuiCapacidade("mousePath") && (
                                                 <span className="heatmap-legenda-item">
                                                     <span className="heatmap-legenda-movimento" />
@@ -2292,29 +2320,40 @@ export default function DetalhesSessao() {
                                 <h3>
                                     {modoObservacional
                                         ? "Linha do tempo da interação"
-                                        : "Sequência da sessão"}
+                                        : modoSdkAutomatico
+                                          ? "Percurso da jogada"
+                                          : "Sequência da sessão"}
                                 </h3>
 
                                 <div className="sequencia-ferramentas">
                                     <label htmlFor="busca-sequencia">
-                                        Pesquisar na sequência
+                                        {modoSdkAutomatico
+                                            ? "Pesquisar no percurso"
+                                            : "Pesquisar na sequência"}
                                     </label>
                                     <input
                                         id="busca-sequencia"
                                         type="search"
                                         value={buscaSequencia}
-                                        placeholder="Ex.: erro, botão, categoria..."
+                                        placeholder={
+                                            modoSdkAutomatico
+                                                ? "Ex.: menu, fase, seleção..."
+                                                : "Ex.: erro, botão, categoria..."
+                                        }
                                         onChange={(evento) => {
                                             setBuscaSequencia(evento.target.value);
                                             setLimiteSequencia(10);
                                         }}
                                     />
                                     <span>
-                                        {Math.min(
-                                            limiteSequencia,
-                                            totalSequenciaFiltrada,
-                                        )}{" "}
-                                        de {totalSequenciaFiltrada} eventos
+                                        {modoSdkAutomatico
+                                            ? totalItensSequencia
+                                            : Math.min(
+                                                  limiteSequencia,
+                                                  totalItensSequencia,
+                                              )}{" "}
+                                        de {totalItensSequencia}{" "}
+                                        {modoSdkAutomatico ? "cenas" : "eventos"}
                                     </span>
                                 </div>
 
@@ -2348,6 +2387,56 @@ export default function DetalhesSessao() {
                                                     </span>
                                                 </div>
                                             ),
+                                        )}
+                                    </div>
+                                ) : modoSdkAutomatico ? (
+                                    <div className="percurso-automatico">
+                                        <p className="texto-leve">
+                                            O SDK registrou automaticamente por onde a
+                                            pessoa passou e as interações disponíveis.
+                                            Eventos como acertos e erros só aparecem
+                                            quando o jogo os informa nas etapas mais
+                                            avançadas da integração.
+                                        </p>
+                                        {recortesAutomaticosFiltrados.length > 0 ? (
+                                            <div className="percurso-automatico-lista">
+                                                {recortesAutomaticosFiltrados.map(
+                                                    (recorte, indice) => (
+                                                        <article
+                                                            className="percurso-automatico-item"
+                                                            key={recorte.id}
+                                                        >
+                                                            <div>
+                                                                <span>
+                                                                    {indice + 1}
+                                                                </span>
+                                                                <strong>
+                                                                    {recorte.nome}
+                                                                </strong>
+                                                            </div>
+                                                            <small>
+                                                                {formatarDuracao(
+                                                                    recorte.duracaoMs,
+                                                                )}
+                                                            </small>
+                                                            <p>
+                                                                {recorte.cliques} cliques
+                                                                {" • "}
+                                                                {recorte.movimentos} pontos
+                                                                de movimento
+                                                                {" • "}
+                                                                {recorte.arrastes} arrastes
+                                                            </p>
+                                                        </article>
+                                                    ),
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="sequencia-sem-resultados">
+                                                {buscaSequencia
+                                                    ? "Nenhuma cena corresponde à pesquisa."
+                                                    : "A sessão automática foi recebida sem recortes de cena identificáveis."}
+                                            </p>
                                         )}
                                     </div>
                                 ) : (() => {
@@ -2657,7 +2746,8 @@ export default function DetalhesSessao() {
                                         </>
                                     );
                                 })()}
-                                {totalSequenciaFiltrada > limiteSequencia && (
+                                {!modoSdkAutomatico &&
+                                    totalSequenciaFiltrada > limiteSequencia && (
                                     <button
                                         type="button"
                                         className="btn-ver-mais-sequencia"
@@ -2670,7 +2760,8 @@ export default function DetalhesSessao() {
                                         Ver mais eventos
                                     </button>
                                 )}
-                                {totalSequenciaFiltrada === 0 &&
+                                {!modoSdkAutomatico &&
+                                    totalSequenciaFiltrada === 0 &&
                                     buscaSequencia && (
                                         <p className="sequencia-sem-resultados">
                                             Nenhum evento corresponde à pesquisa.

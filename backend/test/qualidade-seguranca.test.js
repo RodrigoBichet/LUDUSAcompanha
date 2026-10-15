@@ -325,6 +325,36 @@ test("desenvolvedor usa laboratório isolado sem acessar dados escolares reais",
         .expect(201);
     assert.ok(coleta.body.codigoTemporario);
 
+    const pareamentoAutomatico = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: coleta.body.codigoTemporario,
+            participantName: "Lucas Silva",
+        })
+        .expect(200);
+    assert.equal(
+        pareamentoAutomatico.body.participante.resolutionStatus,
+        "resolved",
+    );
+    const alunoCriadoAutomaticamente = await Student.findOne({
+        name: "Lucas Silva",
+        groupId: criado.body.laboratorio.turma._id,
+    });
+    assert.ok(alunoCriadoAutomaticamente);
+    assert.equal(alunoCriadoAutomaticamente.enrollmentMode, "school");
+
+    const pareamentoComAliasNumerico = await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: coleta.body.codigoTemporario,
+            participantName: criado.body.laboratorio.alunos[0].name,
+        })
+        .expect(200);
+    assert.equal(
+        pareamentoComAliasNumerico.body.participante.resolutionStatus,
+        "resolved",
+    );
+
     const instituicoesProfessora = await request(app)
         .get("/api/institutions")
         .set("Authorization", `Bearer ${tokenDe(professoraA)}`)
@@ -1475,6 +1505,14 @@ test("pareia nome e codigo sem criar aluno e emite credencial limitada", async (
         })
         .expect(201);
 
+    await request(app)
+        .post("/api/collections/pair")
+        .send({
+            code: criada.body.codigoTemporario,
+            participantName: "Lucas",
+        })
+        .expect(400);
+
     const pareada = await request(app)
         .post("/api/collections/pair")
         .send({
@@ -1952,6 +1990,9 @@ test("recebe checkpoint e conclusão do SDK diretamente para aluno reconhecido",
     let sessao = await Session.findOne({ sessionId });
     assert.equal(sessao.status, "in_progress");
     assert.equal(String(sessao.studentId), String(alunoA._id));
+    let recebimento = await SdkCollectionSubmission.findOne({ sessionId });
+    assert.equal(recebimento.submissionKind, "checkpoint");
+    assert.equal(recebimento.status, "pending");
 
     await request(app)
         .post("/api/collections/sdk-sessions")
@@ -1966,6 +2007,10 @@ test("recebe checkpoint e conclusão do SDK diretamente para aluno reconhecido",
     assert.equal(sessao.captureMode, "sdk");
     assert.equal(sessao.gameEvents.length, 1);
     assert.equal(sessao.gameEvents[0].payloadData.category, "Teste");
+    recebimento = await SdkCollectionSubmission.findOne({ sessionId });
+    assert.equal(recebimento.submissionKind, "completed");
+    assert.equal(recebimento.status, "imported");
+    assert.equal(String(recebimento.importedSessionId), String(sessao._id));
     const jogoReconhecido = await Game.findOne({
         scopeKey: `user:${professoraA._id}`,
         gameId: sessao.gameId,
@@ -1996,7 +2041,7 @@ test("recebe checkpoint e conclusão do SDK diretamente para aluno reconhecido",
         ).length,
         1,
     );
-    assert.equal(await SdkCollectionSubmission.countDocuments(), 0);
+    assert.equal(await SdkCollectionSubmission.countDocuments(), 1);
 });
 
 test("preserva sessão do SDK para revisão quando o nome ainda não foi resolvido", async () => {
@@ -2891,7 +2936,24 @@ test("atualiza checkpoint autenticado e o substitui pela sessão concluída", as
         .get(`/api/dashboard/summary/${alunoA._id}`)
         .set("Authorization", authorization)
         .expect(200);
-    assert.equal(resumoParcial.body.totalSessoes, 0);
+    assert.equal(resumoParcial.body.totalSessoes, 1);
+
+    const perfilParcial = await request(app)
+        .get(`/api/students/${alunoA._id}`)
+        .set("Authorization", authorization)
+        .expect(200);
+    assert.equal(perfilParcial.body.totalSessoes, 1);
+    assert.equal(perfilParcial.body.sessoes[0].gameId, checkpoint.gameId);
+
+    const visaoGeralParcial = await request(app)
+        .get("/api/students/overview")
+        .set("Authorization", authorization)
+        .expect(200);
+    const alunoComParcial = visaoGeralParcial.body.alunos.find(
+        (aluno) => String(aluno._id) === String(alunoA._id),
+    );
+    assert.equal(alunoComParcial.totalSessoes, 1);
+    assert.equal(alunoComParcial.jogos[0].gameId, checkpoint.gameId);
 
     const historicoParcial = await request(app)
         .get(`/api/sessions/student/${alunoA._id}`)
