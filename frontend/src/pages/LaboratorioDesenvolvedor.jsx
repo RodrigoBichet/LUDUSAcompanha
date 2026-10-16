@@ -176,15 +176,6 @@ export default function LaboratorioDesenvolvedor() {
                             </div>
                         </section>
 
-                        <section className="card laboratorio-roteiro">
-                            <h2>Roteiro recomendado</h2>
-                            <ol>
-                                <li>Cadastre e configure um jogo em “Meus jogos”.</li>
-                                <li>Crie uma coleta usando a Turma de teste.</li>
-                                <li>Informe no jogo o nome de um aluno fictício e o código.</li>
-                                <li>Jogue, encerre a sessão e confira o resultado no aluno.</li>
-                            </ol>
-                        </section>
                     </>
                 )}
             </div>

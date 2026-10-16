@@ -59,8 +59,7 @@
     font-size: 0.78rem;
 }
 
-.laboratorio-acoes,
-.laboratorio-roteiro {
+.laboratorio-acoes {
     display: grid;
     gap: 1rem;
 }
@@ -96,13 +95,6 @@
 .laboratorio-link small {
     color: var(--cor-texto-leve);
     line-height: 1.35;
-}
-
-.laboratorio-roteiro ol {
-    display: grid;
-    gap: 0.65rem;
-    padding-left: 1.25rem;
-    color: var(--cor-texto-leve);
 }
 
 @media (max-width: 880px) {

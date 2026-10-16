@@ -925,9 +925,10 @@ export default function Documentacao({ publica = false }) {
                                         </p>
                                         <p>
                                             Salve a cena e pressione{" "}
-                                            <strong>Play</strong>. Quando o
-                                            modal pedir o nome e o código da
-                                            coleta, mantenha-o aberto e siga
+                                            <strong>Play</strong>. Quando
+                                            aparecer a tela que solicita o nome
+                                            do participante e o código da
+                                            coleta, mantenha-a aberta e siga
                                             para o próximo passo.
                                         </p>
                                         <p>
@@ -945,14 +946,18 @@ export default function Documentacao({ publica = false }) {
                                     <span>3</span>
                                     <div>
                                         <h4>
-                                            Crie sua conta e uma coleta de teste
+                                            Prepare o laboratório e crie uma coleta de teste
                                         </h4>
                                         <p>
-                                            Com o modal do jogo aberto, acesse
-                                            o LUDUS Acompanha, crie gratuitamente
-                                            sua conta de desenvolvedor e entre
-                                            no <strong>Laboratório</strong>. Em
-                                            <strong> Coletas de teste</strong>,
+                                            Com essa tela do jogo aberta, volte
+                                            ao LUDUS Acompanha e abra a{" "}
+                                            <strong>Visão geral</strong>{" "}do
+                                            Laboratório. Se este for o primeiro
+                                            acesso, clique em{" "}
+                                            <strong>Criar laboratório de testes</strong>{" "}
+                                            e aguarde a preparação do ambiente.
+                                            Depois, abra{" "}
+                                            <strong>Coletas de teste</strong>,
                                             crie uma coleta e copie o código
                                             temporário exibido.
                                         </p>
