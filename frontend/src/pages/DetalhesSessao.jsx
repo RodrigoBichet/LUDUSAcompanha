@@ -1417,17 +1417,25 @@ export default function DetalhesSessao() {
     const atualizarHoverCanvas = (evento, canvasAlvo = canvasRef.current) => {
         const item = obterSegmentoMaisProximo(evento, canvasAlvo);
 
+        const mesmoTrajetoDestacado =
+            item &&
+            itemHover &&
+            (item.tipo === "movimento" || item.tipo === "arraste") &&
+            item.tipo === itemHover.tipo &&
+            item.faseIndex === itemHover.faseIndex;
+
         const mudouHover =
-            itemHover?.faseIndex !== item?.faseIndex ||
-            itemHover?.tipo !== item?.tipo ||
-            itemHover?.x1 !== item?.x1 ||
-            itemHover?.y1 !== item?.y1 ||
-            itemHover?.x2 !== item?.x2 ||
-            itemHover?.y2 !== item?.y2 ||
-            itemHover?.x !== item?.x ||
-            itemHover?.y !== item?.y ||
-            itemHover?.nome !== item?.nome ||
-            itemHover?.timestamp !== item?.timestamp;
+            !mesmoTrajetoDestacado &&
+            (itemHover?.faseIndex !== item?.faseIndex ||
+                itemHover?.tipo !== item?.tipo ||
+                itemHover?.x1 !== item?.x1 ||
+                itemHover?.y1 !== item?.y1 ||
+                itemHover?.x2 !== item?.x2 ||
+                itemHover?.y2 !== item?.y2 ||
+                itemHover?.x !== item?.x ||
+                itemHover?.y !== item?.y ||
+                itemHover?.nome !== item?.nome ||
+                itemHover?.timestamp !== item?.timestamp);
 
         if (mudouHover) {
             setItemHover(item);
@@ -2291,9 +2299,12 @@ export default function DetalhesSessao() {
                                             </>
                                         ) : (
                                             <>
-                                                <strong>
-                                                    Detalhes da interação
-                                                </strong>
+                                                <div className="heatmap-detalhe-topo">
+                                                    <strong>
+                                                        Detalhes da interação
+                                                    </strong>
+                                                    <span aria-hidden="true" />
+                                                </div>
                                                 <span>
                                                     Passe o mouse sobre uma linha
                                                     ou marcador para ver suas
@@ -2914,9 +2925,15 @@ export default function DetalhesSessao() {
                                     </span>
                                 </>
                             ) : (
-                                <span>
-                                    Passe o mouse sobre uma linha ou marcador para ver os detalhes.
-                                </span>
+                                <>
+                                    <div className="mapa-ampliado-detalhe-topo">
+                                        <strong>Detalhes da interação</strong>
+                                        <span aria-hidden="true" />
+                                    </div>
+                                    <span>
+                                        Passe o mouse sobre uma linha ou marcador para ver os detalhes.
+                                    </span>
+                                </>
                             )}
                         </div>
                     </div>

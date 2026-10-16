@@ -263,6 +263,44 @@ const processarScreenshots = (screenshots, sessionId) => {
     }
 };
 
+const chaveDaCaptura = (captura) =>
+    [
+        captura?.contextInstanceId || "",
+        captura?.timestamp ?? "",
+        captura?.widthPx ?? "",
+        captura?.heightPx ?? "",
+    ].join(":");
+
+const combinarScreenshotsIncrementais = (
+    capturasExistentes,
+    capturasRecebidas,
+    sessionId,
+) => {
+    const existentes = Array.isArray(capturasExistentes)
+        ? capturasExistentes.map((captura) =>
+              typeof captura?.toObject === "function"
+                  ? captura.toObject()
+                  : captura,
+          )
+        : [];
+    const recebidas = Array.isArray(capturasRecebidas)
+        ? capturasRecebidas
+        : [];
+    const chavesExistentes = new Set(existentes.map(chaveDaCaptura));
+    const novas = recebidas.filter(
+        (captura) => !chavesExistentes.has(chaveDaCaptura(captura)),
+    );
+    const resultadoNovas = processarScreenshots(novas, sessionId);
+
+    return {
+        capturasProcessadas: [
+            ...existentes,
+            ...resultadoNovas.capturasProcessadas,
+        ],
+        arquivosCriados: resultadoNovas.arquivosCriados,
+    };
+};
+
 const validarENormalizarSessao = (dadosBrutos) => {
     const resultadoValidacao = validarSessaoTelemetria(dadosBrutos);
     const dadosNormalizados = normalizarSessaoTelemetria(
@@ -413,24 +451,28 @@ const salvarOuAtualizarCheckpoint = async (dados, chave) => {
             400,
         );
     }
-    if (dados.screenshots?.length > 0) {
-        throw criarErroHttp(
-            "Checkpoints não devem transportar capturas visuais.",
-            400,
-        );
-    }
-
     const existente = await Session.findOne({
         sessionId: dados.sessionId,
     }).select("+checkpointKeyHash");
 
     if (!existente) {
+        const resultadoScreenshots = combinarScreenshotsIncrementais(
+            [],
+            dados.screenshots || [],
+            dados.sessionId,
+        );
         const checkpoint = new Session({
             ...dados,
+            screenshots: resultadoScreenshots.capturasProcessadas,
             checkpointKeyHash: criarHashCheckpoint(chave),
         });
-        await checkpoint.save();
-        return checkpoint;
+        try {
+            await checkpoint.save();
+            return checkpoint;
+        } catch (erro) {
+            removerArquivosCriados(resultadoScreenshots.arquivosCriados);
+            throw erro;
+        }
     }
 
     if (existente.status === "completed") {
@@ -441,9 +483,22 @@ const salvarOuAtualizarCheckpoint = async (dados, chave) => {
     }
 
     validarIdentidadeCheckpoint(existente, dados);
-    existente.set(dados);
-    await existente.save();
-    return existente;
+    const resultadoScreenshots = combinarScreenshotsIncrementais(
+        existente.screenshots,
+        dados.screenshots || [],
+        dados.sessionId,
+    );
+    try {
+        existente.set({
+            ...dados,
+            screenshots: resultadoScreenshots.capturasProcessadas,
+        });
+        await existente.save();
+        return existente;
+    } catch (erro) {
+        removerArquivosCriados(resultadoScreenshots.arquivosCriados);
+        throw erro;
+    }
 };
 
 const concluirCheckpoint = async (existente, dados, chave) => {
@@ -452,7 +507,8 @@ const concluirCheckpoint = async (existente, dados, chave) => {
     }
 
     validarIdentidadeCheckpoint(existente, dados);
-    const resultadoScreenshots = processarScreenshots(
+    const resultadoScreenshots = combinarScreenshotsIncrementais(
+        existente.screenshots,
         dados.screenshots || [],
         dados.sessionId,
     );
@@ -1421,6 +1477,8 @@ const sessoesPorAluno = async (req, res) => {
 
 module.exports = {
     validarENormalizarSessao,
+    combinarScreenshotsIncrementais,
+    removerArquivosCriados,
     salvarOuAtualizarCheckpoint,
     concluirCheckpoint,
     prepararDadosImportacao,

@@ -904,7 +904,7 @@ export default function Documentacao({ publica = false }) {
                                 <section className="documentacao-tutorial-fase">
                                     <span>2</span>
                                     <div>
-                                        <h4>Ative o modo simples</h4>
+                                        <h4>Conecte o jogo ao Dashboard</h4>
                                         <p>
                                             Abra a cena que aparece primeiro
                                             quando a pessoa inicia o jogo —
@@ -916,8 +916,8 @@ export default function Documentacao({ publica = false }) {
                                             execute
                                             <strong>
                                                 {" "}
-                                                LUDUS &gt; Começar agora (modo
-                                                simples)
+                                                LUDUS &gt; Conectar ao Dashboard
+                                                (Etapa 1)
                                             </strong>
                                             . O SDK cria e configura
                                             automaticamente a base necessária
@@ -1030,34 +1030,54 @@ export default function Documentacao({ publica = false }) {
                             </div>
                         </div>
 
+                        <div
+                            className="documentacao-video-etapa"
+                            id="tutorial-etapa-2"
+                        >
+                            <VideoTutorial
+                                etiqueta="TUTORIAL DA ETAPA 2"
+                                titulo="Adicione a tela do jogo ao mapa da atividade"
+                                descricao="Veja como escolher as cenas acompanhadas, ativar as capturas visuais, jogar normalmente e conferir as interações sobre a imagem no Dashboard."
+                                src="/documentacao/videos/tutorial-etapa-2.mp4"
+                                poster="/documentacao/videos/tutorial-etapa-2-capa.jpg"
+                            />
+                        </div>
+
                         <div className="documentacao-passos documentacao-passos-compactos">
                             <article className="documentacao-passo">
                                 <span>1</span>
                                 <div>
                                     <h3>
-                                        Abra a configuração criada pelo modo
-                                        simples
+                                        Abra a configuração visual da Etapa 2
                                     </h3>
                                     <p>
-                                        Selecione{" "}
-                                        <code>LUDUS SDK — Modo simples</code> na
-                                        Hierarchy e, no Inspector, clique na
-                                        referência
-                                        <code> ConfiguracaoLudus</code> para
-                                        abrir o asset de configuração.
+                                        Pare o <strong>Play</strong> e execute
+                                        <strong>
+                                            {" "}LUDUS &gt; Adicionar imagens ao
+                                            mapa (Etapa 2)
+                                        </strong>
+                                        . Assim que você clicar, será aberta a
+                                        tela de configuração da Etapa 2.
                                     </p>
                                 </div>
                             </article>
                             <article className="documentacao-passo">
                                 <span>2</span>
                                 <div>
-                                    <h3>Ative a captura visual</h3>
+                                    <h3>Escolha onde usar imagens</h3>
                                     <p>
-                                        Em <strong>Capturas visuais</strong>,
-                                        habilite a captura da tela e a opção de
-                                        capturar após a primeira interação. Use
-                                        somente cenas e dados fictícios ou não
-                                        sensíveis.
+                                        Use a opção recomendada para todas as
+                                        cenas acompanhadas ou desmarque-a para
+                                        escolher cenas individualmente. A lista
+                                        mostra as cenas cadastradas em{" "}
+                                        <strong>File &gt; Build Profiles</strong>{" "}
+                                        e também a cena que estiver aberta no
+                                        momento. Depois de escolher suas cenas,
+                                        clique em{" "}
+                                        <strong>Ativar imagens no mapa</strong>.
+                                        Se alguma cena exibir senha, perfil ou
+                                        outra informação pessoal que você não
+                                        queira registrar, deixe-a desmarcada.
                                     </p>
                                 </div>
                             </article>
@@ -1066,12 +1086,49 @@ export default function Documentacao({ publica = false }) {
                                 <div>
                                     <h3>Jogue e compare o novo mapa</h3>
                                     <p>
-                                        Faça outra jogada, finalize o envio e
-                                        abra a nova sessão no Dashboard. O
-                                        caminho do ponteiro, os cliques e os
-                                        arrastes aparecerão sobre a imagem da
-                                        cena quando a captura estiver
-                                        disponível.
+                                        Pressione <strong>Play</strong>, conecte
+                                        o jogo à coleta e jogue normalmente. A
+                                        primeira interação relevante prepara a
+                                        imagem, que é enviada automaticamente no
+                                        próximo salvamento parcial. Mesmo que a
+                                        pessoa feche o jogo sem usar o botão L,
+                                        a captura já salva poderá aparecer no
+                                        progresso da coleta.
+                                    </p>
+                                    <p>
+                                        O recomendado ainda é que o usuário
+                                        volte à tela inicial ao terminar a
+                                        jogada, abra o botão <strong>L</strong>{" "}
+                                        e clique em{" "}
+                                        <strong>Finalizar e enviar</strong>{" "}
+                                        para marcar a sessão como concluída no
+                                        Dashboard.
+                                    </p>
+                                </div>
+                            </article>
+                            <article className="documentacao-passo">
+                                <span>4</span>
+                                <div>
+                                    <h3>Revise as cenas quando quiser</h3>
+                                    <p>
+                                        Para passar de cenas específicas para
+                                        todas as cenas — ou alterar novamente a
+                                        seleção — pare o <strong>Play</strong> e
+                                        abra outra vez
+                                        <strong>
+                                            {" "}LUDUS &gt; Adicionar imagens ao
+                                            mapa (Etapa 2)
+                                        </strong>
+                                        . A configuração pode ser revisada a
+                                        qualquer momento.
+                                    </p>
+                                    <p>
+                                        <strong>Atenção:</strong> se você criar
+                                        uma cena nova depois desta configuração,
+                                        adicione-a em{" "}
+                                        <strong>File &gt; Build Profiles</strong>{" "}
+                                        e abra a Etapa 2 novamente para conferir
+                                        se ela deve ou não receber imagens.
                                     </p>
                                 </div>
                             </article>

@@ -2998,6 +2998,183 @@ test("atualiza checkpoint autenticado e o substitui pela sessão concluída", as
     assert.equal(exportacao.body.sessions[0].status, "completed");
 });
 
+test("preserva screenshot do checkpoint na coleta enquanto o participante aguarda revisão", async () => {
+    const { professoraA, turmaA } = await criarCenarioEscolar();
+    const { pareada } = await prepararColetaPareada({
+        professora: professoraA,
+        turma: turmaA,
+        nomeParticipante: "Participante com captura parcial",
+    });
+    assert.equal(pareada.body.participante.resolutionStatus, "pending");
+
+    const token = pareada.body.credencial.token;
+    const sessionId = "sdk-pareado-pendente-com-imagem-001";
+    const checkpoint = sessaoSdkPareadaDeTeste(
+        sessionId,
+        pareada.body.participante.displayName,
+        "in_progress",
+    );
+    const jpegFicticio = Buffer.from([
+        0xff,
+        0xd8,
+        0xff,
+        0xe0,
+        0x4c,
+        0x55,
+        0x44,
+        0x55,
+        0x53,
+        0xff,
+        0xd9,
+    ]);
+    checkpoint.capabilities.screenshots = true;
+    checkpoint.screenshots = [
+        {
+            contextInstanceId: "contexto-coleta-parcial",
+            timestamp: 750,
+            mimeType: "image/jpeg",
+            widthPx: 640,
+            heightPx: 360,
+            screenshotBase64: jpegFicticio.toString("base64"),
+        },
+    ];
+
+    let caminhoCompleto = null;
+    try {
+        await request(app)
+            .put("/api/collections/sdk-sessions/checkpoint")
+            .set("Authorization", `Bearer ${token}`)
+            .set("X-LUDUS-Checkpoint-Key", "d".repeat(64))
+            .send(checkpoint)
+            .expect(202);
+
+        const recebimento = await SdkCollectionSubmission.findOne({
+            sessionId,
+        }).lean();
+        assert.equal(recebimento.submissionKind, "checkpoint");
+        assert.equal(recebimento.status, "pending");
+        assert.equal(recebimento.sessionPayload.screenshots.length, 1);
+        assert.equal(
+            recebimento.sessionPayload.screenshots[0].screenshotBase64,
+            undefined,
+        );
+        caminhoCompleto = path.join(
+            __dirname,
+            "..",
+            recebimento.sessionPayload.screenshots[0].caminho.replace(
+                /^\/+/,
+                "",
+            ),
+        );
+        assert.equal(fs.existsSync(caminhoCompleto), true);
+    } finally {
+        if (caminhoCompleto && fs.existsSync(caminhoCompleto)) {
+            fs.unlinkSync(caminhoCompleto);
+        }
+    }
+});
+
+test("protege screenshot no checkpoint e evita duplicação na conclusão", async () => {
+    const { alunoA } = await criarCenarioEscolar();
+    const chave = "c".repeat(64);
+    const jpegFicticio = Buffer.from([
+        0xff,
+        0xd8,
+        0xff,
+        0xe0,
+        0x4c,
+        0x55,
+        0x44,
+        0x55,
+        0x53,
+        0xff,
+        0xd9,
+    ]);
+    const checkpoint = {
+        ...sessaoSdkWebglDeTeste(alunoA),
+        schemaVersion: "1.1.0",
+        sourceVersion: "0.2.0",
+        sessionId: "sdk-checkpoint-com-imagem-ficticia",
+        runId: "execucao-checkpoint-com-imagem-ficticia",
+        attemptNumber: 1,
+        status: "in_progress",
+        durationMs: 1200,
+    };
+    delete checkpoint.endedAt;
+    checkpoint.capabilities.screenshots = true;
+    checkpoint.screenshots = [
+        {
+            contextInstanceId: "contexto-checkpoint-ficticio",
+            timestamp: 500,
+            mimeType: "image/jpeg",
+            widthPx: 640,
+            heightPx: 360,
+            screenshotBase64: jpegFicticio.toString("base64"),
+        },
+    ];
+
+    let caminhoCompleto = null;
+    try {
+        await request(app)
+            .put("/api/sessions/checkpoint")
+            .set("X-LUDUS-Checkpoint-Key", chave)
+            .send(checkpoint)
+            .expect(200);
+
+        const parcial = await Session.findOne({
+            sessionId: checkpoint.sessionId,
+        }).lean();
+        assert.equal(parcial.screenshots.length, 1);
+        assert.equal(parcial.screenshots[0].screenshotBase64, undefined);
+        caminhoCompleto = path.join(
+            __dirname,
+            "..",
+            parcial.screenshots[0].caminho.replace(/^\/+/, ""),
+        );
+        assert.equal(fs.existsSync(caminhoCompleto), true);
+
+        await request(app)
+            .put("/api/sessions/checkpoint")
+            .set("X-LUDUS-Checkpoint-Key", chave)
+            .send(checkpoint)
+            .expect(200);
+
+        const aposReenvio = await Session.findOne({
+            sessionId: checkpoint.sessionId,
+        }).lean();
+        assert.equal(aposReenvio.screenshots.length, 1);
+        assert.equal(
+            aposReenvio.screenshots[0].caminho,
+            parcial.screenshots[0].caminho,
+        );
+
+        await request(app)
+            .post("/api/sessions")
+            .set("X-LUDUS-Checkpoint-Key", chave)
+            .send({
+                ...checkpoint,
+                status: "completed",
+                endedAt: "2026-07-27T20:50:19.625Z",
+                durationMs: 1800,
+            })
+            .expect(201);
+
+        const concluida = await Session.findOne({
+            sessionId: checkpoint.sessionId,
+        }).lean();
+        assert.equal(concluida.status, "completed");
+        assert.equal(concluida.screenshots.length, 1);
+        assert.equal(
+            concluida.screenshots[0].caminho,
+            parcial.screenshots[0].caminho,
+        );
+    } finally {
+        if (caminhoCompleto && fs.existsSync(caminhoCompleto)) {
+            fs.unlinkSync(caminhoCompleto);
+        }
+    }
+});
+
 test("recebe JPEG do SDK, persiste a referencia e protege a leitura", async () => {
     const { professoraA, professoraB, alunoA } = await criarCenarioEscolar();
     const sessaoWebgl = sessaoSdkWebglDeTeste(alunoA);

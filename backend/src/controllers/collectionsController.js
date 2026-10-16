@@ -23,6 +23,8 @@ const {
     buscarSessaoDuplicadaImportada,
     registrarJogoEAssociarAluno,
     salvarSessaoNormalizada,
+    combinarScreenshotsIncrementais,
+    removerArquivosCriados,
 } = require("./sessionsController");
 const {
     ErroValidacaoTelemetria,
@@ -705,19 +707,65 @@ const prepararSessaoSdkResolvida = (dados, aluno) => ({
     ingestionMethod: "direct-api",
 });
 
+const calcularDigestRecebimentoSdk = (dados) => {
+    const capturasComparaveis = Array.isArray(dados?.screenshots)
+        ? dados.screenshots.map((captura) => {
+              const {
+                  screenshotBase64: _screenshotBase64,
+                  caminho: _caminho,
+                  ...metadados
+              } = captura || {};
+              return metadados;
+          })
+        : [];
+
+    return calcularDigestSessao(
+        prepararSessaoParaExportacao({
+            ...dados,
+            screenshots: capturasComparaveis,
+        }),
+    );
+};
+
 const salvarRecebimentoSdkPendente = async ({
     coleta,
     participante,
     dados,
     submissionKind,
 }) => {
-    const payloadCanonico = prepararSessaoParaExportacao(dados);
-    const digest = calcularDigestSessao(payloadCanonico);
     let recebimento = await SdkCollectionSubmission.findOne({
         collectionRef: coleta._id,
         participantRef: participante._id,
         sessionId: dados.sessionId,
     });
+
+    if (recebimento?.status === "imported") {
+        return { recebimento, criado: false };
+    }
+    if (recebimento?.submissionKind === "completed") {
+        if (
+            submissionKind === "completed" &&
+            calcularDigestRecebimentoSdk(recebimento.sessionPayload) !==
+                calcularDigestRecebimentoSdk(dados)
+        ) {
+            throw criarErroEnvioSdk(
+                "Uma sessão concluída com este identificador já foi recebida com outro conteúdo.",
+                409,
+            );
+        }
+        return { recebimento, criado: false };
+    }
+
+    const resultadoScreenshots = combinarScreenshotsIncrementais(
+        recebimento?.sessionPayload?.screenshots || [],
+        dados.screenshots || [],
+        dados.sessionId,
+    );
+    const payloadCanonico = prepararSessaoParaExportacao({
+        ...dados,
+        screenshots: resultadoScreenshots.capturasProcessadas,
+    });
+    const digest = calcularDigestSessao(payloadCanonico);
 
     if (!recebimento) {
         try {
@@ -730,14 +778,22 @@ const salvarRecebimentoSdkPendente = async ({
                 sessionPayload: payloadCanonico,
                 submissionKind,
             });
-            return { recebimento, criado: true };
+            return {
+                recebimento,
+                criado: true,
+                dadosPersistidos: payloadCanonico,
+            };
         } catch (erro) {
+            removerArquivosCriados(resultadoScreenshots.arquivosCriados);
             if (erro?.code !== 11000) throw erro;
             recebimento = await SdkCollectionSubmission.findOne({
                 collectionRef: coleta._id,
                 participantRef: participante._id,
                 sessionId: dados.sessionId,
             });
+            if (recebimento) {
+                return { recebimento, criado: false };
+            }
         }
     }
 
@@ -747,27 +803,21 @@ const salvarRecebimentoSdkPendente = async ({
             409,
         );
     }
-    if (recebimento.status === "imported") {
-        return { recebimento, criado: false };
-    }
-    if (recebimento.submissionKind === "completed") {
-        if (
-            submissionKind === "completed" &&
-            recebimento.payloadDigest !== digest
-        ) {
-            throw criarErroEnvioSdk(
-                "Uma sessão concluída com este identificador já foi recebida com outro conteúdo.",
-                409,
-            );
-        }
-        return { recebimento, criado: false };
-    }
 
-    recebimento.payloadDigest = digest;
-    recebimento.sessionPayload = payloadCanonico;
-    recebimento.submissionKind = submissionKind;
-    await recebimento.save();
-    return { recebimento, criado: false };
+    try {
+        recebimento.payloadDigest = digest;
+        recebimento.sessionPayload = payloadCanonico;
+        recebimento.submissionKind = submissionKind;
+        await recebimento.save();
+        return {
+            recebimento,
+            criado: false,
+            dadosPersistidos: payloadCanonico,
+        };
+    } catch (erro) {
+        removerArquivosCriados(resultadoScreenshots.arquivosCriados);
+        throw erro;
+    }
 };
 
 const marcarRecebimentoSdkImportado = async (
@@ -818,8 +868,6 @@ const receberCheckpointSdkPareado = async (req, res) => {
             participante,
             "in_progress",
         );
-        dados.screenshots = [];
-
         if (participante.resolutionStatus !== "resolved" || !participante.studentId) {
             const { recebimento } = await salvarRecebimentoSdkPendente({
                 coleta,
@@ -854,7 +902,7 @@ const receberCheckpointSdkPareado = async (req, res) => {
         await salvarRecebimentoSdkPendente({
             coleta,
             participante,
-            dados,
+            dados: checkpoint.toObject(),
             submissionKind: "checkpoint",
         });
 
@@ -906,12 +954,6 @@ const receberSessaoSdkPareada = async (req, res) => {
             );
         }
         const dadosResolvidos = prepararSessaoSdkResolvida(dados, aluno);
-        await salvarRecebimentoSdkPendente({
-            coleta,
-            participante,
-            dados,
-            submissionKind: "completed",
-        });
         let sessao = await Session.findOne({
             sessionId: dadosResolvidos.sessionId,
         }).select("+checkpointKeyHash");
@@ -938,6 +980,13 @@ const receberSessaoSdkPareada = async (req, res) => {
             });
             criado = true;
         }
+
+        await salvarRecebimentoSdkPendente({
+            coleta,
+            participante,
+            dados: sessao.toObject(),
+            submissionKind: "completed",
+        });
 
         await registrarJogoEAssociarAluno({
             usuarioId: coleta.ownerUserId,

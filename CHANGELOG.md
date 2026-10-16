@@ -9,6 +9,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ### Documentação, privacidade e qualidade
 
+- a documentação recebe o tutorial em vídeo da Etapa 2, explica a seleção de
+  cenas pelo Build Profiles e permite revisar essa seleção a qualquer momento;
+  os READMEs do dashboard e do SDK passam a refletir o mesmo fluxo;
+- capturas visuais passam a ser aceitas e persistidas também nos checkpoints
+  da coleta, sem duplicar imagens na conclusão da sessão; o painel de detalhes
+  do mapa mantém dimensões estáveis e o hover agrupa a trajetória por recorte
+  para preservar o destaque sem redesenhos assíncronos sucessivos;
 - o fluxo de coletas do laboratório passa a criar automaticamente o aluno
   fictício quando o nome ainda não existe, exigir pelo menos duas partes no
   nome e oferecer atalhos diretos para o perfil ou para o último progresso

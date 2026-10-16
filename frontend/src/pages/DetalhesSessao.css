@@ -544,7 +544,10 @@
 
 .heatmap-detalhe-semantico {
     display: grid;
-    min-height: 4.6rem;
+    height: 6.25rem;
+    box-sizing: border-box;
+    align-content: center;
+    overflow-y: auto;
     gap: 0.3rem;
     margin-top: 0.7rem;
     padding: 0.75rem 0.85rem;
@@ -663,6 +666,11 @@
 
     .heatmap-detalhe-topo > span {
         white-space: normal;
+    }
+
+    .heatmap-detalhe-semantico {
+        height: auto;
+        min-height: 6.25rem;
     }
 }
 
@@ -905,7 +913,10 @@
 .mapa-ampliado-detalhe {
     display: grid;
     gap: 0.18rem;
-    min-height: 3.2rem;
+    height: 4.4rem;
+    box-sizing: border-box;
+    align-content: center;
+    overflow-y: auto;
     padding: 0.52rem 1rem;
     border-top: 1px solid var(--cor-borda);
     background: var(--cor-card);
@@ -1076,6 +1087,8 @@
     }
 
     .mapa-ampliado-detalhe {
+        height: auto;
+        min-height: 4.4rem;
         gap: 0.08rem;
         padding: 0.45rem 0.65rem;
     }

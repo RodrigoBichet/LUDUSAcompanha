@@ -24,6 +24,26 @@ Para preparar a validação da integração por terceiros, consulte o
 Ele é um rascunho metodológico para alinhamento com os orientadores, não um
 formulário final nem evidência de avaliação já realizada.
 
+## Documentação do LUDUS Unity SDK
+
+A integração do jogo Unity ao Dashboard está organizada em três etapas na
+[documentação visual do LUDUS Acompanha](https://acompanha.maisludus.com.br/documentacao):
+
+1. **Conectar e visualizar:** instala o pacote, conecta o jogo a uma coleta e
+   apresenta o primeiro resultado no Dashboard;
+2. **Dar contexto ao mapa:** escolhe as cenas que podem fornecer uma imagem de
+   fundo para cliques, movimentos e arrastes;
+3. **Integrar regras do jogo:** acrescenta eventos que somente o próprio jogo
+   conhece, como acertos, erros, fases e metas.
+
+Tutoriais principais:
+
+- [Etapa 1 — do pacote ao primeiro resultado no Dashboard](https://acompanha.maisludus.com.br/documentacao/videos/tutorial-etapa-simples.mp4);
+- [Etapa 2 — adicione a tela do jogo ao mapa da atividade](https://acompanha.maisludus.com.br/documentacao/videos/tutorial-etapa-2.mp4).
+
+O SDK e sua referência em texto estão no repositório
+[`RodrigoBichet/LUDUS-Unity-SDK`](https://github.com/RodrigoBichet/LUDUS-Unity-SDK).
+
 A política pública geral do projeto cobre cadastro, dashboard, SDK LUDUS e
 LUDUS Observa. Ela pode ser conferida localmente em `/privacidade`, sem
 autenticação. A política específica do capturador observacional continua
